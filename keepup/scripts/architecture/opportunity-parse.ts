@@ -131,6 +131,7 @@ export function parseOpportunity(value: unknown): OpportunityInput {
               "independentPolicySites",
               "violations",
               "transitions",
+              "cyclicGroups",
             ]),
           },
     relevance: nullableText(input.relevance),

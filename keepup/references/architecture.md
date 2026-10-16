@@ -480,3 +480,25 @@ possible evidence but cannot substitute for one another. Reviewed scores never e
 learner understanding, grant quiz credit or enter file-health averages. Comparison freezes
 question identities, exact wording, owners and module membership; a different question
 cannot conceal missing evidence or establish an improvement.
+
+For a cycle-specific opportunity, set `rawTarget.metric` to `cyclicGroups` and link
+an automated seam assessment with an explicit cycle policy. Its baseline counts
+prohibited logical module groups independently of edge-policy findings. Removing
+an unrelated forbidden edge can reduce total `violations` while leaving the cycle
+target unchanged. An assessment without a cycle policy has no cycle-count evidence;
+the opportunity remains assessment work rather than inventing a zero baseline.
+Keep the named policy, subject inventory and selected cycle evidence fixed when
+starting an exercise. Opportunity recording still does not start an exercise.
+
+
+Static coverage also treats recognized indirect Node loader and generated-code
+sites as opaque. This includes `module.require`, escaped/aliased `require` values,
+`createRequire` factories/import aliases, `eval`, and `Function`/`new Function`.
+Known member names (including literal bracket access) are treated conservatively;
+local shadowing or unused loader references can therefore require manual review.
+The CLI marks these sites partial with source locations instead of interpreting
+code strings or inventing resolved dependencies. Direct literal `require(...)`
+and static imports remain supported. This check does not resolve arbitrary aliases,
+computed property names or arbitrary user-defined loader functions; those remain
+outside the supported static model. Visible dynamic mechanisms cannot establish
+complete exercise coverage simply because the graph contains no destination.

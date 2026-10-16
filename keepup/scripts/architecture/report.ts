@@ -113,7 +113,7 @@ export function architectureReport(
 ): ArchitectureReportResult {
   return writeArchitectureReport(
     state,
-    result.assessment.id,
+    `assessment-${result.assessment.id}`,
     "Architecture assessment",
     architectureText(result),
     JSON.stringify(result, null, 2),

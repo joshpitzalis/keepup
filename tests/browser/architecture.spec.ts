@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { copyFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { expect, test } from "./fixtures.ts";
@@ -159,6 +159,8 @@ test("comparison keeps a historical baseline distinct from current evidence", as
     "--no-open"
   );
 
+  // A valid assessment ID must not overwrite another kind of generated report.
+  report(reportRoot, basename(result.path, ".html"), 1);
   copyFileSync(result.path, join(reportRoot, "report.html"));
   await page.goto("/report.html");
   await expect(

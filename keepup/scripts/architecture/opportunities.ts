@@ -52,7 +52,8 @@ export interface OpportunityInput {
       | "avoidableObligations"
       | "independentPolicySites"
       | "violations"
-      | "transitions";
+      | "transitions"
+      | "cyclicGroups";
     readonly goal: number;
   } | null;
   readonly scope: readonly string[];
@@ -136,6 +137,10 @@ function rawValue(
     measurements.violations >= 0
   ) {
     return measurements.violations;
+  }
+
+  if (metric === "cyclicGroups" && "cyclicGroups" in measurements) {
+    return measurements.cyclicGroups ?? null;
   }
 
   if (metric === "transitions" && "transitions" in measurements) {
