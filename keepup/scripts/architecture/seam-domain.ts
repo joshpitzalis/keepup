@@ -53,6 +53,7 @@ export interface DependencyEdge {
   readonly dynamic: boolean;
   readonly typeOnly: boolean;
   readonly reexport: boolean;
+  readonly opaqueExport?: true;
   readonly line: number | null;
 }
 

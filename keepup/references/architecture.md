@@ -119,6 +119,20 @@ Explicitly declaring an exported implementation as interface changes the contrac
 and requires a fresh assessment/comparison inventory. This deliberately strict file
 policy does not judge which exported operations constitute a good interface.
 
+The pinned compiler marks local named/default exports and exported value
+expressions involving imported or local bindings as unsupported identity flow.
+When such a file forms an intended interface and imports its own module's private
+implementation, coverage becomes partial with `Opaque exported binding`; a zero
+finding count cannot prove a repair. This covers alias chains, mutable aliases,
+namespace/destructured values and CommonJS export assignments conservatively.
+It does not infer re-export findings or follow runtime identity. Public-binding
+forwarding and ordinary caller exports remain supported. Function/arrow wrappers
+that use private implementation in their bodies remain supported, as do unrelated
+literal/global factory expressions such as `Math.max(1, 2)`. Local named exports
+can require manual review even when forwarding a harmless value. Reflective
+exports, mutations through objects and arbitrary custom loaders remain outside
+this static model.
+
 Each finding includes source file, line (when located), destination and rule. Raw
 violation counts remain targets. Eligible edges count known cross-module
 source/destination dependency relationships; more allowed relationships cannot
