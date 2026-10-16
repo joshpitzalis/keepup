@@ -355,8 +355,8 @@ and are never healthy defaults. Revisit a stale opportunity against new evidence
 inspection does not rerun evaluators or silently update its original decision.
 
 Recommendations do not start exercises. The [opt-in prepare/start workflow](architecture-exercise.md)
-can freeze an eligible seam repair; submission remains pending until objective
-assessment is available. A recommendation grants no exposure, practice,
+supports a frozen existing-file seam repair, fresh objective checks and actual
+post-quiz/explain-back before internally recorded practice. A recommendation grants no exposure, practice,
 understanding or delayed retention evidence. The learner owns all code and test edits.
 
 ## Behavioural testability

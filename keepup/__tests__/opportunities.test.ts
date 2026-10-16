@@ -156,7 +156,7 @@ test("mission-relevant bounded opportunities retain evidence and qualitative rea
   assert.equal(result.strength, "strong");
   assert.equal(result.target.baseline, 1);
   assert.equal(result.target.goal, 0);
-  assert.equal(result.exerciseAvailable, false);
+  assert.equal(result.exerciseAvailable, true);
 
   const inspected = run(
     root,
@@ -253,7 +253,7 @@ test("opportunity rehearsals defer speculative and conflicting work, prepare tes
 
     assert.equal(result.decision, example.decision);
     assert.match(result.reasons.join(" "), example.reason);
-    assert.equal(result.exerciseAvailable, false);
+    assert.equal(result.exerciseAvailable, true);
 
     if (example.input.id === "speculative") {
       assert.equal(result.strength, "speculative");

@@ -59,11 +59,11 @@ The resolved existing learning-state directory includes legacy `.cogdebt` instal
   Stale/incomplete/unsafe proposals become assessment/preparation/defer; no useful work
   is valid. No invented relevance, activity engine, test execution or learning credit.
 
-## Exercise start
+## Exercises
 
 - `exercise-domain.ts`/`exercise-parse.ts` define strict existing-file contracts.
   `exercises.ts` orchestrates prepare → actual linked pre-quiz → start, explicit
-  abandonment and provisional submission-pending. Learner owns every source/test edit.
+  abandonment, objective assessment and accepted completion. Learner owns every edit.
 - `exercise-evidence.ts` freezes complete source/untracked inventories, definitions,
   runtime/environment hashes and exact installed host/handler/package/reference bytes.
   Recheck HEAD, bytes, command and environment after quiz and test execution.
@@ -80,5 +80,16 @@ The resolved existing learning-state directory includes legacy `.cogdebt` instal
   globally per shared source tree prevents cross-learner collisions without altering history.
 - Actual pre-quiz IDs use a preparation-specific prefix through supported `log` only;
   snapshots/learner/concepts/commit must match. No new event schema or fabricated answers.
-  Start/report grant no practice; pending submission cannot claim a pass or retention.
+  Start/report/pending grant no practice. Pass requires actual different post questions,
+  explain-back and explicit frozen invariant/validation review; later checks stay separate.
   Additions/deletions/membership changes remain unavailable until explicit reshaping.
+- `exercise-candidate.ts` checks every changed path, frozen test bytes, linear learner
+  commits, actual file attribution, source/index modes and stability; additions require mapping.
+- `exercise-submit.ts`/`exercise-submit-parse.ts` preserve failed/objective/accepted
+  attempts, require complete unchanged suite/witnesses and fresh frozen-rule analysis.
+  Every selected guardrail gates independently. `exercise-advisory.ts` reports captured
+  compatible reviewed movement or unassessed dimensions without automatic re-rating.
+- Per-completion acceptance precedes the existing internal supported event writer;
+  one deterministic `architecture_pass` is authoritative closure/practice only for
+  attributable changed files. Public pass logging is rejected. Interrupted acceptance
+  stays active for retry/new work; shared lock converges concurrent completion.

@@ -29,8 +29,41 @@ import type {
   QuizAnswer,
   QuizAnswers,
   QuizPhase,
+  EventWithArchitecturePass,
   ShownDepth,
 } from "./types.ts";
+
+export function parseArchitecturePass<T extends EventType>(
+  event: EventWithKataSubmit<T>
+): EventWithArchitecturePass<T> {
+  if (event.type !== "architecture_pass") {
+    // SAFETY: Non-architecture events retain their existing parsed shape.
+    return event as EventWithArchitecturePass<T>;
+  }
+
+  const { exerciseId, attemptId, evidenceDigest, acceptanceId } = event;
+
+  if (
+    typeof acceptanceId !== "string" ||
+    !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/u.test(acceptanceId) ||
+    typeof exerciseId !== "string" ||
+    !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/u.test(exerciseId) ||
+    typeof attemptId !== "string" ||
+    !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/u.test(attemptId) ||
+    typeof evidenceDigest !== "string" ||
+    !/^[a-f0-9]{64}$/u.test(evidenceDigest)
+  ) {
+    throw new Error("Invalid immutable architecture practice reference");
+  }
+
+  // SAFETY: Every dedicated architecture pass field was parsed above.
+  return {
+    ...event,
+    attemptId,
+    evidenceDigest,
+    exerciseId,
+  } as EventWithArchitecturePass<T>;
+}
 
 export const parseEventType = (value: unknown): EventType => {
   if (typeof value === "string" && Object.hasOwn(eventFields, value)) {

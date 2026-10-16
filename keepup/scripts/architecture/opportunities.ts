@@ -86,7 +86,7 @@ export interface ArchitectureOpportunity {
   } | null;
   readonly reasons: readonly string[];
   readonly missingDimensions: readonly string[];
-  readonly exerciseAvailable: false;
+  readonly exerciseAvailable: boolean;
   readonly assessments: readonly ArchitectureInspection[];
   readonly contextDocuments: readonly {
     readonly path: string;
@@ -176,7 +176,7 @@ export function readOpportunity(
     !Array.isArray(result.observation.manifest) ||
     !Array.isArray(result.observation.assets) ||
     !Array.isArray(result.assessments) ||
-    result.exerciseAvailable !== false ||
+    typeof result.exerciseAvailable !== "boolean" ||
     !Number.isFinite(Date.parse(result.observation.time)) ||
     typeof result.observation.observer !== "string" ||
     !/^[a-f0-9]{64}$/u.test(result.observation.configHash) ||
@@ -503,7 +503,7 @@ export function recordOpportunity(
         : []
     ),
     decision,
-    exerciseAvailable: false,
+    exerciseAvailable: true,
     id: input.id,
     input,
     inputDigest,
@@ -595,7 +595,7 @@ function opportunityText(
     `Raw target: ${JSON.stringify(record.target)}`,
     `Missing dimensions: ${record.missingDimensions.join(", ") || "none"}`,
     ...record.reasons.map((reason) => `Readiness: ${reason}`),
-    "Complete architecture assessment/practice unavailable in this phase; opt-in exercise prepare/start is separate. Recommendation grants no exposure, practice or understanding.",
+    "Opt-in existing-file exercise prepare/start/assess/complete is separate; a recommendation never starts it or grants exposure, practice or understanding. Workflow availability is captured at opportunity recording.",
     "Test readiness is reviewed evidence; this command does not execute tests.",
     JSON.stringify(record, null, 2),
   ].join("\n");

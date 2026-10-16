@@ -10,6 +10,7 @@ export interface ExerciseHost {
   readonly config: () => { readonly testCommand: string | null };
   readonly now: () => string;
   readonly locked: <T>(action: () => T) => T;
+  readonly practice?: (exerciseId: string, acceptanceId: string) => StoredEvent;
 }
 
 export type ExerciseTarget =
@@ -52,6 +53,14 @@ export interface ExercisePreparationInput {
 }
 
 export interface ExerciseInventory {
+  readonly sourceModes?: readonly {
+    readonly path: string;
+    readonly executable: boolean | null;
+  }[];
+  readonly indexModes?: readonly {
+    readonly path: string;
+    readonly mode: string;
+  }[];
   readonly revision: string | null;
   readonly manifest: readonly ManifestEntry[];
   readonly untracked: readonly ManifestEntry[];
@@ -126,5 +135,75 @@ export interface ArchitectureExercise {
   readonly start: ExerciseStart | null;
   readonly abandonment: ExerciseLifecycle | null;
   readonly submissions: readonly ExerciseLifecycle[];
-  readonly state: "prepared" | "active" | "submission-pending" | "abandoned";
+  readonly attempts: readonly ExerciseAttempt[];
+  readonly pass: StoredEvent | null;
+  readonly state:
+    | "prepared"
+    | "active"
+    | "submission-pending"
+    | "abandoned"
+    | "passed";
+}
+
+export interface ExerciseAssessmentInput {
+  readonly id: string;
+  readonly exerciseId: string;
+  readonly reason: string;
+  readonly attribution: readonly {
+    readonly file: string;
+    readonly author: "learner" | "agent" | "unresolved";
+  }[];
+}
+
+export interface ExerciseCompletionInput {
+  readonly id: string;
+  readonly exerciseId: string;
+  readonly attemptId: string;
+  readonly postQuizIds: readonly string[];
+  readonly explainId: string;
+  readonly invariantReview: readonly {
+    readonly invariant: string;
+    readonly preserved: boolean;
+    readonly evidence: string;
+  }[];
+}
+
+export interface ExerciseAttempt {
+  readonly schemaVersion: 1;
+  readonly input: ExerciseAssessmentInput;
+  readonly inputDigest: string;
+  readonly learner: string;
+  readonly time: string;
+  readonly quizPrefix: string;
+  readonly status: "failed" | "awaiting-learning";
+  readonly inventory: ExerciseInventory;
+  readonly indexHash: string;
+  readonly changedFiles: readonly string[];
+  readonly commits: readonly string[];
+  readonly errors: readonly string[];
+  readonly assessment: ArchitectureAssessment | null;
+  readonly tests: ExerciseTestRun | null;
+  readonly target: {
+    readonly baseline: number;
+    readonly current: number | null;
+    readonly goal: number;
+  };
+  readonly guardrails: readonly {
+    readonly ruleId: string;
+    readonly kind: SeamFinding["kind"];
+    readonly baseline: number;
+    readonly current: number;
+  }[];
+  readonly advisory: readonly string[];
+}
+
+export interface ExerciseAcceptance {
+  readonly schemaVersion: 1;
+  readonly input: ExerciseCompletionInput;
+  readonly inputDigest: string;
+  readonly learner: string;
+  readonly time: string;
+  readonly attempt: ExerciseAttempt;
+  readonly postQuizzes: readonly StoredEvent[];
+  readonly explanation: StoredEvent;
 }
