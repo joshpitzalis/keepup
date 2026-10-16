@@ -31,6 +31,7 @@ import {
 import { fileURLToPath } from "node:url";
 
 import { architectureCommand } from "./architecture/commands.ts";
+import { hasOpenArchitectureExercise } from "./architecture/exercise-storage.ts";
 import { parseEvent } from "./handlers/parse-event.ts";
 import type { EventType, EventWithKataSubmit } from "./handlers/types.ts";
 
@@ -525,6 +526,12 @@ function logEvent(value: unknown) {
       }
 
       return previous;
+    }
+
+    if (input.type === "kata_start" && hasOpenArchitectureExercise(state)) {
+      throw new Error(
+        "An architecture exercise context is active in this shared source tree; explicitly abandon or complete it before another kata"
+      );
     }
 
     const scope = scopedFiles();
@@ -1386,7 +1393,16 @@ try {
   if (command === "init") {
     console.log(JSON.stringify(initialize()));
   } else if (command === "architecture") {
-    console.log(architectureCommand(root, state, process.argv.slice(3)));
+    console.log(
+      architectureCommand(root, state, process.argv.slice(3), {
+        config: readConfig,
+        events: readEvents,
+        files: scopedFiles,
+        learner,
+        locked: withLock,
+        now,
+      })
+    );
   } else if (command === "log") {
     console.log(JSON.stringify(logEvent(JSON.parse(process.argv[3] ?? ""))));
   } else if (command === "status") {

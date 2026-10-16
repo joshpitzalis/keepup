@@ -1,96 +1,84 @@
-# Architecture assessments
+# Architecture assessments and exercises
 
-## Problem
+## Problem and boundary
 
-A file health score cannot show which implementation knowledge callers must manage.
-Learners need inspectable evidence for a logical module, with reviewed judgements
-kept separate from learning events and automatic file scores.
+File health cannot describe architectural friction or prove learner understanding.
+Keep five independent dimensions, condition/readiness/priority and learning evidence
+separate. No composite grade, automatic refactoring, rewritten history or hosted service.
+The resolved existing learning-state directory includes legacy `.cogdebt` installations.
 
-## Solution
+## Shared evidence and presentation
 
-The CLI records a fixed scenario inventory and module definition as an immutable,
-versioned observation. It computes the experimental interface-leverage average and
-shows raw domain/avoidable obligations, review provenance and missing evidence.
+- `commands.ts` connects explicit local CLI operations; reads never rerun evaluators/tests.
+- `domain.ts` names records and measurements; `parse.ts`/`parse-common.ts` reconstruct inputs.
+- `storage.ts` captures tracked source/callers/tests plus evaluator/tool assets as exact
+  snapshots, publishes immutable versioned observations and checks integrity/freshness.
+- Conservative source coverage makes supporting changes/additions/deletions stale;
+  old observations remain historical. Atomic hard-link publication converges identical
+  retries, rejects conflicts, and leaves unpublished temporary files harmless.
+- `report.ts` provides matching text/JSON and script-free keyboard-accessible HTML,
+  escaping captured source/rubric bytes. Reports are derived, never learning targets.
+- Empty/unassessable inventories are unavailable/not-applicable, never perfect scores.
+  Reviewed judgements retain provenance, disagreements, coverage and limitations.
 
-Exact-byte snapshots capture all tracked repository files outside learning state,
-plus evaluator assets. This deliberately conservative inventory prevents omitted
-callers and tests from silently remaining fresh. Any tracked-file addition/removal,
-byte change, or changed rubric/evaluator asset makes the observation stale.
-Historical snapshots remain intact; inspections never evaluate code or run tests.
+## Dimensions
 
-### How the files fit
+- Interface leverage: reviewed fixed scenario ratings plus raw domain/avoidable caller
+  obligations. `interface-leverage-rubric.md` fixes the experimental judgement rules;
+  no line-count proxy or catch-all API automatically proves depth.
+- `locality.ts`: confirmed domain-rule sites counted independently, including multiple
+  sites in one file; calls to shared implementations do not inflate counts. Owner
+  scenarios stay separate. `change-locality-rubric.md` preserves necessary repeated
+  trust-boundary validation; proposed/unclear equivalence and missing evidence stay visible.
+- `seam-domain.ts`/`seam-parse.ts`: declared modules, interfaces and dependency policies.
+  `analyser.ts` owns pinned dependency-cruiser/compiler coverage; JSON config fixes
+  resolution. `seams.ts` evaluates acquired graph edges. Tool/resolver bytes are
+  archived and checked without executing during reads. Opaque/unresolved/dynamic
+  paths produce visible partial coverage; raw violations remain separate from edge counts.
+- `cycles.ts`: one prohibited SCC per selected runtime/type policy; deterministic closed
+  evidence walk covers each member. Exact exceptions remain visible. Optional fields
+  preserve old canonical bytes. Partial graphs never prove freedom; repeated reachability
+  intentionally serves small local module inventories.
+- `testability.ts`/`testability-run.ts`: reviewed fixed scenarios and existing exact
+  top-level Node case execution, protected inside capture. Retain observable assertions,
+  justified dependency strategies and necessary production compatibility checks. Gaps,
+  failures, skips and unavailable discovery stay distinct; rubric grants no learning.
+- `navigability.ts`/`navigability-parse.ts`: fixed comprehension questions and necessary
+  implementation-module transitions. Hidden helpers/accidental browsing add none;
+  incomplete/ambiguous trails or obscured readability remain unavailable. Rubric,
+  naming issues and reviewer disagreement stay inspectable.
 
-- `commands.ts` connects architecture operations to the existing CLI.
-- `domain.ts` names the input, observation, measurements and inspection contracts.
-- `parse.ts` reconstructs accepted JSON at the trust boundary.
-- `storage.ts` captures evidence, publishes complete observations, checks retries and freshness.
-- `report.ts` presents the same facts as text and script-free accessible HTML.
-- Reports expose declared evidence and the versioned rubric from archived snapshots;
-  native details keep historical source inspectable by keyboard without executing it.
-- `interface-leverage-rubric.md` publishes the fingerprinted experimental judgement rules.
+## Comparison and opportunities
 
-## No-gos & known complexities
+- `comparison.ts` reads captured observations; freezes logical subjects/membership,
+  inventories, rules/exceptions, questions and evaluator versions. Changed definitions
+  are incomparable; missing values/dimensions remain unavailable, never zero. Raw
+  counts/per-item evidence prevent aggregate or denominator dilution from hiding findings.
+- `opportunities.ts`/`opportunity-parse.ts` record bounded qualitative recommendations,
+  supplied mission/change context, source evidence, raw targets, risks and stop conditions.
+  Stale/incomplete/unsafe proposals become assessment/preparation/defer; no useful work
+  is valid. No invented relevance, activity engine, test execution or learning credit.
 
-- No composite architecture grade and no changes to ordinary kata/event histories.
-- Scores depend on reviewer rationale; the CLI cannot prove semantic depth.
-- Atomic hard-link publication makes identical concurrent retries converge; conflicting
-  input fails. Unpublished temporary files and orphan snapshots remain harmless.
-- All evidence references must name tracked regular files. Incomplete scenario evidence
-  yields unavailable results, never a healthy default.
-- Capture/inspection costs scale with tracked repository bytes. Untracked material
-  cannot support a claim until explicitly tracked. Automated JS/TS seam analysis runs only on explicit `analyse` requests.
+## Exercise start
 
-## Automated seam integrity
-
-`seam-domain.ts` names explicit modules, dependency policies, raw graph evidence and
-findings. `seam-parse.ts` reconstructs definitions; shared JSON fields live in
-`parse-common.ts`. `analyser.ts` owns the pinned dependency-cruiser process and
-compiler AST coverage/locations; `dependency-cruiser.json` fixes supported resolution.
-`seams.ts` evaluates public-only/forbidden policies without parsing a language.
-Graph metadata can only enter through the CLI-owned evaluator inside source capture.
-Tool assets and transitive resolver implementation are snapshotted and checked for
-freshness without executing analysis during reads. Raw violations remain distinct
-from eligible-edge denominators; unavailable/partial coverage never reports healthy.
-
-
-`comparison.ts` compares captured observations without evaluating code. It freezes
-module/interface/membership, representative inventory, exclusions and evaluator
-assets; returns explicit incompatibility and null deltas for unavailable evidence.
-Both sides retain raw facts, limitations, provenance and separate freshness labels.
-`compare` and `compare-report` expose the same facts through CLI and escaped HTML.
-Change locality extends the same record path with a fixed confirmed domain-rule inventory.
-`locality.ts` counts independent evidence-backed policy sites, excluding calls to shared
-implementations; ownership scenarios remain separate. Missing sites/evidence stay unavailable.
-`change-locality-rubric.md` publishes the fingerprinted experimental rule and trust-boundary
-caution. Proposed/unclear equivalence, disagreements and exclusions remain visible. Consolidation
-can improve locality; file merging cannot. Necessary repeated trust-boundary validation remains.
-
-`cycles.ts` collapses the acquired graph to declared logical modules, selects the
-explicit runtime/type policy and counts one prohibited strongly connected group.
-Deterministic closed evidence walks cover every member with actual file edges;
-exact group exceptions remain visible without removing edges. Optional cycle
-input/analysis/measurements preserve pre-cycle seam record canonical bytes when
-omitted. The comparator freezes cycle policy/exceptions and exposes raw group deltas.
-Partial graphs never establish cycle freedom. Repeated reachability intentionally
-serves small local module inventories.
-
-
-`opportunities.ts` records immutable versioned bounded recommendations, supplied
-mission/change context and captured documents. CLI-owned raw baselines and visible
-readiness reasons route unsafe proposals to assessment/preparation/defer; none is
-valid. `opportunity-parse.ts` rejects protected metadata before capture. Shared
-publication/snapshot helpers preserve retries, concurrency and provenance.
-Reports remain derived; opportunities never execute tests or write learning credit.
-
-Behavioural testability uses `testability.ts` for reviewed fixed scenarios and qualification,
-and `testability-run.ts` to execute existing exact top-level Node test cases inside the
-source-capture boundary. Protected execution results retain command/output/environment;
-inspection never reruns. Gaps, failures, skips and unavailable discovery stay distinct.
-Production compatibility checks remain necessary for owned/true external dependencies.
-The versioned testability rubric grants no learner evidence or overall correctness claim.
-
-Navigability uses `navigability.ts` for reviewed sufficient comprehension trails and raw
-implementation-module transitions, plus `navigability-parse.ts` for its input boundary.
-`navigability-rubric.md` fixes the experimental count. Incomplete/ambiguous trails and
-obscured readability stay unavailable; private helpers and accidental browsing do not
-inflate counts. Questions/owners freeze comparisons; naming disagreements stay visible.
+- `exercise-domain.ts`/`exercise-parse.ts` define strict existing-file contracts.
+  `exercises.ts` orchestrates prepare → actual linked pre-quiz → start, explicit
+  abandonment and provisional submission-pending. Learner owns every source/test edit.
+- `exercise-evidence.ts` freezes complete source/untracked inventories, definitions,
+  runtime/environment hashes and exact installed host/handler/package/reference bytes.
+  Recheck HEAD, bytes, command and environment after quiz and test execution.
+- `exercise-tests.ts` runs the unchanged existing explicit Node TAP suite: positive
+  completed checks, all passing, no skipped/cancelled/todo. Additional reused exact
+  file/name witnesses prevent decoy cases; they never replace the full suite.
+  Wrappers/globs/filters/other runners are unavailable; full runs bound120s/10MB,
+  witnesses30s. No trivial passing command can stand in for behavioural validation.
+- Targets count the entire frozen edge rule, or prohibited SCCs intersecting original
+  subjects. Endpoint rerouting/re-exports and expanded/split cycles cannot erase targets.
+  Selected structural guardrails retain independent raw baselines; reviewed grades advise.
+- `exercise-storage.ts` publishes immutable preparation/start/lifecycle records under
+  the existing shared writer lock. One open ordinary kata or architecture context
+  globally per shared source tree prevents cross-learner collisions without altering history.
+- Actual pre-quiz IDs use a preparation-specific prefix through supported `log` only;
+  snapshots/learner/concepts/commit must match. No new event schema or fabricated answers.
+  Start/report grant no practice; pending submission cannot claim a pass or retention.
+  Additions/deletions/membership changes remain unavailable until explicit reshaping.

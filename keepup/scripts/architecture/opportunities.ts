@@ -590,7 +590,7 @@ function opportunityText(
     `Raw target: ${JSON.stringify(record.target)}`,
     `Missing dimensions: ${record.missingDimensions.join(", ") || "none"}`,
     ...record.reasons.map((reason) => `Readiness: ${reason}`),
-    "Architecture exercises unavailable in this phase. Recommendation grants no exposure, practice or understanding.",
+    "Complete architecture assessment/practice unavailable in this phase; opt-in exercise prepare/start is separate. Recommendation grants no exposure, practice or understanding.",
     "Test readiness is reviewed evidence; this command does not execute tests.",
     JSON.stringify(record, null, 2),
   ].join("\n");

@@ -9,7 +9,7 @@ import type {
   TestExecution,
 } from "./testability.ts";
 
-function executeTest(root: string, test: ExistingTest): TestExecution {
+export function executeTest(root: string, test: ExistingTest): TestExecution {
   const escaped = test.name.replaceAll(/[.*+?^${}()|[\]\\]/gu, "\\$&");
 
   const args = [
