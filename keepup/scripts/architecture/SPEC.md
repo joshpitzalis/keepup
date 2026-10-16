@@ -57,7 +57,7 @@ The resolved existing learning-state directory includes legacy `.cogdebt` instal
 - `opportunities.ts`/`opportunity-parse.ts` record bounded qualitative recommendations,
   supplied mission/change context, source evidence, raw targets, risks and stop conditions.
   Stale/incomplete/unsafe proposals become assessment/preparation/defer; no useful work
-  is valid. No invented relevance, activity engine, test execution or learning credit.
+  is valid. Live applicability rechecks linked assets without changing captured decisions or granting learning credit.
 
 ## Exercises
 
