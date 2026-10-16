@@ -1,17 +1,24 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
+import type { StoredEvent } from "../keepup.ts";
 import type {
   ArchitectureExercise,
   ExerciseLifecycle,
   ExercisePreparation,
   ExerciseStart,
+  ExerciseAttempt,
+  ExerciseAcceptance,
 } from "./exercise-domain.ts";
 import {
   parseExerciseLifecycle,
   parseExercisePreparation,
   parseExerciseStart,
 } from "./exercise-parse.ts";
+import {
+  parseExerciseAssessment,
+  parseExerciseCompletion,
+} from "./exercise-submit-parse.ts";
 import { parseArchitectureId } from "./parse-common.ts";
 import {
   architectureDigest,
@@ -162,9 +169,79 @@ function readLifecycle(path: string, id: string): ExerciseLifecycle {
 
   return result;
 }
+
+export function readExerciseAttempt(
+  state: string,
+  id: string,
+  attemptId: string
+): ExerciseAttempt {
+  const result = JSON.parse(
+    payload(
+      join(
+        exerciseDirectory(state, id),
+        "attempts",
+        `${parseArchitectureId(attemptId)}.json`
+      )
+    )
+  );
+
+  const input = parseExerciseAssessment(result.input);
+
+  if (
+    result.schemaVersion !== 1 ||
+    input.exerciseId !== id ||
+    input.id !== attemptId ||
+    architectureDigest(JSON.stringify(input)) !== result.inputDigest ||
+    (result.status !== "failed" && result.status !== "awaiting-learning") ||
+    typeof result.learner !== "string" ||
+    !Number.isFinite(Date.parse(result.time))
+  ) {
+    throw new Error("Invalid exercise attempt; left untouched");
+  }
+
+  return result;
+}
+
+export function readExerciseAcceptance(
+  state: string,
+  id: string,
+  acceptanceId: string
+): ExerciseAcceptance | null {
+  const path = join(
+    exerciseDirectory(state, id),
+    "acceptances",
+    `${parseArchitectureId(acceptanceId)}.json`
+  );
+
+  if (!existsSync(path)) {
+    return null;
+  }
+
+  const result = JSON.parse(payload(path));
+  const input = parseExerciseCompletion(result.input);
+
+  if (
+    result.schemaVersion !== 1 ||
+    input.exerciseId !== id ||
+    input.id !== acceptanceId ||
+    architectureDigest(JSON.stringify(input)) !== result.inputDigest ||
+    typeof result.learner !== "string" ||
+    !Number.isFinite(Date.parse(result.time)) ||
+    JSON.stringify(result.attempt) !==
+      JSON.stringify(readExerciseAttempt(state, id, input.attemptId))
+  ) {
+    throw new Error("Invalid accepted exercise evidence; left untouched");
+  }
+
+  return result;
+}
 /* oxlint-enable anti-slop/no-runtime-typeof */
 
-export function readExercise(state: string, id: string): ArchitectureExercise {
+export function readExercise(
+  state: string,
+  id: string,
+  events: readonly StoredEvent[] = []
+): ArchitectureExercise {
   const preparation = readExercisePreparation(state, id);
   const start = readStart(state, id);
   const directory = exerciseDirectory(state, id);
@@ -196,14 +273,71 @@ export function readExercise(state: string, id: string): ArchitectureExercise {
     stateName = "abandoned";
   }
 
-  return { abandonment, preparation, start, state: stateName, submissions };
+  const attemptsDirectory = join(directory, "attempts");
+
+  const attempts = existsSync(attemptsDirectory)
+    ? readdirSync(attemptsDirectory)
+        .filter((name) => name.endsWith(".json"))
+        .toSorted()
+        .map((name) => readExerciseAttempt(state, id, name.slice(0, -5)))
+    : [];
+
+  const pass =
+    events.find(
+      (event) =>
+        event.type === "architecture_pass" &&
+        event.exerciseId === id &&
+        event.who === preparation.learner
+    ) ?? null;
+
+  if (pass && pass.type === "architecture_pass") {
+    const accepted = readExerciseAcceptance(state, id, pass.acceptanceId);
+
+    if (
+      !accepted ||
+      pass.id !== `architecture:${id}:pass` ||
+      pass.evidenceDigest !== architectureDigest(JSON.stringify(accepted)) ||
+      pass.attemptId !== accepted.input.attemptId ||
+      pass.sha !== accepted.attempt.inventory.revision ||
+      JSON.stringify([...pass.files].toSorted()) !==
+        JSON.stringify([...accepted.attempt.changedFiles].toSorted()) ||
+      pass.files.some(
+        (file) =>
+          pass.snapshots[file] !==
+          accepted.attempt.inventory.manifest.find(
+            (entry) => entry.path === file
+          )?.hash
+      ) ||
+      abandonment ||
+      !start
+    ) {
+      throw new Error(
+        "Architecture practice event lacks its immutable accepted exercise evidence"
+      );
+    }
+
+    stateName = "passed";
+  }
+
+  return {
+    abandonment,
+    attempts,
+    pass,
+    preparation,
+    start,
+    state: stateName,
+    submissions,
+  };
 }
 
 export function hasOpenArchitectureExercise(
   state: string,
-  excludingId: string | null = null
+  excludingId: string | null = null,
+  events: readonly StoredEvent[] = []
 ): boolean {
   return exerciseIds(state).some(
-    (id) => id !== excludingId && readExercise(state, id).state !== "abandoned"
+    (id) =>
+      id !== excludingId &&
+      !["abandoned", "passed"].includes(readExercise(state, id, events).state)
   );
 }

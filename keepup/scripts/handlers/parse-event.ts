@@ -13,6 +13,7 @@ import {
   parseEventType,
   parseKataNumber,
   parseRequiredKataNumber,
+  parseArchitecturePass,
 } from "./helpers.ts";
 import type {
   EventType,
@@ -38,20 +39,23 @@ export function parseEvent(value: unknown) {
   const id = parseEventId(input.id);
   const files = parseEventFiles(input.files);
 
-  return pipe(
-    parseEventFields(input, type, id, files),
-    (event: KnownEvent<EventType>) =>
-      parseRequiredKataNumber(event, parseKataNumber(input.kataNumber)),
-    (event: EventWithKataNumber<EventType>) =>
-      parseEventDepth(event, input.depth),
-    (event: EventWithDepth<EventType>) =>
-      parseEventResponse(event, input.response),
-    (event: EventWithResponse<EventType>) => parseEventText(event, input.text),
-    (event: EventWithText<EventType>) =>
-      parseEventQuiz(event, input.phase, input.answers),
-    (event: EventWithQuiz<EventType>) =>
-      parseEventKataStart(event, input.technique, input.module, input.target),
-    (event: EventWithKataStart<EventType>) =>
-      parseEventKataSubmit(event, input.result, input.checks)
+  return parseArchitecturePass(
+    pipe(
+      parseEventFields(input, type, id, files),
+      (event: KnownEvent<EventType>) =>
+        parseRequiredKataNumber(event, parseKataNumber(input.kataNumber)),
+      (event: EventWithKataNumber<EventType>) =>
+        parseEventDepth(event, input.depth),
+      (event: EventWithDepth<EventType>) =>
+        parseEventResponse(event, input.response),
+      (event: EventWithResponse<EventType>) =>
+        parseEventText(event, input.text),
+      (event: EventWithText<EventType>) =>
+        parseEventQuiz(event, input.phase, input.answers),
+      (event: EventWithQuiz<EventType>) =>
+        parseEventKataStart(event, input.technique, input.module, input.target),
+      (event: EventWithKataStart<EventType>) =>
+        parseEventKataSubmit(event, input.result, input.checks)
+    )
   );
 }

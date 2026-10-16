@@ -1,4 +1,10 @@
 export const eventFields = {
+  architecture_pass: [
+    "exerciseId",
+    "attemptId",
+    "acceptanceId",
+    "evidenceDigest",
+  ],
   explain: ["text", "kataNumber"],
   hint: ["text", "kataNumber"],
   kata_start: ["technique", "module", "target"],
@@ -129,3 +135,13 @@ export type EventWithKataSubmit<T extends EventType> = T extends "kata_submit"
       readonly checks?: KataChecks;
     }
   : EventWithKataStart<T>;
+
+export type EventWithArchitecturePass<T extends EventType> =
+  T extends "architecture_pass"
+    ? EventWithKataSubmit<T> & {
+        readonly acceptanceId: string;
+        readonly exerciseId: string;
+        readonly attemptId: string;
+        readonly evidenceDigest: string;
+      }
+    : EventWithKataSubmit<T>;

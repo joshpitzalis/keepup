@@ -55,9 +55,8 @@ Keep reviewed architecture judgements separate from file scores and learner unde
 For a bounded improvement recommendation, read the opportunity section in that workflow.
 `architecture opportunity record|inspect|report` preserves supplied context and
 readiness limits. Offer assessment, preparation, deferral or no work when warranted.
-For opt-in architecture prepare/start, read [the exercise workflow](references/architecture-exercise.md).
-Only actual linked pre-quiz answers can start a frozen seam repair. Submission is
-provisionally pending; assessment/practice is unavailable until that workflow lands.
+For opt-in architecture prepare/start/assess/complete, read [the exercise workflow](references/architecture-exercise.md).
+Only actual linked pre-quiz answers can start a frozen seam repair. Only accepted objective checks plus actual linked post answers, explain-back and invariant review grant practice; delayed verification remains separate.
 For reviewed change locality, use the same workflow's Change locality section. Confirm
 semantic equivalence before accepting rules; preserve required validation at each trust
 boundary. Affected owners and Git co-change never substitute for independent-site evidence.

@@ -74,14 +74,32 @@ export function exerciseInventory(
     .filter(([key]) => !["KEEPUP_NOW", "COGDEBT_NOW", "_"].includes(key))
     .toSorted(([one], [two]) => one.localeCompare(two));
 
+  const sources = manifest(root);
+
+  const indexModes = git(root, "ls-files", "--stage", "-z")
+    .split("\0")
+    .filter(Boolean)
+    .map((entry) => ({
+      mode: entry.slice(0, entry.indexOf(" ")),
+      path: entry.slice(entry.indexOf("\t") + 1),
+    }));
+
   return {
     assets: assets(),
     configHash: architectureDigest(readFileSync(join(state, "config.json"))),
     environmentHash: architectureDigest(JSON.stringify(environment)),
     hostAssets: exerciseHostAssets(),
-    manifest: manifest(root),
+    indexModes,
+    manifest: sources,
     revision: revision(root),
     runtime: process.version,
+    sourceModes: sources.map((entry) => ({
+      executable:
+        entry.hash === null
+          ? null
+          : Boolean(lstatSync(join(root, entry.path)).mode & 0o111),
+      path: entry.path,
+    })),
     untracked,
   };
 }

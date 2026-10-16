@@ -1,4 +1,4 @@
-# Start a learner-owned architecture exercise
+# Complete a learner-owned architecture exercise
 
 Use this opt-in workflow for a deterministic seam repair on existing files.
 Ordinary small katas keep their existing rules. Work in the main checkout returned
@@ -101,9 +101,83 @@ providing a ready-to-paste implementation. The learner owns every code and test 
 Hints remain conceptual; surface unexplained commits or edits and obtain attribution
 before assessing work. Never revert other people's edits.
 
-`exercise submit` with `{id,exerciseId,reason}` currently records **submission-pending**
-only; objective assessment and practice are not available in this phase. Do not
-claim a pass. On explicit learner abandonment use `exercise abandon` with the same
-shape and their reason. Abandonment closes the context without practice and keeps
-all code and history. Inspect/list recover the immutable baseline and linked actual
-answers after pauses. Delayed retention remains separate from immediate practice.
+## Assess actual learner work
+
+Recover `exercise inspect <id> --json`. Show the learner every changed file and
+commit against the original baseline, including staged/unstaged edits. Obtain their
+actual attribution; never classify agent or unresolved work as learner-authored.
+Preserve all code. Run `exercise assess` with
+`{id,exerciseId,reason,attribution:[{file,author:"learner"|"agent"|"unresolved"}]}`.
+Use a new action ID for each new assessment; identical retries return original evidence.
+Only an exact inventory of changed, learner-attributed existing allowed files qualifies.
+The CLI rejects additions/deletions, changed test files/command, out-of-scope edits,
+changed evaluators, tracked executable/index modes and untracked inventory drift.
+Pre-existing unrelated dirty bytes remain frozen and uncredited; unchanged baseline
+dirt is not treated as new learner work. Candidate commits may differ from
+baseline: only descendant linear commits authored and committed with the learner's
+configured Git email and touching allowed files are supported. Merges, foreign
+commits and unexpected paths are gaps. Git identity is an attribution aid, not proof
+of who typed a change; obtain the learner's actual account before submitting it.
+
+The CLI reruns the complete frozen Node TAP suite and exact named witnesses, then
+fresh complete seam analysis under the original module/policy definitions. Raw
+target must improve to zero; each selected rule/cycle guardrail must individually
+stay at or below its raw baseline. Diluting edge denominators, endpoint rerouting,
+interface re-exports and SCC expansion/splitting cannot hide a surviving target.
+Missing/opaque analysis or missing/skipped/incomplete tests cannot pass. Inspect
+each stored error and actual outputs. Failed attempts stay active and immutable;
+the learner may repair and assess another attempt. Never alter code or tests for them.
+
+Captured compatible reviewed before/after dimensions are reported as advisory,
+including raw values and movement. Missing pairs remain unassessed; no semantic
+ratings are invented or automatically recomputed. These judgements cannot excuse
+behavioural failures or selected structural guardrails. A passing suite cannot prove
+arbitrary correctness: review every frozen invariant, necessary validation and
+actual diff against the existing positive/negative tests. If validation was removed,
+an invariant cannot be justified, or coverage is inadequate, stop without practice;
+offer separate preparation rather than weakening checks or inventing tests here.
+
+## Retrieve understanding after objective success
+
+An `awaiting-learning` attempt returns its own `quizPrefix` and exact candidate
+HEAD/bytes. Keep files closed and ask **different** predict/trace/impact/why questions
+on every original file/concept, following the same option rules as the pre-quiz.
+Wait for real answers, clarify and grade them; never infer understanding from tests.
+Log actual standalone `quiz`/`phase:"post"` events through `log`, with IDs starting
+the attempt's prefix and no kata number. Every frozen concept must have one actual
+answer. Candidate SHA/snapshots must match this attempt, including learner commits.
+Report descriptive pre/post counts, wrong-before/right-after misconceptions and
+still-weak concepts; no immediate quiz threshold is invented.
+
+Ask for the learner's own two or three sentences explaining the changed invariant
+and corrected or still-weak concept. Wait for their words and review length/topic;
+do not write an explanation for them. Log the accepted exact words as standalone
+`explain`, with the same attempt prefix, candidate HEAD and attributable changed
+files. Explain events retain their existing format without snapshots: the CLI binds
+the actual event to this attempt and rechecks the complete source inventory.
+
+Run `exercise complete` with
+`{id,exerciseId,attemptId,postQuizIds,explainId,invariantReview:[{invariant,preserved,evidence}]}`.
+Each frozen invariant needs an explicit truthful review of the actual diff and
+unchanged existing tests; any unresolved or rejected invariant prevents completion.
+Evidence text records the learner/reviewer's actual reasoning, not an automatic
+semantic score. All source, index, environment, evaluator/tool/host bytes and
+configuration must still match the objective attempt across questions and completion.
+Drift requires a new assessment and fresh linked learning evidence, never a replaced
+baseline. No pass is recorded by merely presenting a report or an assessment.
+
+The CLI first publishes immutable per-completion acceptance evidence, then calls
+the existing supported learning writer internally. Only the authoritative matching
+`architecture_pass` event closes the exercise and grants immediate practice to the
+attributable changed files, with exact accepted snapshots. Untouched callers and
+concept files gain no practice bonus. Public `log` rejects this event type, including
+retries; do not manufacture an ordinary kata pass. An interrupted accepted record
+without its event stays active: retry the same action against its exact source or
+assess a new attempt and obtain new actual learning evidence. Concurrent retries
+converge on one event per exercise; later identical retries return the original pass.
+
+The old `exercise submit {id,exerciseId,reason}` remains a pending request, never a
+pass. On explicit abandonment use `exercise abandon` with their reason: it closes
+without practice and preserves code/history. After a pass, use the ordinary
+[delayed check workflow](check.md) on the practiced concepts. Immediate practice
+is not delayed verification; only a later actual qualifying check can establish it.

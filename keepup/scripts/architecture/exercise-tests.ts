@@ -6,7 +6,7 @@ import type { ExerciseTestRun } from "./exercise-domain.ts";
 import { executeTest } from "./testability-run.ts";
 import type { ExistingTest } from "./testability.ts";
 
-function suiteFiles(
+export function suiteFiles(
   root: string,
   command: string,
   required: readonly ExistingTest[]

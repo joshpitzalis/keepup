@@ -35,6 +35,11 @@ import {
   readExercise,
   readExercisePreparation,
 } from "./exercise-storage.ts";
+import {
+  parseExerciseAssessment,
+  parseExerciseCompletion,
+} from "./exercise-submit-parse.ts";
+import { assessExercise, completeExercise } from "./exercise-submit.ts";
 import { writeArchitectureReport } from "./report.ts";
 import { architectureDigest, archive, inspectAssessment } from "./storage.ts";
 
@@ -45,7 +50,7 @@ function assertAvailable(
 ): void {
   if (
     activeOrdinaryKata(host.events()) ||
-    hasOpenArchitectureExercise(state, except)
+    hasOpenArchitectureExercise(state, except, host.events())
   ) {
     throw new Error(
       "An ordinary kata or architecture context is already active in this shared source tree; resume or explicitly abandon it first"
@@ -169,8 +174,9 @@ function validatePreparation(
 
   const guardrails = input.guardrails.map((guardrail) => {
     if (
-      !declaration.rules.some((rule) => rule.id === guardrail.ruleId) &&
-      declaration.cycles?.id !== guardrail.ruleId
+      guardrail.kind === "prohibited-cycle"
+        ? declaration.cycles?.id !== guardrail.ruleId
+        : !declaration.rules.some((rule) => rule.id === guardrail.ruleId)
     ) {
       throw new Error(
         "Guardrail must reference an existing frozen dependency rule or cycle policy"
@@ -252,7 +258,7 @@ export function startExercise(
   host: ExerciseHost
 ): ArchitectureExercise {
   return host.locked(() => {
-    const context = readExercise(state, input.exerciseId);
+    const context = readExercise(state, input.exerciseId, host.events());
     const { preparation } = context;
     assertOwner(preparation.learner, host);
     const inputDigest = architectureDigest(JSON.stringify(input));
@@ -313,7 +319,7 @@ export function startExercise(
       })
     );
 
-    return readExercise(state, input.exerciseId);
+    return readExercise(state, input.exerciseId, host.events());
   });
 }
 
@@ -324,13 +330,17 @@ export function exerciseLifecycle(
   host: ExerciseHost
 ): ArchitectureExercise {
   return host.locked(() => {
-    const context = readExercise(state, input.exerciseId);
+    const context = readExercise(state, input.exerciseId, host.events());
     assertOwner(context.preparation.learner, host);
 
     const path = join(
       exerciseDirectory(state, input.exerciseId),
       type === "abandon" ? "abandon.json" : `pending/${input.id}.json`
     );
+
+    if (context.pass) {
+      throw new Error("Exercise already passed; preserve accepted history");
+    }
 
     if (context.abandonment && !existsSync(path)) {
       throw new Error("Exercise already abandoned");
@@ -352,7 +362,7 @@ export function exerciseLifecycle(
       })
     );
 
-    return readExercise(state, input.exerciseId);
+    return readExercise(state, input.exerciseId, host.events());
   });
 }
 
@@ -372,7 +382,7 @@ export function exerciseText(context: ArchitectureExercise): string {
     `Selected structural guardrails: ${JSON.stringify(preparation.guardrails)}`,
     `Anticipated tradeoffs: ${preparation.input.tradeoffs.join("; ") || "none declared"}`,
     `Stop condition: ${preparation.input.stopCondition}`,
-    "The learner writes all code. Ask for a conceptual hint, explicitly abandon, or submit when ready. Submission is pending until objective assessment is available; no practice is granted here.",
+    "The learner writes all code. Ask for a conceptual hint, explicitly abandon, or submit when ready. Run assess for immutable objective checks; after success collect actual post answers, explain-back and invariant review, then complete. Only accepted practice closes the exercise; delayed verification is separate.",
     JSON.stringify(context, null, 2),
   ].join("\n");
 }
@@ -384,6 +394,28 @@ export function exerciseCommand(
   host: ExerciseHost
 ): string {
   const [command, value] = args;
+
+  if (command === "assess") {
+    return JSON.stringify(
+      assessExercise(
+        root,
+        state,
+        parseExerciseAssessment(JSON.parse(value ?? "")),
+        host
+      )
+    );
+  }
+
+  if (command === "complete") {
+    return JSON.stringify(
+      completeExercise(
+        root,
+        state,
+        parseExerciseCompletion(JSON.parse(value ?? "")),
+        host
+      )
+    );
+  }
 
   if (command === "prepare") {
     return JSON.stringify(
@@ -420,12 +452,12 @@ export function exerciseCommand(
 
   if (command === "list") {
     return JSON.stringify(
-      exerciseIds(state).map((id) => readExercise(state, id))
+      exerciseIds(state).map((id) => readExercise(state, id, host.events()))
     );
   }
 
   if ((command === "inspect" || command === "report") && value) {
-    const context = readExercise(state, value);
+    const context = readExercise(state, value, host.events());
 
     if (command === "report") {
       return JSON.stringify(
@@ -447,6 +479,6 @@ export function exerciseCommand(
   }
 
   throw new Error(
-    "Usage: keepup architecture exercise prepare <json> | start <json> | inspect <id> [--json] | report <id> [--no-open] | list | abandon <json> | submit <json>"
+    "Usage: keepup architecture exercise prepare <json> | start <json> | inspect <id> [--json] | report <id> [--no-open] | list | abandon <json> | submit <json> | assess <json> | complete <json>"
   );
 }

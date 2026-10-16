@@ -31,9 +31,16 @@ import {
 import { fileURLToPath } from "node:url";
 
 import { architectureCommand } from "./architecture/commands.ts";
-import { hasOpenArchitectureExercise } from "./architecture/exercise-storage.ts";
+import {
+  hasOpenArchitectureExercise,
+  readExerciseAcceptance,
+} from "./architecture/exercise-storage.ts";
+import {
+  acceptedPracticeEvidence,
+  assertAttemptStable,
+} from "./architecture/exercise-submit.ts";
 import { parseEvent } from "./handlers/parse-event.ts";
-import type { EventType, EventWithKataSubmit } from "./handlers/types.ts";
+import type { EventType, EventWithArchitecturePass } from "./handlers/types.ts";
 
 interface Metric {
   value: number;
@@ -50,7 +57,7 @@ interface Summary {
   due: number;
 }
 
-type StoredInput<E = EventWithKataSubmit<EventType>> = E extends {
+type StoredInput<E = EventWithArchitecturePass<EventType>> = E extends {
   type: string;
 }
   ? Omit<E, "files" | "kataNumber"> & { files: readonly string[] }
@@ -510,163 +517,247 @@ function kataInventory(targets: readonly string[]) {
 function logEvent(value: unknown) {
   const input = parseEvent(value);
 
-  // oxlint-disable-next-line complexity -- Preserve the existing atomic write workflow until its dedicated refactor.
-  return withLock(() => {
-    const events = readEvents();
-    const who = learner();
-    const retryDigest = digest(JSON.stringify(canonical(input)));
+  if (input.type === "architecture_pass") {
+    throw new Error(
+      "Architecture practice can only be recorded by accepted internal exercise completion"
+    );
+  }
 
-    const previous = events.find(
-      (event) => event.who === who && event.id === input.id
+  return withLock(() => writeEventLocked(input));
+}
+
+// oxlint-disable-next-line complexity -- Preserve the existing atomic write workflow and supported snapshot writer.
+function writeEventLocked(
+  input: ReturnType<typeof parseEvent>,
+  validate?: (event: StoredEvent) => void
+) {
+  const events = readEvents();
+  const who = learner();
+  const retryDigest = digest(JSON.stringify(canonical(input)));
+
+  const previous = events.find(
+    (event) => event.who === who && event.id === input.id
+  );
+
+  if (previous) {
+    if (previous.retryDigest !== retryDigest) {
+      throw new Error("Retry id already used with different input");
+    }
+
+    return previous;
+  }
+
+  if (
+    input.type === "kata_start" &&
+    hasOpenArchitectureExercise(state, null, events)
+  ) {
+    throw new Error(
+      "An architecture exercise context is active in this shared source tree; explicitly abandon or complete it before another kata"
+    );
+  }
+
+  const scope = scopedFiles();
+
+  if (input.files.some((file) => !scope.includes(file))) {
+    throw new Error(
+      "Event files must be tracked regular files within configured scope"
+    );
+  }
+
+  if (
+    input.type === "quiz" &&
+    input.phase === "check" &&
+    !checkState(
+      input.files[0],
+      events.filter((event) => event.who === who),
+      now()
+    ).due
+  ) {
+    throw new Error("No delayed check is due for this file");
+  }
+
+  if (input.kataNumber !== undefined) {
+    const start = events.find(
+      (event) =>
+        event.type === "kata_start" &&
+        event.who === who &&
+        event.kataNumber === input.kataNumber
     );
 
-    if (previous) {
-      if (previous.retryDigest !== retryDigest) {
-        throw new Error("Retry id already used with different input");
-      }
-
-      return previous;
+    if (!start || input.files.some((file) => !start.files.includes(file))) {
+      throw new Error("Unknown kata or files outside kata");
     }
 
-    if (input.type === "kata_start" && hasOpenArchitectureExercise(state)) {
-      throw new Error(
-        "An architecture exercise context is active in this shared source tree; explicitly abandon or complete it before another kata"
+    if (
+      events.some(
+        (event) =>
+          event.type === "kata_submit" &&
+          event.who === who &&
+          event.kataNumber === input.kataNumber &&
+          ["pass", "abandon"].includes(event.result)
+      )
+    ) {
+      throw new Error("Kata already closed");
+    }
+  }
+
+  const sha = spawnSync("git", ["rev-parse", "HEAD"], {
+    cwd: root,
+    encoding: "utf-8",
+  });
+
+  const event: StoredEvent = {
+    ...input,
+    retryDigest,
+    sha: sha.status === 0 ? sha.stdout.trim() : null,
+    snapshots: Object.create(null),
+    t: now(),
+    who,
+  };
+
+  let startingBytes;
+
+  if (input.type === "kata_start") {
+    const before = kataInventory(input.files);
+    startingBytes = before.snapshotBytes;
+    event.sha = before.inventory.sha;
+    event.kataNumber =
+      1 +
+      Math.max(
+        0,
+        ...events
+          .filter((stored) => stored.type === "kata_start")
+          .map((stored) => stored.kataNumber ?? 0)
       );
-    }
+    const { files, summary, metrics, warnings } = computeStatus(events);
+    let after;
 
-    const scope = scopedFiles();
-
-    if (input.files.some((file) => !scope.includes(file))) {
+    try {
+      after = kataInventory(input.files);
+    } catch {
       throw new Error(
-        "Event files must be tracked regular files within configured scope"
+        "Repository changed during kata setup; restore clean targets and retry"
       );
     }
 
     if (
-      input.type === "quiz" &&
-      input.phase === "check" &&
-      !checkState(
-        input.files[0],
-        events.filter((event) => event.who === who),
-        now()
-      ).due
+      JSON.stringify(canonical(before.inventory)) !==
+      JSON.stringify(canonical(after.inventory))
     ) {
-      throw new Error("No delayed check is due for this file");
-    }
-
-    if (input.kataNumber !== undefined) {
-      const start = events.find(
-        (event) =>
-          event.type === "kata_start" &&
-          event.who === who &&
-          event.kataNumber === input.kataNumber
+      throw new Error(
+        "Repository changed during kata setup; retry against a stable version"
       );
-
-      if (!start || input.files.some((file) => !start.files.includes(file))) {
-        throw new Error("Unknown kata or files outside kata");
-      }
-
-      if (
-        events.some(
-          (event) =>
-            event.type === "kata_submit" &&
-            event.who === who &&
-            event.kataNumber === input.kataNumber &&
-            ["pass", "abandon"].includes(event.result)
-        )
-      ) {
-        throw new Error("Kata already closed");
-      }
     }
 
-    const sha = spawnSync("git", ["rev-parse", "HEAD"], {
-      cwd: root,
-      encoding: "utf-8",
-    });
-
-    const event: StoredEvent = {
-      ...input,
-      retryDigest,
-      sha: sha.status === 0 ? sha.stdout.trim() : null,
-      snapshots: Object.create(null),
-      t: now(),
-      who,
+    event.baseline = {
+      contentHashes: before.inventory.contentHashes,
+      definitionHashes: before.inventory.definitionHashes,
+      files,
+      metrics,
+      summary,
+      warnings,
     };
 
-    let startingBytes;
+    const baselineTarget = event.baseline.files.find(
+      (file) => file.file === input.target.file
+    )?.metrics[input.target.metric]?.value;
 
-    if (input.type === "kata_start") {
-      const before = kataInventory(input.files);
-      startingBytes = before.snapshotBytes;
-      event.sha = before.inventory.sha;
-      event.kataNumber =
-        1 +
-        Math.max(
-          0,
-          ...events
-            .filter((stored) => stored.type === "kata_start")
-            .map((stored) => stored.kataNumber ?? 0)
-        );
-      const { files, summary, metrics, warnings } = computeStatus(events);
-      let after;
-
-      try {
-        after = kataInventory(input.files);
-      } catch {
-        throw new Error(
-          "Repository changed during kata setup; restore clean targets and retry"
-        );
-      }
-
-      if (
-        JSON.stringify(canonical(before.inventory)) !==
-        JSON.stringify(canonical(after.inventory))
-      ) {
-        throw new Error(
-          "Repository changed during kata setup; retry against a stable version"
-        );
-      }
-
-      event.baseline = {
-        contentHashes: before.inventory.contentHashes,
-        definitionHashes: before.inventory.definitionHashes,
-        files,
-        metrics,
-        summary,
-        warnings,
-      };
-
-      const baselineTarget = event.baseline.files.find(
-        (file) => file.file === input.target.file
-      )?.metrics[input.target.metric]?.value;
-
-      if (baselineTarget === undefined || input.target.goal <= baselineTarget) {
-        throw new Error("Kata goal must improve an available target metric");
-      }
+    if (baselineTarget === undefined || input.target.goal <= baselineTarget) {
+      throw new Error("Kata goal must improve an available target metric");
     }
+  }
+
+  if (
+    ["shown", "quiz", "kata_start"].includes(input.type) ||
+    (input.type === "kata_submit" && input.result === "pass") ||
+    input.type === "architecture_pass"
+  ) {
+    for (const file of input.files) {
+      const bytes = startingBytes
+        ? startingBytes.get(file)
+        : readFileSync(join(root, file));
+
+      if (bytes === undefined) {
+        throw new Error(`Missing captured snapshot for ${file}`);
+      }
+
+      const hash = digest(bytes);
+      createIfMissing(join(state, "snapshots", hash), bytes);
+      event.snapshots[file] = hash;
+    }
+  }
+
+  validate?.(event);
+  appendFileSync(join(state, "events.jsonl"), `${JSON.stringify(event)}\n`);
+
+  return event;
+}
+
+function recordArchitecturePractice(
+  exerciseId: string,
+  acceptanceId: string
+): StoredEvent {
+  const evidence = acceptedPracticeEvidence(
+    root,
+    state,
+    exerciseId,
+    acceptanceId,
+    learner(),
+    readEvents()
+  );
+
+  const input = parseEvent({
+    id: `architecture:${exerciseId}:pass`,
+    type: "architecture_pass",
+    ...evidence,
+  });
+
+  return writeEventLocked(input, (event) => {
+    const checked = acceptedPracticeEvidence(
+      root,
+      state,
+      exerciseId,
+      acceptanceId,
+      learner(),
+      readEvents()
+    );
+
+    if (JSON.stringify(checked) !== JSON.stringify(evidence)) {
+      throw new Error(
+        "Accepted evidence changed during supported practice snapshot capture"
+      );
+    }
+
+    const accepted = readExerciseAcceptance(state, exerciseId, acceptanceId);
 
     if (
-      ["shown", "quiz", "kata_start"].includes(input.type) ||
-      (input.type === "kata_submit" && input.result === "pass")
+      !accepted ||
+      event.who !== accepted.learner ||
+      event.sha !== accepted.attempt.inventory.revision ||
+      JSON.stringify(Object.keys(event.snapshots).toSorted()) !==
+        JSON.stringify([...evidence.files].toSorted())
     ) {
-      for (const file of input.files) {
-        const bytes = startingBytes
-          ? startingBytes.get(file)
-          : readFileSync(join(root, file));
+      throw new Error(
+        "Practice event must reference its accepted candidate revision"
+      );
+    }
 
-        if (bytes === undefined) {
-          throw new Error(`Missing captured snapshot for ${file}`);
-        }
+    for (const file of evidence.files) {
+      const hash = digest(readFileSync(join(root, file)));
 
-        const hash = digest(bytes);
-        createIfMissing(join(state, "snapshots", hash), bytes);
-        event.snapshots[file] = hash;
+      if (
+        event.snapshots[file] !== hash ||
+        accepted.attempt.inventory.manifest.find((entry) => entry.path === file)
+          ?.hash !== hash ||
+        digest(readFileSync(join(state, "snapshots", hash))) !== hash
+      ) {
+        throw new Error(
+          "Architecture practice snapshot bytes do not match accepted source"
+        );
       }
     }
 
-    appendFileSync(join(state, "events.jsonl"), `${JSON.stringify(event)}\n`);
-
-    return event;
+    assertAttemptStable(root, state, accepted.attempt);
   });
 }
 
@@ -848,7 +939,9 @@ function learningState(
   );
 
   const practised = relevant.some(
-    (event) => event.type === "kata_submit" && event.result === "pass"
+    (event) =>
+      (event.type === "kata_submit" && event.result === "pass") ||
+      event.type === "architecture_pass"
   );
 
   const drift = driftSince(file, evidence?.snapshots[file], warnings);
@@ -1401,6 +1494,7 @@ try {
         learner,
         locked: withLock,
         now,
+        practice: recordArchitecturePractice,
       })
     );
   } else if (command === "log") {
