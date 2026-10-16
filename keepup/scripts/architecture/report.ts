@@ -8,6 +8,7 @@ import type {
   ArchitectureInspection,
   AssessmentMeasurements,
 } from "./domain.ts";
+import { referencedPaths } from "./storage.ts";
 
 function escapeHtml(text: string): string {
   return text
@@ -110,8 +111,10 @@ function capturedEvidence(
   state: string,
   assessment: ArchitectureAssessment
 ): string {
+  const paths = new Set(referencedPaths(assessment.input));
+
   const sources = assessment.observation.manifest.filter((entry) =>
-    assessment.input.evidence.includes(entry.path)
+    paths.has(entry.path)
   );
 
   const rubrics = assessment.observation.assets.filter(
