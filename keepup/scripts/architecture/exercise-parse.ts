@@ -5,6 +5,7 @@ import type {
   ExerciseStartInput,
   ExerciseTarget,
 } from "./exercise-domain.ts";
+import { parseExerciseTransformation } from "./exercise-transformation-parse.ts";
 import { object, parseArchitectureId, strings, text } from "./parse-common.ts";
 
 /* oxlint-disable anti-slop/no-unknown-parameters, anti-slop/no-unsafe-dictionary-type -- Exercise command JSON is reconstructed at this boundary. */
@@ -112,6 +113,7 @@ export function parseExercisePreparation(
     "guardrails",
     "tradeoffs",
     "stopCondition",
+    "transformation",
   ]);
 
   if (
@@ -157,7 +159,7 @@ export function parseExercisePreparation(
     );
   }
 
-  return {
+  const result: ExercisePreparationInput = {
     assessmentId: parseArchitectureId(input.assessmentId),
     behaviour: text(input.behaviour),
     callers: uniqueStrings(input.callers).toSorted(),
@@ -172,6 +174,13 @@ export function parseExercisePreparation(
     technique: text(input.technique),
     tradeoffs: uniqueStrings(input.tradeoffs),
   };
+
+  return input.transformation === undefined
+    ? result
+    : {
+        ...result,
+        transformation: parseExerciseTransformation(input.transformation),
+      };
 }
 
 export function parseExerciseStart(value: unknown): ExerciseStartInput {

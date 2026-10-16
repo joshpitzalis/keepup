@@ -90,6 +90,11 @@ export interface ManifestEntry {
   readonly hash: string | null;
 }
 
+export interface WorkingTreePaths {
+  readonly additions: readonly string[];
+  readonly removals: readonly string[];
+}
+
 export interface ArchitectureAssessment {
   readonly analysis?: SeamAnalysis | TestabilityAnalysis;
   readonly schemaVersion: 1;
@@ -109,6 +114,8 @@ export interface ArchitectureAssessment {
     readonly manifest: readonly ManifestEntry[];
     readonly assets: readonly ManifestEntry[];
     readonly rubric: string;
+    readonly workingTree?: WorkingTreePaths;
+    readonly tracking?: readonly string[];
   };
 }
 

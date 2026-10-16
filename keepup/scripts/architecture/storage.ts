@@ -16,7 +16,7 @@ import {
 } from "node:fs";
 import { dirname, isAbsolute, join, relative } from "node:path";
 
-import { analyserToolChanged } from "./analyser.ts";
+import { analyserToolChanged, workingTreeSourcePaths } from "./analyser.ts";
 import type {
   ArchitectureAssessment,
   ArchitectureInspection,
@@ -24,6 +24,7 @@ import type {
   AssessmentMeasurements,
   ManifestEntry,
   InterfaceAssessmentInput,
+  WorkingTreePaths,
 } from "./domain.ts";
 import {
   localityEvidence,
@@ -35,6 +36,7 @@ import {
   navigabilityLimitations,
   navigabilityMeasurements,
 } from "./navigability.ts";
+import { object, strings } from "./parse-common.ts";
 import { parseArchitectureId, parseAssessment } from "./parse.ts";
 import type { SeamAnalysis } from "./seam-domain.ts";
 import { seamMeasurements } from "./seams.ts";
@@ -94,8 +96,15 @@ function sourcePaths(root: string): string[] {
     .toSorted();
 }
 
-export function manifest(root: string): ManifestEntry[] {
-  return sourcePaths(root).map((path) => ({
+export function manifest(
+  root: string,
+  workingTree?: WorkingTreePaths
+): ManifestEntry[] {
+  const files = workingTree
+    ? workingTreeSourcePaths(root, workingTree)
+    : sourcePaths(root);
+
+  return files.map((path) => ({
     hash: fileHash(root, path),
     path,
   }));
@@ -379,6 +388,29 @@ export function verifySnapshots(
   }
 }
 
+function verifyWorkingTreeObservation(
+  observation: ArchitectureAssessment["observation"]
+): void {
+  if (observation.workingTree === undefined) {
+    return;
+  }
+
+  const workingTree = object(observation.workingTree);
+
+  const paths = [
+    ...strings(workingTree.additions),
+    ...strings(workingTree.removals),
+  ];
+
+  strings(observation.tracking);
+
+  if (new Set(paths).size !== paths.length) {
+    throw new Error(
+      "Invalid architecture working-tree inventory; left untouched"
+    );
+  }
+}
+
 export function readAssessment(
   state: string,
   id: string
@@ -406,6 +438,8 @@ export function readAssessment(
   }
 
   const input = parseAssessment(result.input);
+
+  verifyWorkingTreeObservation(result.observation);
 
   if (
     architectureDigest(JSON.stringify(input)) !== result.inputDigest ||
@@ -488,11 +522,28 @@ function evaluateAssessment<Input extends AssessmentInput>(
   return analysis;
 }
 
+function sameAssessmentInput(
+  assessment: ArchitectureAssessment,
+  inputDigest: string,
+  workingTree: WorkingTreePaths | undefined
+): boolean {
+  return (
+    assessment.inputDigest === inputDigest &&
+    JSON.stringify(assessment.observation.workingTree) ===
+      JSON.stringify(workingTree)
+  );
+}
+
+function trackingInventory(root: string): string[] {
+  return git(root, "ls-files", "-z").split("\0").filter(Boolean).toSorted();
+}
+
 export function recordAssessment<Input extends AssessmentInput>(
   root: string,
   state: string,
   input: Input,
-  evaluate?: (input: Input) => AssessmentAnalysis
+  evaluate?: (input: Input) => AssessmentAnalysis,
+  workingTree?: WorkingTreePaths
 ): ArchitectureAssessment {
   if (!existsSync(join(state, "config.json"))) {
     throw new Error("Run keepup init before recording architecture evidence");
@@ -504,7 +555,7 @@ export function recordAssessment<Input extends AssessmentInput>(
   if (existsSync(path)) {
     const previous = readAssessment(state, input.id);
 
-    if (previous.inputDigest !== inputDigest) {
+    if (!sameAssessmentInput(previous, inputDigest, workingTree)) {
       throw new Error(
         "Architecture retry id already used with different input"
       );
@@ -513,13 +564,16 @@ export function recordAssessment<Input extends AssessmentInput>(
     return previous;
   }
 
-  const before = manifest(root);
+  const before = manifest(root, workingTree);
+
+  const tracking = trackingInventory(root);
+
   const tracked = new Set(before.map((entry) => entry.path));
 
   for (const file of referencedPaths(input)) {
     if (!tracked.has(file) || fileHash(root, file) === null) {
       throw new Error(
-        `Architecture evidence must be a tracked regular source file: ${file}`
+        `Architecture evidence must be a tracked or declared working-tree regular source file: ${file}`
       );
     }
   }
@@ -533,7 +587,8 @@ export function recordAssessment<Input extends AssessmentInput>(
   archiveAnalysis(state, analysis);
 
   if (
-    JSON.stringify(before) !== JSON.stringify(manifest(root)) ||
+    JSON.stringify(before) !== JSON.stringify(manifest(root, workingTree)) ||
+    JSON.stringify(tracking) !== JSON.stringify(trackingInventory(root)) ||
     JSON.stringify(capturedAssets) !== JSON.stringify(assets()) ||
     sha !== revision(root)
   ) {
@@ -548,6 +603,16 @@ export function recordAssessment<Input extends AssessmentInput>(
     );
   }
 
+  const observationMetadata = {
+    assets: capturedAssets,
+    id: randomUUID(),
+    manifest: before,
+    observer,
+    revision: sha,
+    rubric: `experimental-${input.dimension}-v1`,
+    time: new Date().toISOString(),
+  };
+
   const result: ArchitectureAssessment = {
     coverage: coverageFor(input, analysis),
     dimension: input.dimension,
@@ -560,15 +625,9 @@ export function recordAssessment<Input extends AssessmentInput>(
     ],
     measurements: measurements(input, analysis),
     method: input.dimension === "seam-integrity" ? "automated" : "reviewed",
-    observation: {
-      assets: capturedAssets,
-      id: randomUUID(),
-      manifest: before,
-      observer,
-      revision: sha,
-      rubric: `experimental-${input.dimension}-v1`,
-      time: new Date().toISOString(),
-    },
+    observation: workingTree
+      ? { ...observationMetadata, tracking, workingTree }
+      : observationMetadata,
     schemaVersion: 1,
   };
 
@@ -583,7 +642,7 @@ export function recordAssessment<Input extends AssessmentInput>(
   ) {
     const winner = readAssessment(state, input.id);
 
-    if (winner.inputDigest !== inputDigest) {
+    if (!sameAssessmentInput(winner, inputDigest, workingTree)) {
       throw new Error(
         "Architecture retry id already used with different input"
       );
@@ -601,7 +660,25 @@ export function inspectAssessment(
   id: string
 ): ArchitectureInspection {
   const assessment = readAssessment(state, id);
-  const current = manifest(root);
+  let current: ManifestEntry[];
+  const changed = new Set<string>();
+
+  try {
+    current = manifest(root, assessment.observation.workingTree);
+  } catch (error) {
+    current = manifest(root);
+    changed.add(
+      error instanceof Error ? error.message : "Working-tree inventory changed"
+    );
+  }
+
+  if (
+    assessment.observation.tracking &&
+    JSON.stringify(assessment.observation.tracking) !==
+      JSON.stringify(trackingInventory(root))
+  ) {
+    changed.add("source tracking inventory");
+  }
 
   const capturedHashes = new Map(
     assessment.observation.manifest.map((entry) => [entry.path, entry.hash])
@@ -610,8 +687,6 @@ export function inspectAssessment(
   const currentHashes = new Map(
     current.map((entry) => [entry.path, entry.hash])
   );
-
-  const changed = new Set<string>();
 
   for (const entry of [...assessment.observation.manifest, ...current]) {
     if (capturedHashes.get(entry.path) !== currentHashes.get(entry.path)) {

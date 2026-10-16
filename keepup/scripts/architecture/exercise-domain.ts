@@ -1,5 +1,9 @@
 import type { StoredEvent } from "../keepup.ts";
-import type { ArchitectureAssessment, ManifestEntry } from "./domain.ts";
+import type {
+  ArchitectureAssessment,
+  ArchitectureModule,
+  ManifestEntry,
+} from "./domain.ts";
 import type { SeamFinding } from "./seam-domain.ts";
 import type { ExistingTest, TestExecution } from "./testability.ts";
 
@@ -7,7 +11,11 @@ export interface ExerciseHost {
   readonly events: () => readonly StoredEvent[];
   readonly learner: () => string;
   readonly files: () => readonly string[];
-  readonly config: () => { readonly testCommand: string | null };
+  readonly config: () => {
+    readonly testCommand: string | null;
+    readonly include?: readonly string[];
+    readonly exclude?: readonly string[];
+  };
   readonly now: () => string;
   readonly locked: <T>(action: () => T) => T;
   readonly practice?: (exerciseId: string, acceptanceId: string) => StoredEvent;
@@ -34,6 +42,7 @@ export interface ExerciseGuardrail {
 }
 
 export interface ExercisePreparationInput {
+  readonly transformation?: ExerciseTransformation;
   readonly id: string;
   readonly assessmentId: string;
   readonly files: readonly string[];
@@ -50,6 +59,27 @@ export interface ExercisePreparationInput {
   readonly guardrails: readonly ExerciseGuardrail[];
   readonly tradeoffs: readonly string[];
   readonly stopCondition: string;
+}
+
+export interface ExerciseTransformation {
+  readonly files: readonly {
+    readonly before: readonly string[];
+    readonly after: readonly string[];
+    readonly logicalModule: string;
+  }[];
+  readonly modules: readonly {
+    readonly before: readonly string[];
+    readonly after: readonly ArchitectureModule[];
+  }[];
+  readonly concepts: readonly {
+    readonly before: { readonly file: string; readonly concept: string };
+    readonly after: { readonly file: string; readonly concept: string };
+  }[];
+  readonly review: {
+    readonly status: "reviewed";
+    readonly reviewer: string;
+    readonly notes: string;
+  };
 }
 
 export interface ExerciseInventory {
@@ -169,6 +199,12 @@ export interface ExerciseCompletionInput {
 }
 
 export interface ExerciseAttempt {
+  readonly touchedFiles?: readonly string[];
+  readonly tracking?: boolean;
+  readonly mapping?: {
+    readonly digest: string;
+    readonly originalAssessmentId: string;
+  };
   readonly schemaVersion: 1;
   readonly input: ExerciseAssessmentInput;
   readonly inputDigest: string;

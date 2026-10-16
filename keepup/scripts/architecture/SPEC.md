@@ -11,7 +11,7 @@ The resolved existing learning-state directory includes legacy `.cogdebt` instal
 
 - `commands.ts` connects explicit local CLI operations; reads never rerun evaluators/tests.
 - `domain.ts` names records and measurements; `parse.ts`/`parse-common.ts` reconstruct inputs.
-- `storage.ts` captures tracked source/callers/tests plus evaluator/tool assets as exact
+- `storage.ts` captures declared tracked/working-tree source and evaluator/tool assets as exact
   snapshots, publishes immutable versioned observations and checks integrity/freshness.
 - Conservative source coverage makes supporting changes/additions/deletions stale;
   old observations remain historical. Atomic hard-link publication converges identical
@@ -82,7 +82,7 @@ The resolved existing learning-state directory includes legacy `.cogdebt` instal
   snapshots/learner/concepts/commit must match. No new event schema or fabricated answers.
   Start/report/pending grant no practice. Pass requires actual different post questions,
   explain-back and explicit frozen invariant/validation review; later checks stay separate.
-  Additions/deletions/membership changes remain unavailable until explicit reshaping.
+  Optional reviewed reshaping preserves original logical roles through new paths.
 - `exercise-candidate.ts` checks every changed path, frozen test bytes, linear learner
   commits, actual file attribution, source/index modes and stability; additions require mapping.
 - `exercise-submit.ts`/`exercise-submit-parse.ts` preserve failed/objective/accepted
@@ -93,3 +93,8 @@ The resolved existing learning-state directory includes legacy `.cogdebt` instal
   one deterministic `architecture_pass` is authoritative closure/practice only for
   attributable changed files. Public pass logging is rejected. Interrupted acceptance
   stays active for retry/new work; shared lock converges concurrent completion.
+- `exercise-transformation-parse.ts`/`exercise-transformation.ts` freeze finite file,
+  physical module and concept mappings; original logical policies/public roles persist.
+- `exercise-reshape-candidate.ts` inventories declared new/missing source before staging;
+  final credit requires tracking, full attribution and unchanged tests. Cross-role
+  single-file collapse stays unsupported. `exercise-comparison.ts` exposes mapped evidence.

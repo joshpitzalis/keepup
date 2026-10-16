@@ -9,9 +9,9 @@ import {
   realpathSync,
 } from "node:fs";
 import { createRequire } from "node:module";
-import { join, relative } from "node:path";
+import { isAbsolute, join, relative } from "node:path";
 
-import type { ManifestEntry } from "./domain.ts";
+import type { ManifestEntry, WorkingTreePaths } from "./domain.ts";
 import { object, strings, text } from "./parse-common.ts";
 import type { AnalyserTool, DependencyEdge } from "./seam-domain.ts";
 
@@ -458,7 +458,10 @@ function parseGraph(
   return { analysedFiles, edges, limitations };
 }
 
-export function trackedDependencySources(root: string): string[] {
+export function workingTreeSourcePaths(
+  root: string,
+  workingTree?: WorkingTreePaths
+): string[] {
   const result = spawnSync("git", ["ls-files", "-z"], {
     cwd: root,
     encoding: "utf-8",
@@ -468,14 +471,89 @@ export function trackedDependencySources(root: string): string[] {
     throw new Error("Cannot discover tracked dependency sources");
   }
 
-  const files = result.stdout
+  const tracked = result.stdout
     .split("\0")
     .filter(
       (file) =>
-        /\.(?:[cm]?[jt]sx?)$/u.test(file) &&
+        file &&
         ![".keepup", ".cogdebt", ".git"].includes(file.split("/")[0] ?? "")
-    )
+    );
+
+  if (!workingTree) {
+    return tracked.toSorted();
+  }
+
+  const declared = [...workingTree.additions, ...workingTree.removals];
+
+  if (new Set(declared).size !== declared.length) {
+    throw new Error("Working-tree paths must be distinct additions/removals");
+  }
+
+  for (const file of declared) {
+    const parts = file.split("/");
+
+    if (
+      !file ||
+      isAbsolute(file) ||
+      file.includes("\\") ||
+      parts.some((part) => !part || part === "." || part === "..") ||
+      parts.some((part) =>
+        [".git", ".keepup", ".cogdebt", "node_modules"].includes(part)
+      )
+    ) {
+      throw new Error(`Invalid working-tree source path: ${file}`);
+    }
+
+    for (let index = 1; index <= parts.length; index += 1) {
+      const path = join(root, ...parts.slice(0, index));
+
+      if (lstatSync(path, { throwIfNoEntry: false })?.isSymbolicLink()) {
+        throw new Error(`Symlinked working-tree source: ${file}`);
+      }
+    }
+
+    const path = join(root, file);
+
+    if (workingTree.removals.includes(file)) {
+      if (lstatSync(path, { throwIfNoEntry: false })) {
+        throw new Error(`Declared working-tree removal still exists: ${file}`);
+      }
+
+      continue;
+    }
+
+    if (!existsSync(path) || !lstatSync(path).isFile()) {
+      throw new Error(
+        `Working-tree addition is missing or not regular: ${file}`
+      );
+    }
+
+    const ignored = spawnSync(
+      "git",
+      ["check-ignore", "--no-index", "-q", "--", file],
+      {
+        cwd: root,
+        encoding: "utf-8",
+      }
+    );
+
+    if (ignored.status !== 1) {
+      throw new Error(`Ignored or unreadable working-tree addition: ${file}`);
+    }
+  }
+
+  return [...new Set([...tracked, ...workingTree.additions])]
+    .filter((file) => !workingTree.removals.includes(file))
     .toSorted();
+}
+
+export function trackedDependencySources(
+  root: string,
+  workingTree?: WorkingTreePaths
+): string[] {
+  const files = workingTreeSourcePaths(root, workingTree).filter((file) =>
+    /\.(?:[cm]?[jt]sx?)$/u.test(file)
+  );
 
   for (const file of files) {
     if (
