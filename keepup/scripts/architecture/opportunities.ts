@@ -273,6 +273,7 @@ function verifyOpportunityReferences(
       (id) =>
         !assessments.some((inspection) => {
           const declaration = inspection.assessment.input;
+
           const modules =
             declaration.dimension === "seam-integrity"
               ? declaration.modules
