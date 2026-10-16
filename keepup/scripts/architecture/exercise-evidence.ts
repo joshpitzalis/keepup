@@ -13,7 +13,7 @@ import type {
 import type { SeamAnalysis } from "./seam-domain.ts";
 import { architectureDigest, assets, manifest, revision } from "./storage.ts";
 
-function git(root: string, ...args: string[]): string {
+export function exerciseGit(root: string, ...args: string[]): string {
   const result = spawnSync("git", args, { cwd: root, encoding: "utf-8" });
 
   if (result.status !== 0) {
@@ -49,7 +49,7 @@ export function exerciseInventory(
   root: string,
   state: string
 ): ExerciseInventory {
-  const untracked = git(
+  const untracked = exerciseGit(
     root,
     "ls-files",
     "--others",
@@ -76,7 +76,7 @@ export function exerciseInventory(
 
   const sources = manifest(root);
 
-  const indexModes = git(root, "ls-files", "--stage", "-z")
+  const indexModes = exerciseGit(root, "ls-files", "--stage", "-z")
     .split("\0")
     .filter(Boolean)
     .map((entry) => ({
@@ -108,7 +108,7 @@ export function assertExerciseClean(
   root: string,
   files: readonly string[]
 ): void {
-  if (git(root, "status", "--porcelain", "-z", "--", ...files)) {
+  if (exerciseGit(root, "status", "--porcelain", "-z", "--", ...files)) {
     throw new Error(
       "Architecture exercise target files must be clean, including staged changes"
     );
@@ -262,4 +262,75 @@ export function linkedPreQuizzes(
   }
 
   return quizzes;
+}
+
+export function exerciseCommits(
+  root: string,
+  beforeRevision: string | null,
+  afterRevision: string | null,
+  files: readonly string[],
+  tests: readonly string[],
+  learner: string
+): readonly string[] {
+  if (!beforeRevision || !afterRevision) {
+    throw new Error("Missing original or candidate commit identity");
+  }
+
+  exerciseGit(
+    root,
+    "merge-base",
+    "--is-ancestor",
+    beforeRevision,
+    afterRevision
+  );
+
+  const commits = exerciseGit(
+    root,
+    "rev-list",
+    "--reverse",
+    `${beforeRevision}..${afterRevision}`
+  )
+    .trim()
+    .split("\n")
+    .filter(Boolean);
+
+  for (const commit of commits) {
+    const parents = exerciseGit(root, "show", "-s", "--format=%P", commit)
+      .trim()
+      .split(" ");
+
+    const authors = exerciseGit(
+      root,
+      "show",
+      "-s",
+      "--format=%ae%x00%ce",
+      commit
+    )
+      .trim()
+      .split("\0");
+
+    const paths = exerciseGit(
+      root,
+      "diff-tree",
+      "--no-commit-id",
+      "--name-only",
+      "-r",
+      "-z",
+      commit
+    )
+      .split("\0")
+      .filter(Boolean);
+
+    if (
+      parents.length !== 1 ||
+      authors.some((email) => email !== learner) ||
+      paths.some((file) => !files.includes(file) || tests.includes(file))
+    ) {
+      throw new Error(
+        "Unexpected commit: only linear learner-authored and learner-committed changes within the frozen existing-file scope are supported"
+      );
+    }
+  }
+
+  return commits;
 }

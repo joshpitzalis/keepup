@@ -17,6 +17,7 @@ import type {
   ExerciseAttempt,
   ExerciseCompletionInput,
   ExerciseHost,
+  ExercisePreparation,
 } from "./exercise-domain.ts";
 import {
   exerciseGuardrailCount,
@@ -32,6 +33,10 @@ import {
   readExerciseAcceptance,
   readExerciseAttempt,
 } from "./exercise-storage.ts";
+import {
+  mappedConcepts,
+  preparationProjection,
+} from "./exercise-transformation.ts";
 import { analyseSeams } from "./seams.ts";
 import { architectureDigest, recordAssessment } from "./storage.ts";
 
@@ -53,6 +58,52 @@ function ownedContext(
   }
 
   return context;
+}
+
+function evaluateExercise(
+  root: string,
+  state: string,
+  preparation: ExercisePreparation,
+  id: string
+): NonNullable<ExerciseAttempt["assessment"]> {
+  if (preparation.assessment.input.dimension !== "seam-integrity") {
+    throw new Error("Unsupported exercise target dimension");
+  }
+
+  const original = preparation.assessment.input;
+
+  const projection = preparation.input.transformation
+    ? preparationProjection(preparation)
+    : null;
+
+  const evidence = [
+    ...new Set(
+      original.evidence.flatMap(
+        (file) =>
+          preparation.input.transformation?.files.find((group) =>
+            group.before.includes(file)
+          )?.after ?? [file]
+      )
+    ),
+  ].toSorted();
+
+  const definition = projection
+    ? { ...original, evidence, id, modules: projection.modules }
+    : { ...original, id };
+
+  return recordAssessment(
+    root,
+    state,
+    definition,
+    (candidate) =>
+      analyseSeams(
+        root,
+        candidate,
+        process.env.KEEPUP_ANALYSER_DIRECTORY,
+        projection?.workingTree
+      ),
+    projection?.workingTree
+  );
 }
 
 export function assessExercise(
@@ -91,6 +142,8 @@ export function assessExercise(
     const inventory = exerciseInventory(root, state);
     const indexHash = exerciseIndexHash(root);
     let changedFiles: readonly string[] = [];
+    let touchedFiles: readonly string[] = [];
+    let tracking = false;
     let commits: readonly string[] = [];
     let tests: ExerciseAttempt["tests"] = null;
     let assessment: ExerciseAttempt["assessment"] = null;
@@ -99,12 +152,11 @@ export function assessExercise(
     const errors: string[] = [];
 
     try {
-      ({ changedFiles, commits } = candidateChanges(
-        root,
-        preparation,
-        inventory,
-        input
-      ));
+      const changes = candidateChanges(root, preparation, inventory, input);
+
+      ({ changedFiles, commits } = changes);
+      touchedFiles = changes.touchedFiles ?? changedFiles;
+      tracking = changes.tracking ?? true;
       tests = runExerciseTests(
         root,
         preparation.tests.command,
@@ -112,17 +164,11 @@ export function assessExercise(
       );
       assertCandidateStable(root, state, inventory, indexHash);
 
-      if (preparation.assessment.input.dimension !== "seam-integrity") {
-        throw new Error("Unsupported exercise target dimension");
-      }
-
-      const definition = {
-        ...preparation.assessment.input,
-        id: `exercise-${architectureDigest(JSON.stringify({ indexHash, input, inventory })).slice(0, 40)}`,
-      };
-
-      assessment = recordAssessment(root, state, definition, (candidate) =>
-        analyseSeams(root, candidate, process.env.KEEPUP_ANALYSER_DIRECTORY)
+      assessment = evaluateExercise(
+        root,
+        state,
+        preparation,
+        `exercise-${architectureDigest(JSON.stringify({ indexHash, input, inventory })).slice(0, 40)}`
       );
       const before = exerciseSeamAnalysis(preparation.assessment);
       const after = exerciseSeamAnalysis(assessment);
@@ -171,7 +217,7 @@ export function assessExercise(
       errors.push(error instanceof Error ? error.message : String(error));
     }
 
-    const result: ExerciseAttempt = {
+    let result: ExerciseAttempt = {
       advisory: exerciseAdvisory(root, state, preparation.inventory, inventory),
       assessment,
       changedFiles,
@@ -194,6 +240,18 @@ export function assessExercise(
       tests,
       time: host.now(),
     };
+
+    if (preparation.input.transformation) {
+      result = {
+        ...result,
+        mapping: {
+          digest: preparationProjection(preparation).digest,
+          originalAssessmentId: preparation.assessment.id,
+        },
+        touchedFiles,
+        tracking,
+      };
+    }
 
     publishExerciseRecord(path, JSON.stringify(result));
 
@@ -222,7 +280,10 @@ function linkedPostEvidence(
       Date.parse(event.t) < Date.parse(attempt.time) ||
       event.sha !== attempt.inventory.revision ||
       event.files.some(
-        (file) => !context.preparation.input.files.includes(file)
+        (file) =>
+          !mappedConcepts(context.preparation).some(
+            (concept) => concept.file === file
+          )
       )
     ) {
       throw new Error(
@@ -260,7 +321,7 @@ function linkedPostEvidence(
     )
     .toSorted();
 
-  const expected = context.preparation.input.concepts
+  const expected = mappedConcepts(context.preparation)
     .map((concept) => JSON.stringify(concept))
     .toSorted();
 
@@ -376,6 +437,7 @@ export function completeExercise(
     }
 
     assertAttemptStable(root, state, attempt);
+    assertTracking(context, attempt);
     assertInvariantReview(context, input);
 
     const learning = linkedPostEvidence(
@@ -476,6 +538,7 @@ export function acceptedPracticeEvidence(
 
   const { attempt } = accepted;
   assertAttemptStable(root, state, attempt);
+  assertTracking(context, attempt);
 
   const changed = candidateChanges(
     root,
@@ -521,4 +584,20 @@ export function acceptedPracticeEvidence(
     exerciseId: id,
     files: attempt.changedFiles,
   };
+}
+
+function assertTracking(
+  context: ArchitectureExercise,
+  attempt: ExerciseAttempt
+): void {
+  if (
+    context.preparation.input.transformation &&
+    (!attempt.tracking ||
+      attempt.mapping?.digest !==
+        preparationProjection(context.preparation).digest)
+  ) {
+    throw new Error(
+      "Reshaping completion requires learner-staged surviving/new source and staged removals, followed by a fresh assessment and actual mapped post evidence; the frozen mapping cannot change"
+    );
+  }
 }

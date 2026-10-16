@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 
+import { exerciseComparison } from "./exercise-comparison.ts";
 import type {
   ArchitectureExercise,
   ExerciseHost,
@@ -34,12 +35,14 @@ import {
   publishExerciseRecord,
   readExercise,
   readExercisePreparation,
+  readExerciseAttempt,
 } from "./exercise-storage.ts";
 import {
   parseExerciseAssessment,
   parseExerciseCompletion,
 } from "./exercise-submit-parse.ts";
 import { assessExercise, completeExercise } from "./exercise-submit.ts";
+import { validateTransformationPreparation } from "./exercise-transformation.ts";
 import { writeArchitectureReport } from "./report.ts";
 import { architectureDigest, archive, inspectAssessment } from "./storage.ts";
 
@@ -93,6 +96,7 @@ function validatePreparation(
   }
 
   const analysis = exerciseSeamAnalysis(assessment);
+  validateTransformationPreparation(root, input, declaration, host);
   const inventory = exerciseInventory(root, state);
 
   if (!inventory.revision) {
@@ -382,9 +386,38 @@ export function exerciseText(context: ArchitectureExercise): string {
     `Selected structural guardrails: ${JSON.stringify(preparation.guardrails)}`,
     `Anticipated tradeoffs: ${preparation.input.tradeoffs.join("; ") || "none declared"}`,
     `Stop condition: ${preparation.input.stopCondition}`,
+    ...(preparation.input.transformation
+      ? [
+          `Frozen reviewed transformation and logical policy mapping: ${JSON.stringify(preparation.input.transformation)}`,
+          "New implementation is assessable before tracking. Completion requires learner-staged additions/removals and a fresh stable assessment; practice does not transfer historical verification.",
+        ]
+      : []),
+    ...context.attempts.map(
+      (attempt) =>
+        `Captured objective comparison ${attempt.input.id}: ${exerciseComparison(context, attempt)}`
+    ),
     "The learner writes all code. Ask for a conceptual hint, explicitly abandon, or submit when ready. Run assess for immutable objective checks; after success collect actual post answers, explain-back and invariant review, then complete. Only accepted practice closes the exercise; delayed verification is separate.",
     JSON.stringify(context, null, 2),
   ].join("\n");
+}
+
+function compareExerciseCommand(
+  state: string,
+  args: readonly string[],
+  host: ExerciseHost
+): string {
+  const [, id, attemptId] = args;
+
+  if (!id || !attemptId) {
+    throw new Error(
+      "Exercise compare requires an exercise id and captured attempt id"
+    );
+  }
+
+  return exerciseComparison(
+    readExercise(state, id, host.events()),
+    readExerciseAttempt(state, id, attemptId)
+  );
 }
 
 export function exerciseCommand(
@@ -394,6 +427,10 @@ export function exerciseCommand(
   host: ExerciseHost
 ): string {
   const [command, value] = args;
+
+  if (command === "compare") {
+    return compareExerciseCommand(state, args, host);
+  }
 
   if (command === "assess") {
     return JSON.stringify(
@@ -468,7 +505,12 @@ export function exerciseCommand(
           exerciseText(context),
           JSON.stringify(context, null, 2),
           !args.includes("--no-open"),
-          [context.preparation.assessment]
+          [
+            context.preparation.assessment,
+            ...context.attempts.flatMap((attempt) =>
+              attempt.assessment ? [attempt.assessment] : []
+            ),
+          ]
         )
       );
     }
@@ -479,6 +521,6 @@ export function exerciseCommand(
   }
 
   throw new Error(
-    "Usage: keepup architecture exercise prepare <json> | start <json> | inspect <id> [--json] | report <id> [--no-open] | list | abandon <json> | submit <json> | assess <json> | complete <json>"
+    "Usage: keepup architecture exercise prepare <json> | start <json> | inspect <id> [--json] | report <id> [--no-open] | compare <id> <attemptId> | list | abandon <json> | submit <json> | assess <json> | complete <json>"
   );
 }

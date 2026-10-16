@@ -8,6 +8,7 @@ import {
   readFileSync,
   realpathSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -191,6 +192,645 @@ function quiz(root: string, cli: string, prepared: { quizPrefix: string }) {
   return id;
 }
 
+test(
+  "reviewed consolidation and physical module merge retain logical obligations, reject vanished guards and out-of-scope or concurrent source",
+  { skip: !TOOL },
+  (t) => {
+    const root = fixture(t);
+    writeFileSync(join(root, "private-extra.ts"), "export const extra=0;\n");
+    writeFileSync(
+      join(root, "private.ts"),
+      "export const secret=7; export const validate=(value:number)=>{if(value<0){throw new Error('negative');}return value;};\n"
+    );
+    writeFileSync(
+      join(root, "public.ts"),
+      "import {secret,validate} from './private.ts'; export const save=(value=secret)=>validate(value);\n"
+    );
+    const behaviour = readFileSync(join(root, "behaviour.test.ts"), "utf-8");
+    writeFileSync(
+      join(root, "behaviour.test.ts"),
+      `${behaviour}import {save} from './public.ts'; test('negative values stay rejected',()=>assert.throws(()=>save(-1),/negative/u)); import {existsSync,readFileSync,writeFileSync} from 'node:fs'; if(existsSync('.keepup/reshape-drift')){writeFileSync('combined.ts',readFileSync('combined.ts','utf-8')+'// concurrent change\\n');}\n`
+    );
+    assert.equal(
+      spawnSync(
+        "git",
+        [
+          "add",
+          "private.ts",
+          "public.ts",
+          "private-extra.ts",
+          "behaviour.test.ts",
+        ],
+        {
+          cwd: root,
+        }
+      ).status,
+      0
+    );
+    assert.equal(
+      spawnSync("git", ["commit", "-qm", "complete consolidation fixture"], {
+        cwd: root,
+      }).status,
+      0
+    );
+
+    const original = run(
+      root,
+      CLI,
+      "architecture",
+      "inspect",
+      "seams",
+      "--json"
+    ).assessment.input;
+
+    run(
+      root,
+      CLI,
+      "architecture",
+      "analyse",
+      JSON.stringify({
+        ...original,
+        id: "consolidation",
+        modules: original.modules.map(
+          (module: { id: string; members: string[] }) =>
+            module.id === "orders"
+              ? { ...module, members: [...module.members, "private-extra.ts"] }
+              : module
+        ),
+      })
+    );
+
+    const concepts = preparation("unused").concepts.map((concept) => ({
+      ...concept,
+      file: "private.ts",
+    }));
+
+    const transformation = {
+      concepts: concepts.map((before) => ({
+        after: { ...before, file: "combined.ts" },
+        before,
+      })),
+      files: [
+        {
+          after: ["combined.ts"],
+          before: ["private.ts", "private-extra.ts"],
+          logicalModule: "orders",
+        },
+      ],
+      modules: [
+        {
+          after: [
+            {
+              id: "merged-physical",
+              interface: ["caller.ts", "public.ts"],
+              members: [
+                "caller.ts",
+                "behaviour.test.ts",
+                "public.ts",
+                "combined.ts",
+              ],
+            },
+          ],
+          before: ["caller", "orders"],
+        },
+      ],
+      review: {
+        notes:
+          "Consolidate equivalent private implementations, retain original caller/orders logical policy roles inside a physical module merge.",
+        reviewer: "Fixture learner",
+        status: "reviewed",
+      },
+    };
+
+    const input = {
+      ...preparation("merge"),
+      assessmentId: "consolidation",
+      concepts,
+      files: ["caller.ts", "private.ts", "private-extra.ts", "public.ts"],
+      invariants: ["Caller run returns 7", "Negative values are rejected"],
+      requiredTests: [
+        ...preparation("unused").requiredTests,
+        { file: "behaviour.test.ts", name: "negative values stay rejected" },
+      ],
+      transformation,
+    };
+
+    const invalid = [
+      {
+        ...input,
+        id: "cross-role",
+        transformation: {
+          ...transformation,
+          files: [
+            {
+              after: ["combined.ts"],
+              before: ["caller.ts", "private.ts"],
+              logicalModule: "orders",
+            },
+          ],
+        },
+      },
+      {
+        ...input,
+        id: "vanished",
+        transformation: {
+          ...transformation,
+          files: [
+            { after: [], before: ["private.ts"], logicalModule: "orders" },
+          ],
+        },
+      },
+      {
+        ...input,
+        id: "promoted",
+        transformation: {
+          ...transformation,
+          files: [
+            {
+              after: ["public.ts"],
+              before: ["private.ts"],
+              logicalModule: "orders",
+            },
+          ],
+        },
+      },
+      {
+        ...input,
+        id: "outside",
+        transformation: {
+          ...transformation,
+          files: [
+            {
+              after: ["../outside.ts"],
+              before: ["private.ts"],
+              logicalModule: "orders",
+            },
+          ],
+        },
+      },
+    ];
+
+    for (const candidate of invalid) {
+      assert.equal(
+        execute(
+          root,
+          CLI,
+          "architecture",
+          "exercise",
+          "prepare",
+          JSON.stringify(candidate)
+        ).status,
+        1
+      );
+    }
+
+    const prepared = run(
+      root,
+      CLI,
+      "architecture",
+      "exercise",
+      "prepare",
+      JSON.stringify(input)
+    );
+
+    const preId = `${prepared.quizPrefix}actual`;
+    run(
+      root,
+      CLI,
+      "log",
+      JSON.stringify({
+        answers: concepts.map((concept, index) => ({
+          ...concept,
+          answer: "The original private role and behaviour must survive",
+          correct: true,
+          question: `Actual consolidation question ${index + 1}`,
+        })),
+        files: ["private.ts"],
+        id: preId,
+        phase: "pre",
+        type: "quiz",
+      })
+    );
+    run(
+      root,
+      CLI,
+      "architecture",
+      "exercise",
+      "start",
+      JSON.stringify({ exerciseId: "merge", id: "start", preQuizIds: [preId] })
+    );
+    rmSync(join(root, "private.ts"));
+    rmSync(join(root, "private-extra.ts"));
+    writeFileSync(join(root, "combined.ts"), "export const secret=7;\n");
+    const attribution = ["private.ts", "private-extra.ts", "combined.ts"];
+
+    const unresolved = run(
+      root,
+      CLI,
+      "architecture",
+      "exercise",
+      "assess",
+      JSON.stringify(assessmentInput("merge", "unresolved", attribution))
+    );
+
+    assert.equal(unresolved.status, "failed");
+    assert.equal(unresolved.target.current, null);
+    writeFileSync(
+      join(root, "caller.ts"),
+      "import {save} from './public.ts'; export const run=()=>save();\n"
+    );
+    writeFileSync(
+      join(root, "public.ts"),
+      "import {secret} from './combined.ts'; export const save=()=>secret;\n"
+    );
+    const files = [...attribution, "caller.ts", "public.ts"];
+
+    const guard = run(
+      root,
+      CLI,
+      "architecture",
+      "exercise",
+      "assess",
+      JSON.stringify(assessmentInput("merge", "removed-guard", files))
+    );
+
+    assert.equal(guard.status, "failed");
+    assert.equal(guard.target.current, null);
+    assert.match(guard.errors.join(" "), /test command did not complete/u);
+    writeFileSync(
+      join(root, "combined.ts"),
+      "export const secret=7; export const validate=(value:number)=>{if(value<0){throw new Error('negative');}return value;};\n"
+    );
+    writeFileSync(
+      join(root, "public.ts"),
+      "import {secret,validate} from './combined.ts'; export const save=(value=secret)=>validate(value);\n"
+    );
+    const requiredBytes = readFileSync(join(root, "behaviour.test.ts"));
+    rmSync(join(root, "behaviour.test.ts"));
+
+    const vanishedTest = run(
+      root,
+      CLI,
+      "architecture",
+      "exercise",
+      "assess",
+      JSON.stringify(
+        assessmentInput("merge", "vanished-test", [
+          ...files,
+          "behaviour.test.ts",
+        ])
+      )
+    );
+
+    assert.equal(vanishedTest.status, "failed");
+    assert.equal(vanishedTest.target.current, null);
+    writeFileSync(join(root, "behaviour.test.ts"), requiredBytes);
+
+    writeFileSync(join(root, "outside.ts"), "export const hidden=1;\n");
+
+    const outside = run(
+      root,
+      CLI,
+      "architecture",
+      "exercise",
+      "assess",
+      JSON.stringify(
+        assessmentInput("merge", "outside", [...files, "outside.ts"])
+      )
+    );
+
+    assert.equal(outside.status, "failed");
+    assert.match(outside.errors.join(" "), /untracked|out-of-scope/u);
+    rmSync(join(root, "outside.ts"));
+    writeFileSync(join(root, ".keepup/reshape-drift"), "armed");
+
+    const concurrent = run(
+      root,
+      CLI,
+      "architecture",
+      "exercise",
+      "assess",
+      JSON.stringify(assessmentInput("merge", "concurrent", files))
+    );
+
+    assert.equal(concurrent.status, "failed");
+    assert.match(concurrent.errors.join(" "), /changed during assessment/u);
+    rmSync(join(root, ".keepup/reshape-drift"));
+    assert.equal(
+      spawnSync("git", ["add", "--all", "--", ...files], { cwd: root }).status,
+      0
+    );
+
+    const final = run(
+      root,
+      CLI,
+      "architecture",
+      "exercise",
+      "assess",
+      JSON.stringify(assessmentInput("merge", "final", files))
+    );
+
+    assert.equal(final.status, "awaiting-learning", JSON.stringify(final));
+    assert.equal(final.target.current, 0);
+    assert.deepEqual(
+      final.assessment.input.modules.map((module: { id: string }) => module.id),
+      ["caller", "orders"]
+    );
+
+    const comparison = run(
+      root,
+      CLI,
+      "architecture",
+      "exercise",
+      "compare",
+      "merge",
+      "final"
+    );
+
+    assert.equal(comparison.comparable, true);
+    assert.equal(comparison.mapping.modules[0].after[0].id, "merged-physical");
+    assert.equal(comparison.target.baseline, 1);
+    assert.equal(comparison.target.current, 0);
+
+    const report = run(
+      root,
+      CLI,
+      "architecture",
+      "exercise",
+      "report",
+      "merge",
+      "--no-open"
+    );
+
+    assert.match(
+      readFileSync(report.path, "utf-8"),
+      /merged-physical|Frozen reviewed transformation/u
+    );
+  }
+);
+
+test(
+  "declared new internal implementation is visible untracked without widening its original logical public interface",
+  { skip: !TOOL },
+  (t) => {
+    const root = fixture(t);
+    const { concepts } = preparation("unused");
+
+    const transformation = {
+      concepts: concepts.map((before) => ({ after: before, before })),
+      files: [{ after: ["helper.ts"], before: [], logicalModule: "orders" }],
+      modules: [
+        {
+          after: [
+            {
+              id: "caller",
+              interface: ["caller.ts"],
+              members: ["caller.ts", "behaviour.test.ts"],
+            },
+          ],
+          before: ["caller"],
+        },
+        {
+          after: [
+            {
+              id: "orders",
+              interface: ["public.ts"],
+              members: ["public.ts", "private.ts", "helper.ts"],
+            },
+          ],
+          before: ["orders"],
+        },
+      ],
+      review: {
+        notes:
+          "New implementation stays private under the existing orders policy and original caller behaviour.",
+        reviewer: "Fixture learner",
+        status: "reviewed",
+      },
+    };
+
+    const input = {
+      ...preparation("new-internal"),
+      files: ["caller.ts", "public.ts"],
+      transformation,
+    };
+
+    const prepared = run(
+      root,
+      CLI,
+      "architecture",
+      "exercise",
+      "prepare",
+      JSON.stringify(input)
+    );
+
+    const pre = quiz(root, CLI, prepared);
+    run(
+      root,
+      CLI,
+      "architecture",
+      "exercise",
+      "start",
+      JSON.stringify({ exerciseId: input.id, id: "start", preQuizIds: [pre] })
+    );
+    writeFileSync(
+      join(root, "helper.ts"),
+      "import {secret} from './private.ts'; export const output=()=>secret;\n"
+    );
+    writeFileSync(
+      join(root, "caller.ts"),
+      "import {output} from './helper.ts'; export const run=()=>output();\n"
+    );
+
+    const bad = run(
+      root,
+      CLI,
+      "architecture",
+      "exercise",
+      "assess",
+      JSON.stringify(
+        assessmentInput(input.id, "private-helper", ["caller.ts", "helper.ts"])
+      )
+    );
+
+    assert.equal(bad.target.current, 1);
+    assert.equal(bad.status, "failed");
+    assert.ok(bad.assessment.analysis.analysedFiles.includes("helper.ts"));
+    writeFileSync(
+      join(root, "caller.ts"),
+      "import {save} from './public.ts'; export const run=()=>save();\n"
+    );
+    writeFileSync(
+      join(root, "public.ts"),
+      "import {output} from './helper.ts'; export const save=()=>output();\n"
+    );
+
+    const good = run(
+      root,
+      CLI,
+      "architecture",
+      "exercise",
+      "assess",
+      JSON.stringify(
+        assessmentInput(input.id, "public-contract", [
+          "caller.ts",
+          "helper.ts",
+          "public.ts",
+        ])
+      )
+    );
+
+    assert.equal(good.status, "awaiting-learning", JSON.stringify(good));
+    assert.equal(good.target.current, 0);
+    assert.equal(good.tracking, false);
+
+    const comparison = run(
+      root,
+      CLI,
+      "architecture",
+      "exercise",
+      "compare",
+      input.id,
+      "public-contract"
+    );
+
+    assert.equal(comparison.comparable, true);
+    assert.deepEqual(
+      comparison.after.input.modules.find(
+        (module: { id: string }) => module.id === "orders"
+      ).interface,
+      ["public.ts"]
+    );
+  }
+);
+
+test(
+  "transformation preparation rejects ignored, pre-existing, generated, symlinked and out-of-scope new paths and moved required tests",
+  { skip: !TOOL },
+  (t) => {
+    const root = fixture(t);
+    const configPath = join(root, ".keepup/config.json");
+    const config = JSON.parse(readFileSync(configPath, "utf-8"));
+    writeFileSync(
+      configPath,
+      JSON.stringify({ ...config, exclude: [...config.exclude, "outside/**"] })
+    );
+    writeFileSync(join(root, ".git/info/exclude"), "ignored-helper.ts\n");
+    writeFileSync(join(root, "already.ts"), "export const existing=1;\n");
+    symlinkSync(root, join(root, "alias"), "dir");
+    const { concepts } = preparation("unused");
+
+    for (const [id, path, reason] of [
+      ["ignored", "ignored-helper.ts", /ignored/u],
+      ["existing", "already.ts", /already exist/u],
+      ["generated", "dist/helper.ts", /generated/u],
+      ["symlink", "alias/helper.ts", /Symlinked/u],
+      ["excluded", "outside/helper.ts", /outside.*scope/u],
+    ] as const) {
+      const transformation = {
+        concepts: concepts.map((before) => ({ after: before, before })),
+        files: [{ after: [path], before: [], logicalModule: "orders" }],
+        modules: [
+          {
+            after: [
+              {
+                id: "caller",
+                interface: ["caller.ts"],
+                members: ["caller.ts", "behaviour.test.ts"],
+              },
+            ],
+            before: ["caller"],
+          },
+          {
+            after: [
+              {
+                id: "orders",
+                interface: ["public.ts"],
+                members: ["public.ts", "private.ts", path],
+              },
+            ],
+            before: ["orders"],
+          },
+        ],
+        review: {
+          notes:
+            "Actual bounded same-role addition with unchanged policies and behaviour",
+          reviewer: "Fixture learner",
+          status: "reviewed",
+        },
+      };
+
+      const rejected = execute(
+        root,
+        CLI,
+        "architecture",
+        "exercise",
+        "prepare",
+        JSON.stringify({ ...preparation(id), transformation })
+      );
+
+      assert.equal(rejected.status, 1);
+      assert.match(rejected.stderr, reason);
+    }
+
+    const transformedTest = {
+      concepts: concepts.map((before) => ({ after: before, before })),
+      files: [
+        {
+          after: ["checks.ts"],
+          before: ["behaviour.test.ts"],
+          logicalModule: "caller",
+        },
+      ],
+      modules: [
+        {
+          after: [
+            {
+              id: "caller",
+              interface: ["caller.ts"],
+              members: ["caller.ts", "checks.ts"],
+            },
+          ],
+          before: ["caller"],
+        },
+        {
+          after: [
+            {
+              id: "orders",
+              interface: ["public.ts"],
+              members: ["public.ts", "private.ts"],
+            },
+          ],
+          before: ["orders"],
+        },
+      ],
+      review: {
+        notes:
+          "A moved test must not be accepted as original frozen behaviour evidence",
+        reviewer: "Fixture learner",
+        status: "reviewed",
+      },
+    };
+
+    const missingGuard = execute(
+      root,
+      CLI,
+      "architecture",
+      "exercise",
+      "prepare",
+      JSON.stringify({
+        ...preparation("move-tests"),
+        files: ["caller.ts", "behaviour.test.ts"],
+        transformation: transformedTest,
+      })
+    );
+
+    assert.equal(missingGuard.status, 1);
+    assert.match(missingGuard.stderr, /behavioural tests.*cannot be moved/u);
+    assert.deepEqual(run(root, CLI, "architecture", "exercise", "list"), []);
+  }
+);
+
 function concurrentExercise(
   root: string,
   cli: string,
@@ -316,6 +956,340 @@ function linkedLearning(
     postQuizIds: [postId],
   };
 }
+
+test(
+  "copied reshape preserves a renamed private policy role, analyses new untracked implementation and completes only with staged mapped actual learning",
+  { skip: !TOOL },
+  (t) => {
+    const root = fixture(t);
+    const installed = join(root, "installed");
+    cpSync(dirname(dirname(CLI)), installed, { recursive: true });
+    const cli = join(installed, "scripts/keepup.mjs");
+    chmodSync(join(root, ".keepup/scorers/complexity"), 0o644);
+
+    const oldQuestion = {
+      answer: "The private orders implementation retains the value",
+      concept: "prior private contract",
+      correct: true,
+      file: "private.ts",
+      question: "Actual historical private boundary question",
+    };
+
+    for (const [id, phase, days] of [
+      ["historical-private-pre", "pre", 4],
+      ["historical-private-check", "check", 2],
+    ] as const) {
+      const recorded = spawnSync(
+        process.execPath,
+        [
+          cli,
+          "log",
+          JSON.stringify({
+            answers: [oldQuestion],
+            files: ["private.ts"],
+            id,
+            phase,
+            type: "quiz",
+          }),
+        ],
+        {
+          cwd: root,
+          encoding: "utf-8",
+          env: {
+            ...process.env,
+            KEEPUP_ANALYSER_DIRECTORY: TOOL,
+            KEEPUP_NOW: new Date(
+              Date.now() - days * 24 * 60 * 60 * 1000
+            ).toISOString(),
+          },
+        }
+      );
+
+      assert.equal(recorded.status, 0, recorded.stderr);
+    }
+
+    assert.equal(
+      run(root, cli, "status", "--json").files.find(
+        (entry: { file: string }) => entry.file === "private.ts"
+      ).state,
+      "verified"
+    );
+
+    const concepts = preparation("unused").concepts.map((concept) => ({
+      ...concept,
+      file: "private.ts",
+    }));
+
+    const transformation = {
+      concepts: concepts.map((before) => ({
+        after: { ...before, file: "internal.ts" },
+        before,
+      })),
+      files: [
+        {
+          after: ["internal.ts"],
+          before: ["private.ts"],
+          logicalModule: "orders",
+        },
+      ],
+      modules: [
+        {
+          after: [
+            {
+              id: "caller",
+              interface: ["caller.ts"],
+              members: ["caller.ts", "behaviour.test.ts"],
+            },
+          ],
+          before: ["caller"],
+        },
+        {
+          after: [
+            {
+              id: "orders-door",
+              interface: ["public.ts"],
+              members: ["public.ts"],
+            },
+            {
+              id: "orders-core",
+              interface: ["internal.ts"],
+              members: ["internal.ts"],
+            },
+          ],
+          before: ["orders"],
+        },
+      ],
+      review: {
+        notes:
+          "Physical split retains original orders policy ownership and caller outcome; no private surface promotion.",
+        reviewer: "Fixture learner",
+        status: "reviewed",
+      },
+    };
+
+    const input = {
+      ...preparation("reshape"),
+      concepts,
+      files: ["caller.ts", "private.ts", "public.ts"],
+      transformation,
+    };
+
+    const prepared = run(
+      root,
+      cli,
+      "architecture",
+      "exercise",
+      "prepare",
+      JSON.stringify(input)
+    );
+
+    const preId = `${prepared.quizPrefix}actual`;
+    run(
+      root,
+      cli,
+      "log",
+      JSON.stringify({
+        answers: concepts.map((concept, index) => ({
+          ...concept,
+          answer: "The orders role keeps this implementation private",
+          correct: true,
+          question: `Actual old implementation impact question ${index + 1}`,
+        })),
+        files: ["private.ts"],
+        id: preId,
+        phase: "pre",
+        type: "quiz",
+      })
+    );
+    run(
+      root,
+      cli,
+      "architecture",
+      "exercise",
+      "start",
+      JSON.stringify({
+        exerciseId: "reshape",
+        id: "start",
+        preQuizIds: [preId],
+      })
+    );
+    writeFileSync(
+      join(root, "internal.ts"),
+      readFileSync(join(root, "private.ts"))
+    );
+    rmSync(join(root, "private.ts"));
+    writeFileSync(
+      join(root, "caller.ts"),
+      "import {secret} from './internal.ts'; export const run=()=>secret;\n"
+    );
+
+    const assess = (id: string) =>
+      run(
+        root,
+        cli,
+        "architecture",
+        "exercise",
+        "assess",
+        JSON.stringify(
+          assessmentInput(
+            "reshape",
+            id,
+            ["caller.ts", "private.ts", "internal.ts", "public.ts"].filter(
+              (file) => file !== "public.ts" || id !== "still-private"
+            )
+          )
+        )
+      );
+
+    const bypass = assess("still-private");
+    assert.equal(bypass.status, "failed");
+    assert.equal(bypass.target.current, 1);
+    assert.ok(
+      bypass.assessment.observation.manifest.some(
+        (entry: { path: string }) => entry.path === "internal.ts"
+      )
+    );
+    writeFileSync(
+      join(root, "caller.ts"),
+      "import {save} from './public.ts'; export const run=()=>save();\n"
+    );
+    writeFileSync(
+      join(root, "public.ts"),
+      "import {secret} from './internal.ts'; export const save=()=>secret;\n"
+    );
+    const unstaged = assess("unstaged");
+    assert.equal(unstaged.target.current, 0);
+    assert.equal(unstaged.tracking, false);
+    assert.equal(
+      spawnSync(
+        "git",
+        [
+          "add",
+          "--all",
+          "--",
+          "caller.ts",
+          "private.ts",
+          "public.ts",
+          "internal.ts",
+        ],
+        { cwd: root }
+      ).status,
+      0
+    );
+    const attempt = assess("tracked");
+    assert.equal(attempt.status, "awaiting-learning");
+    assert.equal(attempt.tracking, true);
+
+    const dark = run(root, cli, "status", "--json").files.find(
+      (entry: { file: string }) => entry.file === "internal.ts"
+    );
+
+    assert.equal(dark.state, "dark");
+    assert.equal(dark.mind, 0);
+
+    const postId = `${attempt.quizPrefix}actual`;
+    run(
+      root,
+      cli,
+      "log",
+      JSON.stringify({
+        answers: concepts.map((concept, index) => ({
+          ...concept,
+          answer:
+            "The public entrypoint owns access to the orders implementation",
+          correct: true,
+          file: "internal.ts",
+          question: `Different new implementation trace question ${index + 1}`,
+        })),
+        files: ["internal.ts"],
+        id: postId,
+        phase: "post",
+        type: "quiz",
+      })
+    );
+    const explainId = `${attempt.quizPrefix}explain`;
+    run(
+      root,
+      cli,
+      "log",
+      JSON.stringify({
+        files: ["caller.ts", "internal.ts", "public.ts"],
+        id: explainId,
+        text: "The moved implementation keeps its original private orders role. The caller uses the public contract and the unchanged behaviour assertion still returns seven.",
+        type: "explain",
+      })
+    );
+
+    const completion = {
+      attemptId: "tracked",
+      exerciseId: "reshape",
+      explainId,
+      id: "accept",
+      invariantReview: [
+        {
+          evidence:
+            "Actual learner reviewed the mapped implementation, unchanged caller test and required validation.",
+          invariant: "Caller run returns 7",
+          preserved: true,
+        },
+      ],
+      postQuizIds: [postId],
+    };
+
+    const result = run(
+      root,
+      cli,
+      "architecture",
+      "exercise",
+      "complete",
+      JSON.stringify(completion)
+    );
+
+    assert.equal(result.state, "passed");
+    assert.deepEqual(result.pass.files, [
+      "caller.ts",
+      "internal.ts",
+      "public.ts",
+    ]);
+    assert.equal(Object.hasOwn(result.pass.snapshots, "private.ts"), false);
+    assert.deepEqual(result.preparation, prepared);
+    assert.equal(
+      run(root, cli, "status", "--json").files.find(
+        (entry: { file: string }) => entry.file === "internal.ts"
+      ).state,
+      "practised"
+    );
+
+    for (const file of ["private.ts", "untracked.ts"]) {
+      if (file === "untracked.ts") {
+        writeFileSync(join(root, file), "export const untouched=1;\n");
+      }
+
+      const kata = execute(
+        root,
+        cli,
+        "log",
+        JSON.stringify({
+          files: [file],
+          id: `ordinary-${file}`,
+          module: "fixture",
+          target: { file, goal: 1, metric: "complexity" },
+          technique: "test existing-only boundary",
+          type: "kata_start",
+        })
+      );
+
+      assert.equal(kata.status, 1);
+      assert.match(kata.stderr, /tracked regular files/u);
+    }
+
+    assert.equal(
+      run(root, cli, "architecture", "inspect", attempt.assessment.id, "--json")
+        .freshness.status,
+      "current"
+    );
+  }
+);
 
 test(
   "a late edit to an uncredited caller during supported practice validation prevents the final event",

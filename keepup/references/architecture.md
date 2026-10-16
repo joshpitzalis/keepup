@@ -185,7 +185,8 @@ identities/questions, exclusions and evaluator/rubric assets fixed. Changing one
 makes the observations incomparable with a reason. Obligation counts and ratings
 may change as the same representative behaviour improves. Adding unrelated cases
 cannot improve a fixed-inventory comparison. Ordinary comparisons reject moves or
-membership changes; explicit reviewed mappings arrive with reshaping exercises.
+membership changes; use the explicit reviewed exercise transformation and
+`architecture exercise compare <exerciseId> <attemptId>` for mapped evidence.
 Recording, inspecting, comparing and reporting do not grant learning credit.
 ## Change locality
 

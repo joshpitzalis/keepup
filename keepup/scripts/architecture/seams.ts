@@ -4,6 +4,7 @@ import {
   trackedDependencySources,
 } from "./analyser.ts";
 import { analyseCycles, cycleFindings } from "./cycles.ts";
+import type { WorkingTreePaths } from "./domain.ts";
 import type {
   DependencyEdge,
   SeamAnalysis,
@@ -138,7 +139,8 @@ function evaluateRules(
 export function analyseSeams(
   root: string,
   input: SeamAssessmentInput,
-  directory: string | undefined
+  directory: string | undefined,
+  workingTree?: WorkingTreePaths
 ): SeamAnalysis {
   let tool: SeamAnalysis["tool"] = null;
 
@@ -152,7 +154,7 @@ export function analyseSeams(
     tool = analyserTool(directory);
 
     const declared = new Set(input.modules.flatMap((module) => module.members));
-    const sources = trackedDependencySources(root);
+    const sources = trackedDependencySources(root, workingTree);
     const acquired = acquireGraph(root, sources, tool);
 
     const unownedConsumers = acquired.edges
