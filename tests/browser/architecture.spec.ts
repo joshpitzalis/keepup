@@ -94,18 +94,22 @@ test("reviewed facts and escaped evidence remain readable without JavaScript", a
       { exact: true }
     )
   ).toBeVisible();
+
   const rubric = page.getByText(
     "Captured rubric reviewed: interface-leverage-rubric.md",
     { exact: true }
   );
+
   await rubric.focus();
   await page.keyboard.press("Enter");
   await expect(
     page.getByText(/# Experimental interface-leverage rubric v1/u)
   ).toBeVisible();
+
   const binary = page.getByText("Captured source reviewed: src/binary.dat", {
     exact: true,
   });
+
   await binary.focus();
   await page.keyboard.press("Enter");
   await expect(

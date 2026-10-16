@@ -16,6 +16,7 @@ import {
 } from "node:fs";
 import { dirname, isAbsolute, join, relative } from "node:path";
 
+import { analyserToolChanged } from "./analyser.ts";
 import type {
   ArchitectureAssessment,
   ArchitectureInspection,
@@ -30,6 +31,8 @@ import {
   localityMeasurements,
 } from "./locality.ts";
 import { parseArchitectureId, parseAssessment } from "./parse.ts";
+import type { SeamAnalysis, SeamAssessmentInput } from "./seam-domain.ts";
+import { seamMeasurements } from "./seams.ts";
 
 const ASSET_DIRECTORY = import.meta.dirname;
 
@@ -88,7 +91,7 @@ function manifest(root: string): ManifestEntry[] {
 function assets(): ManifestEntry[] {
   return readdirSync(ASSET_DIRECTORY)
     .toSorted()
-    .filter((name) => /\.(?:ts|md)$/u.test(name))
+    .filter((name) => /\.(?:ts|md|json)$/u.test(name))
     .map((path) => ({ hash: fileHash(ASSET_DIRECTORY, path), path }));
 }
 
@@ -102,6 +105,16 @@ function revision(root: string): string | null {
 }
 
 function referencedPaths(input: AssessmentInput): string[] {
+  if (input.dimension === "seam-integrity") {
+    return [
+      ...input.modules.flatMap((module) => [
+        ...module.members,
+        ...module.interface,
+      ]),
+      ...input.evidence,
+    ];
+  }
+
   return [
     ...input.module.members,
     ...input.module.interface,
@@ -140,6 +153,10 @@ function interfaceLimitations(input: InterfaceAssessmentInput): string[] {
 }
 
 function limitationsFor(input: AssessmentInput): string[] {
+  if (input.dimension === "seam-integrity") {
+    return [...input.limitations];
+  }
+
   const limitations = [
     ...input.limitations,
     ...(input.dimension === "change-locality"
@@ -156,7 +173,18 @@ function limitationsFor(input: AssessmentInput): string[] {
   return limitations;
 }
 
-function measurements(input: AssessmentInput): AssessmentMeasurements {
+function measurements(
+  input: AssessmentInput,
+  analysis?: SeamAnalysis
+): AssessmentMeasurements {
+  if (input.dimension === "seam-integrity") {
+    if (!analysis) {
+      throw new Error("Automated seam analysis is CLI-owned");
+    }
+
+    return seamMeasurements(analysis);
+  }
+
   if (input.dimension === "change-locality") {
     return localityMeasurements(input);
   }
@@ -314,9 +342,10 @@ export function readAssessment(
   if (
     architectureDigest(JSON.stringify(input)) !== result.inputDigest ||
     result.dimension !== input.dimension ||
-    result.method !== "reviewed" ||
+    result.method !==
+      (input.dimension === "seam-integrity" ? "automated" : "reviewed") ||
     JSON.stringify(result.measurements) !==
-      JSON.stringify(measurements(input)) ||
+      JSON.stringify(measurements(input, result.analysis)) ||
     typeof result.observation.id !== "string" ||
     !Number.isFinite(Date.parse(result.observation.time)) ||
     typeof result.observation.observer !== "string"
@@ -329,14 +358,59 @@ export function readAssessment(
     ...result.observation.assets,
   ]);
 
+  if (result.analysis?.tool) {
+    verifySnapshots(state, result.analysis.tool.assets);
+  }
+
   return result;
 }
 
 /* oxlint-enable anti-slop/no-runtime-typeof */
+interface AssessmentCoverage {
+  readonly assessed: number;
+  readonly total: number;
+}
+
+function coverageFor(
+  input: AssessmentInput,
+  analysis: SeamAnalysis | undefined
+): AssessmentCoverage {
+  if (input.dimension === "seam-integrity") {
+    return {
+      assessed:
+        analysis?.analysedFiles.filter((file) =>
+          input.modules.some((module) => module.members.includes(file))
+        ).length ?? 0,
+      total: input.modules.flatMap((module) => module.members).length,
+    };
+  }
+
+  return {
+    assessed: measurements(input).assessed,
+    total: measurements(input).denominator,
+  };
+}
+
+function evaluateAssessment(
+  input: AssessmentInput,
+  evaluate: ((input: SeamAssessmentInput) => SeamAnalysis) | undefined
+): SeamAnalysis | undefined {
+  if (input.dimension !== "seam-integrity") {
+    return undefined;
+  }
+
+  if (!evaluate) {
+    throw new Error("Automated seam analysis is CLI-owned");
+  }
+
+  return evaluate(input);
+}
+
 export function recordAssessment(
   root: string,
   state: string,
-  input: AssessmentInput
+  input: AssessmentInput,
+  evaluate?: (input: SeamAssessmentInput) => SeamAnalysis
 ): ArchitectureAssessment {
   if (!existsSync(join(state, "config.json"))) {
     throw new Error("Run keepup init before recording architecture evidence");
@@ -370,8 +444,13 @@ export function recordAssessment(
 
   const capturedAssets = assets();
   const sha = revision(root);
+  const analysis = evaluateAssessment(input, evaluate);
   archive(root, state, before);
   archive(ASSET_DIRECTORY, state, capturedAssets);
+
+  if (analysis?.tool) {
+    archive(analysis.tool.directory, state, analysis.tool.assets);
+  }
 
   if (
     JSON.stringify(before) !== JSON.stringify(manifest(root)) ||
@@ -390,17 +469,14 @@ export function recordAssessment(
   }
 
   const result: ArchitectureAssessment = {
-    coverage: {
-      assessed: measurements(input).assessed,
-      total: measurements(input).denominator,
-    },
+    coverage: coverageFor(input, analysis),
     dimension: input.dimension,
     id: input.id,
     input,
     inputDigest,
-    limitations: limitationsFor(input),
-    measurements: measurements(input),
-    method: "reviewed",
+    limitations: [...limitationsFor(input), ...(analysis?.limitations ?? [])],
+    measurements: measurements(input, analysis),
+    method: input.dimension === "seam-integrity" ? "automated" : "reviewed",
     observation: {
       assets: capturedAssets,
       id: randomUUID(),
@@ -408,15 +484,16 @@ export function recordAssessment(
       observer,
       revision: sha,
       rubric:
-        input.dimension === "change-locality"
-          ? "experimental-change-locality-v1"
-          : "experimental-interface-leverage-v1",
+        input.dimension === "seam-integrity"
+          ? "experimental-seam-integrity-v1"
+          : `experimental-${input.dimension}-v1`,
       time: new Date().toISOString(),
     },
     schemaVersion: 1,
   };
 
-  const payload = JSON.stringify(result);
+  const observation = analysis ? { ...result, analysis } : result;
+  const payload = JSON.stringify(observation);
 
   if (
     !atomicPublish(
@@ -435,7 +512,7 @@ export function recordAssessment(
     return winner;
   }
 
-  return result;
+  return observation;
 }
 
 export function inspectAssessment(
@@ -466,6 +543,13 @@ export function inspectAssessment(
     JSON.stringify(assessment.observation.assets) !== JSON.stringify(assets())
   ) {
     changed.add("evaluator assets or rubric");
+  }
+
+  if (
+    assessment.analysis?.tool &&
+    analyserToolChanged(assessment.analysis.tool)
+  ) {
+    changed.add("analyser assets or version");
   }
 
   return {

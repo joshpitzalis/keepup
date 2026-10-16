@@ -27,10 +27,27 @@ export type ArchitectureChanges =
       readonly independentPolicySites: number | null;
       readonly calls: number | null;
     }
+  | {
+      readonly value: null;
+      readonly violations: number | null;
+      readonly eligibleEdges: number | null;
+    }
   | { readonly value: null };
 
 function definition(assessment: ArchitectureAssessment): string {
   const { input, observation } = assessment;
+
+  if (input.dimension === "seam-integrity") {
+    return JSON.stringify({
+      assets: observation.assets,
+      dimension: input.dimension,
+      exclusions: input.exclusions.toSorted(),
+      modules: input.modules,
+      rubric: observation.rubric,
+      rules: input.rules,
+      tool: assessment.analysis?.tool?.fingerprint ?? null,
+    });
+  }
 
   return JSON.stringify({
     assets: observation.assets,
@@ -88,7 +105,16 @@ export function compareAssessments(
   const one = before.assessment.measurements;
   const two = after.assessment.measurements;
 
-  if (one.status !== "measured" || two.status !== "measured") {
+  const completeSeams =
+    before.assessment.input.dimension === "seam-integrity" &&
+    after.assessment.input.dimension === "seam-integrity" &&
+    before.assessment.analysis?.status === "complete" &&
+    after.assessment.analysis?.status === "complete";
+
+  if (
+    !completeSeams &&
+    (one.status !== "measured" || two.status !== "measured")
+  ) {
     reasons.push(
       "Required measurements are unavailable; missing evidence is not zero"
     );
@@ -135,6 +161,16 @@ function measurementChanges(
         ? after.independentPolicySites - before.independentPolicySites
         : null,
       value,
+    };
+  }
+
+  if ("violations" in before && "violations" in after) {
+    return {
+      eligibleEdges: comparable
+        ? after.eligibleEdges - before.eligibleEdges
+        : null,
+      value: null,
+      violations: comparable ? after.violations - before.violations : null,
     };
   }
 

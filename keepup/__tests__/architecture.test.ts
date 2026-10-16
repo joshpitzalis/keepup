@@ -181,6 +181,7 @@ test("missing scenarios or evidence stays unavailable and provisional findings s
 
   assert.equal(missing.measurements.value, null);
   assert.equal(missing.measurements.assessed, 0);
+  assert.ok("review" in missing.input);
   assert.equal(missing.input.review.status, "provisional");
   assert.match(
     missing.limitations.join(" "),
