@@ -3,6 +3,7 @@ import {
   comparisonReport,
   comparisonText,
 } from "./comparison.ts";
+import { opportunityCommand } from "./opportunities.ts";
 import { parseAssessment } from "./parse.ts";
 import { architectureReport, architectureText } from "./report.ts";
 import { analyseSeams } from "./seams.ts";
@@ -22,6 +23,10 @@ export function architectureCommand(
 
   if (command === "testability" || command === "analyse") {
     return evaluateCommand(root, state, command, value);
+  }
+
+  if (command === "opportunity") {
+    return opportunityCommand(root, state, args.slice(1));
   }
 
   if (command === "record") {

@@ -52,6 +52,10 @@ For module interface assessments, read [the architecture workflow](references/ar
 Use `architecture record <json>`, `inspect <id> [--json]`, `list` and `report <id>`.
 For automated seam rules, use `architecture analyse <json>` with the explicit pinned analyser prerequisite in that workflow. For cycles, declare the optional runtime/type policy and exact group exceptions; inspect complete evidence paths and raw cyclic-group counts. Preserve raw violations, graph coverage, rule identities and source locations; reports alone never prove learning.
 Keep reviewed architecture judgements separate from file scores and learner understanding.
+For a bounded improvement recommendation, read the opportunity section in that workflow.
+`architecture opportunity record|inspect|report` preserves supplied context and
+readiness limits. Offer assessment, preparation, deferral or no work when warranted.
+Architecture exercises are unavailable until the exercise workflow lands.
 For reviewed change locality, use the same workflow's Change locality section. Confirm
 semantic equivalence before accepting rules; preserve required validation at each trust
 boundary. Affected owners and Git co-change never substitute for independent-site evidence.
