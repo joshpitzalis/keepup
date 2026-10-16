@@ -48,12 +48,30 @@ export function architectureReport(
   result: ArchitectureInspection,
   open: boolean
 ): ArchitectureReportResult {
+  return writeArchitectureReport(
+    state,
+    result.assessment.id,
+    "Architecture assessment",
+    architectureText(result),
+    JSON.stringify(result, null, 2),
+    open
+  );
+}
+
+export function writeArchitectureReport(
+  state: string,
+  name: string,
+  title: string,
+  text: string,
+  details: string,
+  open: boolean
+): ArchitectureReportResult {
   const directory = join(state, "architecture", "reports");
   mkdirSync(directory, { recursive: true });
-  const path = join(directory, `${result.assessment.id}.html`);
+  const path = join(directory, `${name}.html`);
   writeFileSync(
     path,
-    `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Architecture ${escapeHtml(result.assessment.id)}</title><style>body{font:18px system-ui;max-width:78ch;margin:2rem auto;padding:1rem;color:#18202a;background:#fff}pre{white-space:pre-wrap;overflow-wrap:anywhere}summary{cursor:pointer;padding:1rem;border:1px solid}summary:focus-visible{outline:3px solid #1765a8}h1{font-size:2rem}</style></head><body><main><h1>Architecture assessment</h1><p>Experimental reviewed evidence. Assessment does not demonstrate learner understanding.</p><pre>${escapeHtml(architectureText(result))}</pre><details><summary>Inspect captured evidence and provenance</summary><pre>${escapeHtml(JSON.stringify(result, null, 2))}</pre></details></main></body></html>`
+    `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Architecture ${escapeHtml(name)}</title><style>body{font:18px system-ui;max-width:78ch;margin:2rem auto;padding:1rem;color:#18202a;background:#fff}pre{white-space:pre-wrap;overflow-wrap:anywhere}summary{cursor:pointer;padding:1rem;border:1px solid}summary:focus-visible{outline:3px solid #1765a8}h1{font-size:2rem}</style></head><body><main><h1>${escapeHtml(title)}</h1><p>Experimental reviewed evidence. Assessment does not demonstrate learner understanding.</p><pre>${escapeHtml(text)}</pre><details><summary>Inspect captured evidence and provenance</summary><pre>${escapeHtml(details)}</pre></details></main></body></html>`
   );
 
   if (!open) {
