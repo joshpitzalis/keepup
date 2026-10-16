@@ -30,6 +30,15 @@ import {
   localityMeasurements,
 } from "./locality.ts";
 import { parseArchitectureId, parseAssessment } from "./parse.ts";
+import type {
+  TestabilityAnalysis,
+  TestabilityAssessmentInput,
+} from "./testability.ts";
+import {
+  testabilityEvidence,
+  testabilityLimitations,
+  testabilityMeasurements,
+} from "./testability.ts";
 
 const ASSET_DIRECTORY = import.meta.dirname;
 
@@ -102,6 +111,15 @@ function revision(root: string): string | null {
 }
 
 function referencedPaths(input: AssessmentInput): string[] {
+  if (input.dimension === "behavioural-testability") {
+    return [
+      ...input.module.members,
+      ...input.module.interface,
+      ...input.evidence,
+      ...testabilityEvidence(input),
+    ];
+  }
+
   return [
     ...input.module.members,
     ...input.module.interface,
@@ -139,7 +157,20 @@ function interfaceLimitations(input: InterfaceAssessmentInput): string[] {
   return limitations;
 }
 
-function limitationsFor(input: AssessmentInput): string[] {
+function limitationsFor(
+  input: AssessmentInput,
+  analysis?: TestabilityAnalysis
+): string[] {
+  if (input.dimension === "behavioural-testability") {
+    return [
+      ...input.limitations,
+      ...testabilityLimitations(input, analysis),
+      ...(input.review.status === "provisional"
+        ? ["Provisional suggestion; review not accepted"]
+        : []),
+    ];
+  }
+
   const limitations = [
     ...input.limitations,
     ...(input.dimension === "change-locality"
@@ -156,7 +187,26 @@ function limitationsFor(input: AssessmentInput): string[] {
   return limitations;
 }
 
-function measurements(input: AssessmentInput): AssessmentMeasurements {
+function rubricFor(input: AssessmentInput): string {
+  if (input.dimension === "behavioural-testability") {
+    return "experimental-behavioural-testability-v1";
+  }
+
+  if (input.dimension === "change-locality") {
+    return "experimental-change-locality-v1";
+  }
+
+  return "experimental-interface-leverage-v1";
+}
+
+function measurements(
+  input: AssessmentInput,
+  analysis?: TestabilityAnalysis
+): AssessmentMeasurements {
+  if (input.dimension === "behavioural-testability") {
+    return testabilityMeasurements(input, analysis);
+  }
+
   if (input.dimension === "change-locality") {
     return localityMeasurements(input);
   }
@@ -316,7 +366,7 @@ export function readAssessment(
     result.dimension !== input.dimension ||
     result.method !== "reviewed" ||
     JSON.stringify(result.measurements) !==
-      JSON.stringify(measurements(input)) ||
+      JSON.stringify(measurements(input, result.analysis)) ||
     typeof result.observation.id !== "string" ||
     !Number.isFinite(Date.parse(result.observation.time)) ||
     typeof result.observation.observer !== "string"
@@ -336,7 +386,8 @@ export function readAssessment(
 export function recordAssessment(
   root: string,
   state: string,
-  input: AssessmentInput
+  input: AssessmentInput,
+  evaluate?: (input: TestabilityAssessmentInput) => TestabilityAnalysis
 ): ArchitectureAssessment {
   if (!existsSync(join(state, "config.json"))) {
     throw new Error("Run keepup init before recording architecture evidence");
@@ -370,6 +421,18 @@ export function recordAssessment(
 
   const capturedAssets = assets();
   const sha = revision(root);
+
+  const analysis =
+    input.dimension === "behavioural-testability"
+      ? evaluate?.(input)
+      : undefined;
+
+  if (input.dimension === "behavioural-testability" && !analysis) {
+    throw new Error(
+      "Use architecture testability to capture CLI-owned existing-test execution"
+    );
+  }
+
   archive(root, state, before);
   archive(ASSET_DIRECTORY, state, capturedAssets);
 
@@ -390,16 +453,17 @@ export function recordAssessment(
   }
 
   const result: ArchitectureAssessment = {
+    analysis,
     coverage: {
-      assessed: measurements(input).assessed,
-      total: measurements(input).denominator,
+      assessed: measurements(input, analysis).assessed,
+      total: measurements(input, analysis).denominator,
     },
     dimension: input.dimension,
     id: input.id,
     input,
     inputDigest,
-    limitations: limitationsFor(input),
-    measurements: measurements(input),
+    limitations: limitationsFor(input, analysis),
+    measurements: measurements(input, analysis),
     method: "reviewed",
     observation: {
       assets: capturedAssets,
@@ -407,10 +471,7 @@ export function recordAssessment(
       manifest: before,
       observer,
       revision: sha,
-      rubric:
-        input.dimension === "change-locality"
-          ? "experimental-change-locality-v1"
-          : "experimental-interface-leverage-v1",
+      rubric: rubricFor(input),
       time: new Date().toISOString(),
     },
     schemaVersion: 1,
@@ -466,6 +527,14 @@ export function inspectAssessment(
     JSON.stringify(assessment.observation.assets) !== JSON.stringify(assets())
   ) {
     changed.add("evaluator assets or rubric");
+  }
+
+  if (
+    assessment.analysis?.kind === "testability" &&
+    (assessment.analysis.environment.node !== process.version ||
+      assessment.analysis.environment.platform !== process.platform)
+  ) {
+    changed.add("test execution environment");
   }
 
   return {

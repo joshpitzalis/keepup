@@ -5,6 +5,7 @@ import {
   listAssessments,
   recordAssessment,
 } from "./storage.ts";
+import { executeTestability } from "./testability-run.ts";
 
 export function architectureCommand(
   root: string,
@@ -12,6 +13,20 @@ export function architectureCommand(
   args: readonly string[]
 ): string {
   const [command, value] = args;
+
+  if (command === "testability") {
+    const input = parseAssessment(JSON.parse(value ?? ""));
+
+    if (input.dimension !== "behavioural-testability") {
+      throw new Error("Expected behavioural-testability input");
+    }
+
+    return JSON.stringify(
+      recordAssessment(root, state, input, (candidate) =>
+        executeTestability(root, candidate)
+      )
+    );
+  }
 
   if (command === "record") {
     return JSON.stringify(

@@ -2,6 +2,11 @@ import type {
   LocalityAssessmentInput,
   LocalityMeasurements,
 } from "./locality.ts";
+import type {
+  TestabilityAssessmentInput,
+  TestabilityMeasurements,
+  TestabilityAnalysis,
+} from "./testability.ts";
 
 export interface ArchitectureModule {
   readonly id: string;
@@ -50,11 +55,13 @@ export interface InterfaceAssessmentInput {
 
 export type AssessmentInput =
   | InterfaceAssessmentInput
-  | LocalityAssessmentInput;
+  | LocalityAssessmentInput
+  | TestabilityAssessmentInput;
 
 export type AssessmentMeasurements =
   | InterfaceMeasurements
-  | LocalityMeasurements;
+  | LocalityMeasurements
+  | TestabilityMeasurements;
 
 export interface InterfaceMeasurements {
   readonly status: "measured" | "unavailable" | "not-applicable";
@@ -71,6 +78,7 @@ export interface ManifestEntry {
 }
 
 export interface ArchitectureAssessment {
+  readonly analysis?: TestabilityAnalysis;
   readonly schemaVersion: 1;
   readonly id: string;
   readonly dimension: AssessmentInput["dimension"];
