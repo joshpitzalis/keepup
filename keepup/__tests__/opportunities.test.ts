@@ -504,3 +504,174 @@ test("a navigability opportunity targets raw transitions while retaining the fix
     metric: "transitions",
   });
 });
+
+test(
+  "copied cycle opportunities target cyclic groups independently of unrelated edge repairs",
+  { skip: !process.env.KEEPUP_TEST_ANALYSER_DIRECTORY },
+  (t) => {
+    const root = fixture(t);
+    writeFileSync(
+      join(root, "policy.ts"),
+      "import { peer } from './peer'; export const save = () => peer;\n"
+    );
+    writeFileSync(
+      join(root, "peer.ts"),
+      "import { save } from './policy'; import { extra } from './extra'; export const peer = () => [save, extra];\n"
+    );
+    writeFileSync(join(root, "extra.ts"), "export const extra = 1;\n");
+    assert.equal(spawnSync("git", ["add", "."], { cwd: root }).status, 0);
+    const installed = join(root, "installed");
+    cpSync(dirname(dirname(CLI)), installed, { recursive: true });
+    const cli = join(installed, "scripts/keepup.mjs");
+
+    const definition = (id: string, cycles = true) => {
+      const base = {
+        dimension: "seam-integrity",
+        evidence: [],
+        exclusions: [],
+        id,
+        limitations: [],
+        modules: [
+          { id: "orders", interface: ["policy.ts"], members: ["policy.ts"] },
+          { id: "peer", interface: ["peer.ts"], members: ["peer.ts"] },
+          { id: "extra", interface: ["extra.ts"], members: ["extra.ts"] },
+        ],
+        rules: [
+          {
+            dependency: "runtime",
+            from: "peer",
+            id: "no-extra",
+            kind: "forbidden",
+            to: "extra",
+          },
+        ],
+      };
+
+      return cycles
+        ? {
+            ...base,
+            cycles: {
+              dependency: "runtime",
+              exceptions: [],
+              id: "no-runtime-cycles",
+            },
+          }
+        : base;
+    };
+
+    const analyse = (id: string, cycles = true) => {
+      const result = spawnSync(
+        process.execPath,
+        [
+          cli,
+          "architecture",
+          "analyse",
+          JSON.stringify(definition(id, cycles)),
+        ],
+        {
+          cwd: root,
+          encoding: "utf-8",
+          env: {
+            ...process.env,
+            KEEPUP_ANALYSER_DIRECTORY:
+              process.env.KEEPUP_TEST_ANALYSER_DIRECTORY,
+          },
+        }
+      );
+
+      assert.equal(result.status, 0, result.stderr);
+
+      return JSON.parse(result.stdout);
+    };
+
+    const before = analyse("cycles-before");
+    assert.equal(before.measurements.violations, 2);
+    assert.equal(before.measurements.cyclicGroups, 1);
+
+    const candidate = (id: string, assessmentId: string, goal = 0) => ({
+      ...opportunity(id),
+      findings: [
+        {
+          assessmentId,
+          description: "Orders and peer form a prohibited logical module cycle",
+          evidence: ["policy.ts", "peer.ts"],
+        },
+      ],
+      modules: ["orders", "peer"],
+      rawTarget: { assessmentId, goal, metric: "cyclicGroups" },
+      scope: ["policy.ts", "peer.ts"],
+    });
+
+    const record = run(
+      root,
+      cli,
+      "architecture",
+      "opportunity",
+      "record",
+      JSON.stringify(candidate("cycle-work", "cycles-before"))
+    );
+
+    assert.equal(record.decision, "refactor");
+    assert.deepEqual(record.target, {
+      baseline: 1,
+      goal: 0,
+      metric: "cyclicGroups",
+    });
+    writeFileSync(
+      join(root, "peer.ts"),
+      "import { save } from './policy'; export const peer = () => save;\n"
+    );
+    const after = analyse("edge-repaired");
+    assert.equal(after.measurements.violations, 1);
+    assert.equal(after.measurements.cyclicGroups, 1);
+
+    const remaining = run(
+      root,
+      cli,
+      "architecture",
+      "opportunity",
+      "record",
+      JSON.stringify(candidate("still-cyclic", "edge-repaired"))
+    );
+
+    assert.equal(remaining.target.baseline, 1);
+
+    const unchanged = run(
+      root,
+      cli,
+      "architecture",
+      "opportunity",
+      "record",
+      JSON.stringify(candidate("no-change", "edge-repaired", 1))
+    );
+
+    assert.equal(unchanged.decision, "assessment");
+    assert.equal(unchanged.target, null);
+    const omitted = analyse("no-cycle-policy", false);
+    assert.equal("cyclicGroups" in omitted.measurements, false);
+
+    const unknown = run(
+      root,
+      cli,
+      "architecture",
+      "opportunity",
+      "record",
+      JSON.stringify(candidate("unknown-count", "no-cycle-policy"))
+    );
+
+    assert.equal(unknown.decision, "assessment");
+    assert.equal(unknown.target, null);
+    assert.equal(
+      run(
+        root,
+        cli,
+        "architecture",
+        "opportunity",
+        "inspect",
+        "cycle-work",
+        "--json"
+      ).opportunity.target.metric,
+      "cyclicGroups"
+    );
+  }
+);

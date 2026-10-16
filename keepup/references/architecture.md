@@ -479,3 +479,12 @@ possible evidence but cannot substitute for one another. Reviewed scores never e
 learner understanding, grant quiz credit or enter file-health averages. Comparison freezes
 question identities, exact wording, owners and module membership; a different question
 cannot conceal missing evidence or establish an improvement.
+
+For a cycle-specific opportunity, set `rawTarget.metric` to `cyclicGroups` and link
+an automated seam assessment with an explicit cycle policy. Its baseline counts
+prohibited logical module groups independently of edge-policy findings. Removing
+an unrelated forbidden edge can reduce total `violations` while leaving the cycle
+target unchanged. An assessment without a cycle policy has no cycle-count evidence;
+the opportunity remains assessment work rather than inventing a zero baseline.
+Keep the named policy, subject inventory and selected cycle evidence fixed when
+starting an exercise. Opportunity recording still does not start an exercise.
