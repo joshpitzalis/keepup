@@ -63,6 +63,7 @@ export const test = base.extend<{ reportRoot: string }>({
         join(root, "src/caller.ts"),
         'import { label } from "./module.ts";\n'
       );
+      writeFileSync(join(root, "src/binary.dat"), new Uint8Array([255, 254]));
       command(root, "git", ["add", "."]);
       command(root, "git", ["commit", "-qm", "fixture"]);
       command(root, process.execPath, [cli, "init"]);
