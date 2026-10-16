@@ -654,3 +654,97 @@ test(
     );
   }
 );
+
+test(
+  "copied analyser does not treat locally exported imported bindings as a repaired public seam",
+  { skip: !TOOL },
+  (t) => {
+    const root = fixture(t);
+    writeFileSync(
+      join(root, "caller.ts"),
+      "import { operation } from './public.ts'; export const value = () => operation();\n"
+    );
+    const installed = join(root, "installed");
+    cpSync(dirname(dirname(CLI)), installed, { recursive: true });
+    const cli = join(installed, "scripts/keepup.mjs");
+    const observed = [];
+
+    for (const [id, body] of [
+      [
+        "local-named",
+        "import { secret as implementation } from './private.ts'; export { implementation as operation };",
+      ],
+      [
+        "export-variable",
+        "import { secret as implementation } from './private.ts'; export const operation = implementation;",
+      ],
+      [
+        "default-alias",
+        "import { secret as implementation } from './private.ts'; const alias = implementation; export default alias;",
+      ],
+      [
+        "alias-chain",
+        "import { secret as implementation } from './private.ts'; const first = implementation; const second = first; export { second as operation };",
+      ],
+      [
+        "commonjs-export",
+        "const implementation = require('./private.ts'); module.exports = implementation;",
+      ],
+      [
+        "factory-export",
+        "import { secret as implementation } from './private.ts'; const wrap = value => value; export const operation = wrap(implementation);",
+      ],
+      [
+        "mutable-alias",
+        "import { secret as implementation } from './private.ts'; let alias = 1; alias = implementation; export { alias as operation };",
+      ],
+      [
+        "destructured-binding",
+        "import * as implementation from './private.ts'; const { secret: operation } = implementation; export { operation };",
+      ],
+    ] as const) {
+      writeFileSync(join(root, "public.ts"), `${body}\n`);
+
+      const result = run(
+        root,
+        cli,
+        "architecture",
+        "analyse",
+        JSON.stringify(input(id))
+      );
+
+      observed.push({
+        findings: result.analysis.findings,
+        id,
+        limitations: result.limitations,
+        status: result.analysis.status,
+      });
+    }
+
+    writeFileSync(
+      join(root, "public.ts"),
+      "import { secret as implementation } from './private.ts'; export const operation = () => implementation; export function otherOperation() { return implementation; } export const number = Math.max(1, 2); export const labels = { implementation: 1 }; export default 3;\n"
+    );
+
+    const wrapped = run(
+      root,
+      cli,
+      "architecture",
+      "analyse",
+      JSON.stringify(input("wrapped-control"))
+    );
+
+    assert.equal(wrapped.analysis.status, "complete");
+    assert.equal(wrapped.measurements.violations, 0);
+    assert.ok(
+      observed.every(
+        (result) =>
+          result.status === "partial" &&
+          result.limitations.some((limitation: string) =>
+            limitation.includes("Opaque exported binding")
+          )
+      ),
+      JSON.stringify(observed, null, 2)
+    );
+  }
+);

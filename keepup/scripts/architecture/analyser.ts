@@ -99,6 +99,7 @@ export function analyserToolChanged(tool: AnalyserTool): boolean {
 interface SourceImport {
   readonly specifier: string | null;
   readonly line: number;
+  readonly opaqueExport?: true;
 }
 
 interface SyntaxInventory {
@@ -116,6 +117,11 @@ interface CompilerNode {
   readonly typeName?: CompilerNode;
   readonly argumentExpression?: CompilerNode;
   readonly arguments?: readonly CompilerNode[];
+  readonly initializer?: CompilerNode;
+  readonly modifiers?: readonly CompilerNode[];
+  readonly left?: CompilerNode;
+  readonly right?: CompilerNode;
+  readonly importClause?: CompilerNode;
   readonly getStart: (source: CompilerNode) => number;
 }
 
@@ -129,7 +135,10 @@ interface CompilerSource extends CompilerNode {
 // Pinned compiler API stays explicit because repository TypeScript 7 has no compiler API.
 interface CompilerApi {
   readonly ScriptTarget: { readonly Latest: number };
-  readonly SyntaxKind: { readonly ImportKeyword: number };
+  readonly SyntaxKind: {
+    readonly ImportKeyword: number;
+    readonly ExportKeyword: number;
+  };
   readonly createSourceFile: (
     file: string,
     source: string,
@@ -142,6 +151,11 @@ interface CompilerApi {
   readonly isPropertyAccessExpression: (node: CompilerNode) => boolean;
   readonly isElementAccessExpression: (node: CompilerNode) => boolean;
   readonly isIdentifier: (node: CompilerNode) => boolean;
+  readonly isVariableDeclaration: (node: CompilerNode) => boolean;
+  readonly isExportAssignment: (node: CompilerNode) => boolean;
+  readonly isBinaryExpression: (node: CompilerNode) => boolean;
+  readonly isFunctionLike: (node: CompilerNode) => boolean;
+  readonly isShorthandPropertyAssignment: (node: CompilerNode) => boolean;
   readonly isStringLiteralLike: (node: CompilerNode) => boolean;
   readonly forEachChild: (
     node: CompilerNode,
@@ -187,6 +201,104 @@ function indirectLoader(compiler: CompilerApi, node: CompilerNode): boolean {
     !compiler.isCallExpression(parent) ||
     parent.expression !== node
   );
+}
+
+// shortcut: Local export syntax exposes coverage gaps; require binding-aware analyser support before proving runtime identity.
+function opaqueLocalExports(
+  compiler: CompilerApi,
+  source: CompilerSource
+): boolean {
+  const bindings = new Set<string>(["require"]);
+  const exported: CompilerNode[] = [];
+  let namedExport = false;
+
+  function collectBindings(node: CompilerNode): void {
+    if (compiler.isIdentifier(node)) {
+      bindings.add(node.text ?? "");
+    }
+
+    compiler.forEachChild(node, collectBindings);
+  }
+
+  function collectCommonjs(node: CompilerNode): void {
+    if (
+      compiler.isBinaryExpression(node) &&
+      node.left?.expression &&
+      node.right
+    ) {
+      const owner = node.left.expression;
+
+      if (
+        owner.text === "exports" ||
+        owner.text === "module" ||
+        owner.expression?.text === "module"
+      ) {
+        exported.push(node.right);
+      }
+    }
+  }
+
+  function visit(node: CompilerNode): void {
+    if (compiler.isFunctionLike(node)) {
+      return;
+    }
+
+    if (compiler.isImportDeclaration(node) && node.importClause) {
+      collectBindings(node.importClause);
+    }
+
+    if (compiler.isVariableDeclaration(node) && node.name) {
+      collectBindings(node.name);
+    }
+
+    if (compiler.isExportDeclaration(node) && !node.moduleSpecifier) {
+      namedExport = true;
+    }
+
+    if (compiler.isExportAssignment(node) && node.expression) {
+      exported.push(node.expression);
+    }
+
+    if (
+      compiler.isVariableDeclaration(node) &&
+      node.initializer &&
+      node.parent?.parent?.modifiers?.some(
+        (modifier) => modifier.kind === compiler.SyntaxKind.ExportKeyword
+      )
+    ) {
+      exported.push(node.initializer);
+    }
+
+    collectCommonjs(node);
+
+    compiler.forEachChild(node, visit);
+  }
+
+  function referencesBinding(node: CompilerNode): boolean {
+    if (compiler.isFunctionLike(node)) {
+      return false;
+    }
+
+    if (compiler.isIdentifier(node)) {
+      const reference =
+        node.parent?.name !== node ||
+        compiler.isShorthandPropertyAssignment(node.parent);
+
+      return reference && bindings.has(node.text ?? "");
+    }
+
+    let found = false;
+
+    compiler.forEachChild(node, (child) => {
+      found ||= referencesBinding(child);
+    });
+
+    return found;
+  }
+
+  visit(source);
+
+  return namedExport || exported.some(referencesBinding);
 }
 
 function sourceImports(
@@ -254,7 +366,9 @@ function sourceImports(
 
   visit(source);
 
-  return imports;
+  return opaqueLocalExports(compiler, source)
+    ? [...imports, { line: 1, opaqueExport: true, specifier: null }]
+    : imports;
 }
 
 function syntaxInventory(
@@ -273,7 +387,7 @@ function syntaxInventory(
     imports,
     limitations: [...imports].flatMap(([file, entries]) =>
       entries
-        .filter((entry) => entry.specifier === null)
+        .filter((entry) => entry.specifier === null && !entry.opaqueExport)
         .map(
           (entry) =>
             `Opaque dynamic dependency at ${file}:${entry.line}; destination unavailable`
@@ -401,7 +515,7 @@ function parseGraph(
               entry.specifier === `node:${specifier}`
           );
 
-        return {
+        const observed: DependencyEdge = {
           destination: text(edge.resolved),
           dynamic: edge.dynamic,
           kind: dependencyKind(edge, types),
@@ -412,6 +526,10 @@ function parseGraph(
           typeOnly:
             types.includes("type-only") || edge.preCompilationOnly === true,
         };
+
+        return syntax.imports.get(source)?.some((entry) => entry.opaqueExport)
+          ? { ...observed, opaqueExport: true }
+          : observed;
       });
     });
 

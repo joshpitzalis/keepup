@@ -136,6 +136,25 @@ function evaluateRules(
   };
 }
 
+function exportLimitations(
+  input: SeamAssessmentInput,
+  edges: readonly DependencyEdge[]
+): string[] {
+  return edges.flatMap((edge) =>
+    edge.opaqueExport &&
+    input.modules.some(
+      (module) =>
+        module.interface.includes(edge.source) &&
+        module.members.includes(edge.destination) &&
+        !module.interface.includes(edge.destination)
+    )
+      ? [
+          `Opaque exported binding at ${edge.source}; identity through private dependency ${edge.destination} is unsupported`,
+        ]
+      : []
+  );
+}
+
 export function analyseSeams(
   root: string,
   input: SeamAssessmentInput,
@@ -170,6 +189,7 @@ export function analyseSeams(
       ...acquired,
       limitations: [
         ...acquired.limitations,
+        ...exportLimitations(input, acquired.edges),
         ...unownedConsumers,
         ...(input.rules.length || input.cycles
           ? []
