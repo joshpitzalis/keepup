@@ -3,6 +3,7 @@ import {
   analyserTool,
   trackedDependencySources,
 } from "./analyser.ts";
+import { analyseCycles, cycleFindings } from "./cycles.ts";
 import type {
   DependencyEdge,
   SeamAnalysis,
@@ -168,24 +169,29 @@ export function analyseSeams(
       limitations: [
         ...acquired.limitations,
         ...unownedConsumers,
-        ...(input.rules.length
+        ...(input.rules.length || input.cycles
           ? []
           : ["No dependency rules declared; seam coverage is unavailable"]),
       ],
     };
 
     const evaluated = evaluateRules(input, graph.edges);
+    const cycles = input.cycles ? analyseCycles(input, graph.edges) : undefined;
+    const findings = [...evaluated.findings, ...cycleFindings(cycles ?? [])];
 
     if (analyserTool(directory).fingerprint !== tool.fingerprint) {
       throw new Error("Analyser assets changed during analysis; retry");
     }
 
-    return {
+    const analysis: SeamAnalysis = {
       ...evaluated,
       ...graph,
+      findings,
       status: graph.limitations.length ? "partial" : "complete",
       tool,
     };
+
+    return cycles ? { ...analysis, cycles } : analysis;
   } catch (error) {
     return {
       analysedFiles: [],
@@ -206,7 +212,7 @@ export function seamMeasurements(analysis: SeamAnalysis): SeamMeasurements {
     status = analysis.eligibleEdges ? "measured" : "not-applicable";
   }
 
-  return {
+  const measurements: SeamMeasurements = {
     assessed: analysis.eligibleEdges,
     denominator: analysis.eligibleEdges,
     eligibleEdges: analysis.eligibleEdges,
@@ -214,4 +220,13 @@ export function seamMeasurements(analysis: SeamAnalysis): SeamMeasurements {
     value: null,
     violations: analysis.findings.length,
   };
+
+  return analysis.cycles
+    ? {
+        ...measurements,
+        cyclicGroups: analysis.cycles.filter(
+          (group) => group.permittedBy === null
+        ).length,
+      }
+    : measurements;
 }

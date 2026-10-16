@@ -4,8 +4,14 @@ import {
   parseArchitectureId,
   parseModule,
   strings,
+  text,
 } from "./parse-common.ts";
-import type { DependencyRule, SeamAssessmentInput } from "./seam-domain.ts";
+import type {
+  CyclePolicy,
+  CycleException,
+  DependencyRule,
+  SeamAssessmentInput,
+} from "./seam-domain.ts";
 
 function parseRule(value: unknown): DependencyRule {
   const source = object(value);
@@ -43,6 +49,7 @@ export function parseSeamAssessment(value: unknown): SeamAssessmentInput {
     "evidence",
     "exclusions",
     "limitations",
+    "cycles",
   ]);
 
   if (
@@ -96,7 +103,7 @@ export function parseSeamAssessment(value: unknown): SeamAssessmentInput {
     );
   }
 
-  return {
+  const input: SeamAssessmentInput = {
     dimension: "seam-integrity",
     evidence: strings(source.evidence),
     exclusions: strings(source.exclusions),
@@ -105,4 +112,73 @@ export function parseSeamAssessment(value: unknown): SeamAssessmentInput {
     modules,
     rules,
   };
+
+  if (source.cycles === undefined) {
+    return input;
+  }
+
+  const cycles = parseCyclePolicy(source.cycles, ids);
+
+  if (rules.some((rule) => rule.id === cycles.id)) {
+    throw new Error("Cycle policy and dependency rule identities must differ");
+  }
+
+  return { ...input, cycles };
+}
+
+function parseCycleException(
+  value: unknown,
+  ids: ReadonlySet<string>
+): CycleException {
+  const source = object(value);
+  const modules = strings(source.modules).map(parseArchitectureId).toSorted();
+
+  if (
+    modules.length < 2 ||
+    new Set(modules).size !== modules.length ||
+    modules.some((id) => !ids.has(id))
+  ) {
+    throw new Error(
+      "Cycle exceptions require distinct declared modules (at least two)"
+    );
+  }
+
+  return {
+    id: parseArchitectureId(source.id),
+    modules,
+    reason: text(source.reason),
+  };
+}
+
+function parseCyclePolicy(
+  value: unknown,
+  ids: ReadonlySet<string>
+): CyclePolicy {
+  const source = object(value);
+  const { dependency } = source;
+
+  if (
+    (dependency !== "all" &&
+      dependency !== "runtime" &&
+      dependency !== "type-only") ||
+    !Array.isArray(source.exceptions)
+  ) {
+    throw new Error(
+      "Cycle policy requires dependency selection and explicit exceptions inventory"
+    );
+  }
+
+  const exceptions = source.exceptions
+    .map((entry) => parseCycleException(entry, ids))
+    .toSorted((left, right) => left.id.localeCompare(right.id));
+
+  if (
+    new Set(exceptions.map((entry) => entry.id)).size !== exceptions.length ||
+    new Set(exceptions.map((entry) => JSON.stringify(entry.modules))).size !==
+      exceptions.length
+  ) {
+    throw new Error("Cycle exception identities/groups must be unique");
+  }
+
+  return { dependency, exceptions, id: parseArchitectureId(source.id) };
 }
