@@ -22,6 +22,11 @@ export default defineConfig({
   ],
   overrides: [
     {
+      // Playwright requires fixtures to use named, destructured dependency parameters.
+      files: ["tests/browser/**/*.ts"],
+      rules: { "anti-slop/no-object-parameters": "off" },
+    },
+    {
       // These functions are the parsers: they must inspect untrusted input before branding it.
       files: [
         "keepup/scripts/handlers/helpers.ts",
