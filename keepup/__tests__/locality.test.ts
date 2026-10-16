@@ -334,3 +334,88 @@ test("copied-install locality reports preserve evidence and reject malformed pol
 
   assert.deepEqual(run(root, cli, "architecture", "list"), ["copied"]);
 });
+
+test("locality comparisons keep the rule question fixed while exposing raw consolidation and inventory changes", (t) => {
+  const root = fixture(t);
+  const before = input("before-comparison");
+
+  const after = {
+    ...before,
+    changes: before.changes.map((change) => ({
+      ...change,
+      affectedOwners: ["Sales"],
+    })),
+    id: "after-comparison",
+    rules: before.rules.map((rule) => ({
+      ...rule,
+      sites: rule.sites.filter((site) => site.id !== "two"),
+    })),
+  };
+
+  run(root, CLI, "architecture", "record", JSON.stringify(before));
+  run(root, CLI, "architecture", "record", JSON.stringify(after));
+
+  const compared = run(
+    root,
+    CLI,
+    "architecture",
+    "compare",
+    before.id,
+    after.id,
+    "--json"
+  );
+
+  assert.equal(compared.comparable, true);
+  assert.equal(compared.changes.independentPolicySites, -1);
+  assert.deepEqual(compared.before.assessment.input.changes[0].affectedOwners, [
+    "Sales",
+    "Checkout",
+  ]);
+  assert.deepEqual(compared.after.assessment.input.changes[0].affectedOwners, [
+    "Sales",
+  ]);
+  assert.ok(compared.changes.value > 0);
+  assert.equal(
+    compared.before.assessment.measurements.rules[0].independentPolicySites,
+    2
+  );
+  assert.equal(
+    compared.after.assessment.measurements.rules[0].independentPolicySites,
+    1
+  );
+
+  for (const candidate of [
+    {
+      ...after,
+      id: "different-rule",
+      rules: after.rules.map((rule) => ({
+        ...rule,
+        equivalence: "Different policy meaning",
+      })),
+    },
+    {
+      ...after,
+      changes: after.changes.map((change) => ({
+        ...change,
+        description: "A different future change",
+      })),
+      id: "different-change",
+    },
+  ]) {
+    run(root, CLI, "architecture", "record", JSON.stringify(candidate));
+
+    const rejected = run(
+      root,
+      CLI,
+      "architecture",
+      "compare",
+      before.id,
+      candidate.id,
+      "--json"
+    );
+
+    assert.equal(rejected.comparable, false);
+    assert.equal(rejected.changes.value, null);
+    assert.equal(rejected.changes.independentPolicySites, null);
+  }
+});

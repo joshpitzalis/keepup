@@ -75,6 +75,26 @@ Agents may propose and record evidence after reviewing it; they must label provi
 judgements and preserve unknowns/disagreements. Only actual learner answers and eligible
 CLI learning events establish learner evidence. Architecture recording grants no practice.
 
+## Compare captured observations
+
+Run `node <CLI> architecture compare <before-id> <after-id> --json` for structured
+facts; omit `--json` for readable evidence. `architecture compare-report <before-id>
+<after-id> --no-open` creates a self-contained HTML report; omit `--no-open` to ask
+the OS to open it. Failed opening still returns the report path.
+
+Comparisons read immutable observations and their verified captured snapshots;
+they never rerun analysis or tests. A stale observation remains a valid historical
+baseline. Each side retains its independent current/stale label, original revision,
+raw counts, denominator and limitations. Changes mean after minus before; missing
+or incomparable values stay null, never zero. Reviewed ratings remain advisory.
+
+Keep the logical module, membership, intended interface, representative scenario
+identities/questions, exclusions and evaluator/rubric assets fixed. Changing one
+makes the observations incomparable with a reason. Obligation counts and ratings
+may change as the same representative behaviour improves. Adding unrelated cases
+cannot improve a fixed-inventory comparison. Ordinary comparisons reject moves or
+membership changes; explicit reviewed mappings arrive with reshaping exercises.
+Recording, inspecting, comparing and reporting do not grant learning credit.
 ## Change locality
 
 Record `dimension: "change-locality"` with the same `id`, `module`, `review`,
@@ -126,3 +146,10 @@ cannot. Necessary repeated validation at distinct trust boundaries must remain: 
 the boundary in `trustBoundary` and explain why it needs validation in `reason`. Reports
 preserve this warning even when the raw count lowers locality. Scores remain advisory;
 never remove necessary validation or award practice to improve a number.
+
+For change locality, comparison freezes rule identities, descriptions, review
+status and policy-equivalence meaning, plus representative change questions. Policy sites may consolidate within the fixed
+module; raw independent-site and call changes accompany the value. Affected owners
+remain separate observed evidence and may change after consolidation. Changed trust-boundary
+justifications remain visible in the captured input for review. Different or absent
+dimensions are incomparable; their missing facts never imply zero improvement.
