@@ -146,3 +146,10 @@ cannot. Necessary repeated validation at distinct trust boundaries must remain: 
 the boundary in `trustBoundary` and explain why it needs validation in `reason`. Reports
 preserve this warning even when the raw count lowers locality. Scores remain advisory;
 never remove necessary validation or award practice to improve a number.
+
+For change locality, comparison freezes rule identities, descriptions, review
+status and policy-equivalence meaning, plus representative change questions and
+affected-owner inventory. Policy sites may consolidate within the fixed module;
+raw independent-site and call changes accompany the value. Changed trust-boundary
+justifications remain visible in the captured input for review. Different or absent
+dimensions are incomparable; their missing facts never imply zero improvement.
