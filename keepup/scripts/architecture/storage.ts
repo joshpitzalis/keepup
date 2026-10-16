@@ -112,7 +112,7 @@ function revision(root: string): string | null {
   return result.status === 0 ? result.stdout.trim() : null;
 }
 
-function referencedPaths(input: AssessmentInput): string[] {
+export function referencedPaths(input: AssessmentInput): string[] {
   if (input.dimension === "behavioural-testability") {
     return [
       ...input.module.members,

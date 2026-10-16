@@ -27,7 +27,7 @@ function report(root: string, id: string, rating: number | null): void {
     "record",
     JSON.stringify({
       dimension: "interface-leverage",
-      evidence: ["src/module.ts", "src/caller.ts", "src/binary.dat"],
+      evidence: ["src/binary.dat"],
       exclusions: [],
       id,
       limitations: rating === null ? ["Scenario evidence is incomplete"] : [],
@@ -86,6 +86,7 @@ test("reviewed facts and escaped evidence remain readable without JavaScript", a
     exact: true,
   });
 
+  await expect(source).toBeVisible();
   await source.focus();
   await page.keyboard.press("Enter");
   await expect(
