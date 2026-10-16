@@ -1,3 +1,8 @@
+import {
+  compareAssessments,
+  comparisonReport,
+  comparisonText,
+} from "./comparison.ts";
 import { parseAssessment } from "./parse.ts";
 import { architectureReport, architectureText } from "./report.ts";
 import { analyseSeams } from "./seams.ts";
@@ -62,7 +67,25 @@ export function architectureCommand(
     );
   }
 
+  if (
+    (command === "compare" || command === "compare-report") &&
+    value &&
+    args[2]
+  ) {
+    const comparison = compareAssessments(root, state, value, args[2]);
+
+    if (command === "compare-report") {
+      return JSON.stringify(
+        comparisonReport(state, comparison, !args.includes("--no-open"))
+      );
+    }
+
+    return args.includes("--json")
+      ? JSON.stringify(comparison)
+      : comparisonText(comparison);
+  }
+
   throw new Error(
-    "Usage: keepup architecture record <json> | analyse <json> | list | inspect <id> [--json] | report <id> [--no-open]"
+    "Usage: keepup architecture record <json> | analyse <json> | list | inspect <id> [--json] | report <id> [--no-open] | compare <before> <after> [--json] | compare-report <before> <after> [--no-open]"
   );
 }

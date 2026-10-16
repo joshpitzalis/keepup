@@ -49,3 +49,16 @@ Graph metadata can only enter through the CLI-owned evaluator inside source capt
 Tool assets and transitive resolver implementation are snapshotted and checked for
 freshness without executing analysis during reads. Raw violations remain distinct
 from eligible-edge denominators; unavailable/partial coverage never reports healthy.
+
+
+`comparison.ts` compares captured observations without evaluating code. It freezes
+module/interface/membership, representative inventory, exclusions and evaluator
+assets; returns explicit incompatibility and null deltas for unavailable evidence.
+Both sides retain raw facts, limitations, provenance and separate freshness labels.
+`compare` and `compare-report` expose the same facts through CLI and escaped HTML.
+Change locality extends the same record path with a fixed confirmed domain-rule inventory.
+`locality.ts` counts independent evidence-backed policy sites, excluding calls to shared
+implementations; ownership scenarios remain separate. Missing sites/evidence stay unavailable.
+`change-locality-rubric.md` publishes the fingerprinted experimental rule and trust-boundary
+caution. Proposed/unclear equivalence, disagreements and exclusions remain visible. Consolidation
+can improve locality; file merging cannot. Necessary repeated trust-boundary validation remains.

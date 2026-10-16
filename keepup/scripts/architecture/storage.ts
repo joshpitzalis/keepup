@@ -23,13 +23,18 @@ import type {
   AssessmentInput,
   AssessmentMeasurements,
   ManifestEntry,
+  InterfaceAssessmentInput,
 } from "./domain.ts";
+import {
+  localityEvidence,
+  localityLimitations,
+  localityMeasurements,
+} from "./locality.ts";
 import { parseArchitectureId, parseAssessment } from "./parse.ts";
 import type { SeamAnalysis, SeamAssessmentInput } from "./seam-domain.ts";
 import { seamMeasurements } from "./seams.ts";
 
 const ASSET_DIRECTORY = import.meta.dirname;
-const RUBRIC = "experimental-interface-leverage-v1";
 
 export function architectureDigest(bytes: string | Buffer): string {
   return createHash("sha256").update(bytes).digest("hex");
@@ -114,19 +119,17 @@ function referencedPaths(input: AssessmentInput): string[] {
     ...input.module.members,
     ...input.module.interface,
     ...input.evidence,
-    ...input.scenarios.flatMap((scenario) => [
-      ...scenario.evidence,
-      ...scenario.obligations.flatMap((obligation) => obligation.evidence),
-    ]),
+    ...(input.dimension === "change-locality"
+      ? localityEvidence(input)
+      : input.scenarios.flatMap((scenario) => [
+          ...scenario.evidence,
+          ...scenario.obligations.flatMap((obligation) => obligation.evidence),
+        ])),
   ];
 }
 
-function limitationsFor(input: AssessmentInput): string[] {
-  if (input.dimension === "seam-integrity") {
-    return [...input.limitations];
-  }
-
-  const limitations = [...input.limitations];
+function interfaceLimitations(input: InterfaceAssessmentInput): string[] {
+  const limitations: string[] = [];
 
   if (!input.scenarios.length) {
     limitations.push(
@@ -145,6 +148,21 @@ function limitationsFor(input: AssessmentInput): string[] {
       );
     }
   }
+
+  return limitations;
+}
+
+function limitationsFor(input: AssessmentInput): string[] {
+  if (input.dimension === "seam-integrity") {
+    return [...input.limitations];
+  }
+
+  const limitations = [
+    ...input.limitations,
+    ...(input.dimension === "change-locality"
+      ? localityLimitations(input)
+      : interfaceLimitations(input)),
+  ];
 
   if (input.review.status === "provisional") {
     limitations.push(
@@ -165,6 +183,10 @@ function measurements(
     }
 
     return seamMeasurements(analysis);
+  }
+
+  if (input.dimension === "change-locality") {
+    return localityMeasurements(input);
   }
 
   const assessed = input.scenarios.filter(
@@ -365,7 +387,7 @@ function coverageFor(
 
   return {
     assessed: measurements(input).assessed,
-    total: input.scenarios.length,
+    total: measurements(input).denominator,
   };
 }
 
@@ -464,7 +486,7 @@ export function recordAssessment(
       rubric:
         input.dimension === "seam-integrity"
           ? "experimental-seam-integrity-v1"
-          : RUBRIC,
+          : `experimental-${input.dimension}-v1`,
       time: new Date().toISOString(),
     },
     schemaVersion: 1,

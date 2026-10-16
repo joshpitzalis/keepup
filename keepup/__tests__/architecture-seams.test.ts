@@ -90,6 +90,31 @@ test(
   { skip: !TOOL },
   (t) => {
     const root = fixture(t);
+    writeFileSync(
+      join(root, "javascript-caller.js"),
+      "import { save } from './public.ts'; export const saved = save;\n"
+    );
+    assert.equal(
+      spawnSync("git", ["add", "javascript-caller.js"], { cwd: root }).status,
+      0
+    );
+
+    const definition = (id: string) => {
+      const value = input(id);
+
+      return {
+        ...value,
+        modules: value.modules.map((module) =>
+          module.id === "caller"
+            ? {
+                ...module,
+                members: [...module.members, "javascript-caller.js"],
+              }
+            : module
+        ),
+      };
+    };
+
     const installed = join(root, "installed");
     cpSync(dirname(dirname(CLI)), installed, { recursive: true });
     const cli = join(installed, "scripts/keepup.mjs");
@@ -99,12 +124,12 @@ test(
       cli,
       "architecture",
       "analyse",
-      JSON.stringify(input("before"))
+      JSON.stringify(definition("before"))
     );
 
     assert.equal(before.method, "automated");
     assert.equal(before.measurements.violations, 1);
-    assert.equal(before.measurements.eligibleEdges, 2);
+    assert.equal(before.measurements.eligibleEdges, 3);
     assert.equal(before.measurements.status, "measured");
     assert.deepEqual(
       before.analysis.findings.map(
@@ -145,7 +170,7 @@ test(
 
     assert.match(
       readFileSync(report.path, "utf-8"),
-      /Violations: 1; eligible edges: 2/u
+      /Violations: 1; eligible edges: 3/u
     );
     assert.equal(readFileSync(join(root, ".keepup/events.jsonl"), "utf-8"), "");
     assert.deepEqual(
@@ -154,7 +179,7 @@ test(
         cli,
         "architecture",
         "analyse",
-        JSON.stringify(input("before"))
+        JSON.stringify(definition("before"))
       ),
       before
     );
@@ -168,11 +193,11 @@ test(
       cli,
       "architecture",
       "analyse",
-      JSON.stringify(input("padded"))
+      JSON.stringify(definition("padded"))
     );
 
     assert.equal(padded.measurements.violations, 1);
-    assert.equal(padded.measurements.eligibleEdges, 3);
+    assert.equal(padded.measurements.eligibleEdges, 4);
     writeFileSync(
       join(root, "caller.ts"),
       "import { save } from './public';\nexport const value = save;\n"
@@ -183,10 +208,25 @@ test(
       cli,
       "architecture",
       "analyse",
-      JSON.stringify(input("after"))
+      JSON.stringify(definition("after"))
     );
 
     assert.equal(after.measurements.violations, 0);
+
+    const comparison = run(
+      root,
+      cli,
+      "architecture",
+      "compare",
+      "before",
+      "after",
+      "--json"
+    );
+
+    assert.equal(comparison.comparable, true);
+    assert.equal(comparison.changes.violations, -1);
+    assert.equal(comparison.changes.eligibleEdges, -1);
+    assert.equal(comparison.changes.value, null);
     assert.equal(
       run(root, cli, "architecture", "inspect", "before", "--json").freshness
         .status,
@@ -198,7 +238,7 @@ test(
         cli,
         "architecture",
         "record",
-        JSON.stringify(input("forged"))
+        JSON.stringify(definition("forged"))
       ).status,
       1
     );
@@ -247,6 +287,10 @@ test(
   (t) => {
     const root = fixture(t);
     writeFileSync(
+      join(root, "other.ts"),
+      "import type { Stats } from 'node:fs'; export const healthy = 1;\n"
+    );
+    writeFileSync(
       join(root, "private.ts"),
       "export interface Secret { x: number }; export const secret = 1;\n"
     );
@@ -279,6 +323,12 @@ test(
     assert.ok(
       result.analysis.edges.some(
         (edge: { kind: string }) => edge.kind === "unresolved"
+      )
+    );
+    assert.ok(
+      result.analysis.edges.some(
+        (edge: { kind: string; typeOnly: boolean }) =>
+          edge.kind === "external" && edge.typeOnly
       )
     );
     assert.match(

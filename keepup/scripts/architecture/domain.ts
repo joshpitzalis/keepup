@@ -1,4 +1,8 @@
 import type {
+  LocalityAssessmentInput,
+  LocalityMeasurements,
+} from "./locality.ts";
+import type {
   SeamAnalysis,
   SeamAssessmentInput,
   SeamMeasurements,
@@ -49,7 +53,10 @@ export interface InterfaceAssessmentInput {
   readonly limitations: readonly string[];
 }
 
-export type AssessmentInput = InterfaceAssessmentInput | SeamAssessmentInput;
+export type AssessmentInput =
+  | InterfaceAssessmentInput
+  | SeamAssessmentInput
+  | LocalityAssessmentInput;
 
 export interface InterfaceMeasurements {
   readonly status: "measured" | "unavailable" | "not-applicable";
@@ -60,7 +67,10 @@ export interface InterfaceMeasurements {
   readonly avoidableObligations: number;
 }
 
-export type AssessmentMeasurements = InterfaceMeasurements | SeamMeasurements;
+export type AssessmentMeasurements =
+  | InterfaceMeasurements
+  | SeamMeasurements
+  | LocalityMeasurements;
 
 export interface ManifestEntry {
   readonly path: string;

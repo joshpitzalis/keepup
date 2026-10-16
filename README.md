@@ -211,3 +211,11 @@ Reviewed module architecture assessments are available through `architecture rec
 The experimental interface-leverage rubric exposes raw obligations, review provenance,
 source freshness and limitations. These records never award learning credit or change
 ordinary code-health scores. Generated HTML works offline without JavaScript.
+
+Change locality records confirmed policy rules, independent maintenance sites and affected
+owners. Calls to one implementation do not inflate the count; file merging does not improve
+it. Reviewers must preserve necessary validation at distinct trust boundaries.
+
+To verify generated reports during development, run `pnpm exec playwright install chromium`
+once, then `pnpm test:browser`. Playwright is a development dependency; copied skills need
+only their documented Node/runtime prerequisites, with no npm dependencies for reviewed assessments.

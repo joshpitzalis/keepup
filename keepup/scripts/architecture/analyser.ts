@@ -116,6 +116,7 @@ interface CompilerNode {
 }
 
 interface CompilerSource extends CompilerNode {
+  readonly parseDiagnostics: readonly { readonly category: number }[];
   readonly getLineAndCharacterOfPosition: (position: number) => {
     readonly line: number;
   };
@@ -131,10 +132,6 @@ interface CompilerApi {
     target: number,
     parents: boolean
   ) => CompilerSource;
-  readonly transpileModule: (
-    source: string,
-    options: { readonly fileName: string; readonly reportDiagnostics: true }
-  ) => { readonly diagnostics?: readonly { readonly category: number }[] };
   readonly isImportDeclaration: (node: CompilerNode) => boolean;
   readonly isExportDeclaration: (node: CompilerNode) => boolean;
   readonly isCallExpression: (node: CompilerNode) => boolean;
@@ -153,21 +150,16 @@ function sourceImports(
 ): readonly SourceImport[] {
   const bytes = readFileSync(join(root, file), "utf-8");
 
-  if (
-    !/\.d\.[cm]?ts$/u.test(file) &&
-    compiler
-      .transpileModule(bytes, { fileName: file, reportDiagnostics: true })
-      .diagnostics?.some((diagnostic) => diagnostic.category === 1)
-  ) {
-    throw new Error(`Unsupported or malformed source syntax: ${file}`);
-  }
-
   const source = compiler.createSourceFile(
     file,
     bytes,
     compiler.ScriptTarget.Latest,
     true
   );
+
+  if (source.parseDiagnostics.some((diagnostic) => diagnostic.category === 1)) {
+    throw new Error(`Unsupported or malformed source syntax: ${file}`);
+  }
 
   const imports: SourceImport[] = [];
 
@@ -340,7 +332,8 @@ function parseGraph(
         if (
           typeof edge.couldNotResolve !== "boolean" ||
           typeof edge.dynamic !== "boolean" ||
-          typeof edge.preCompilationOnly !== "boolean"
+          (edge.preCompilationOnly !== undefined &&
+            typeof edge.preCompilationOnly !== "boolean")
         ) {
           throw new TypeError("Malformed analyser dependency classification");
         }
@@ -362,6 +355,8 @@ function parseGraph(
           reexport: types.includes("export"),
           source,
           specifier,
+          typeOnly:
+            types.includes("type-only") || edge.preCompilationOnly === true,
         };
       });
     });

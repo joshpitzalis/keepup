@@ -115,6 +115,7 @@ test("reviewed facts, provenance, report and supporting-source freshness agree w
   const events = readFileSync(join(state, "events.jsonl"));
   const history = readFileSync(join(state, "history.jsonl"));
   const assessment = record(root, input("before"));
+  assert.ok("avoidableObligations" in assessment.measurements);
   assert.equal(assessment.measurements.value, 0.5);
   assert.equal(assessment.measurements.avoidableObligations, 1);
   assert.equal(assessment.measurements.denominator, 1);
@@ -180,7 +181,6 @@ test("missing scenarios or evidence stays unavailable and provisional findings s
 
   assert.equal(missing.measurements.value, null);
   assert.equal(missing.measurements.assessed, 0);
-  assert.equal(missing.input.dimension, "interface-leverage");
   assert.ok("review" in missing.input);
   assert.equal(missing.input.review.status, "provisional");
   assert.match(
@@ -284,6 +284,33 @@ test("copied installation captures rubric freshness, legacy state, and failed br
   );
   assert.equal(inspect(root, "copied", cli).freshness.status, "stale");
   assert.deepEqual(record(root, input("copied"), cli), original);
+  record(root, input("copied-after"), cli);
+
+  const comparison = run(
+    root,
+    cli,
+    "architecture",
+    "compare",
+    "copied",
+    "copied-after",
+    "--json"
+  );
+
+  assert.equal(comparison.comparable, false);
+  assert.match(comparison.reasons.join(" "), /evaluator/u);
+
+  const comparedReport = run(
+    root,
+    cli,
+    "architecture",
+    "compare-report",
+    "copied",
+    "copied-after",
+    "--no-open"
+  );
+
+  assert.match(comparedReport.path, /\.cogdebt\/architecture\/reports\//u);
+  assert.match(readFileSync(comparedReport.path, "utf-8"), /Comparable: no/u);
   const bin = join(root, "bin");
   mkdirSync(bin);
 
@@ -326,8 +353,8 @@ test("calibration rewards reviewed obligation removal, ignores padding and rejec
   });
 
   assert.ok("avoidableObligations" in before.measurements);
-  assert.equal(before.measurements.avoidableObligations, 1);
   assert.ok("avoidableObligations" in improved.measurements);
+  assert.equal(before.measurements.avoidableObligations, 1);
   assert.equal(improved.measurements.avoidableObligations, 0);
   assert.equal(improved.measurements.value, 1);
   writeFileSync(
@@ -350,6 +377,145 @@ test("calibration rewards reviewed obligation removal, ignores padding and rejec
     })),
   });
 
+  assert.ok("avoidableObligations" in opaque.measurements);
   assert.equal(opaque.measurements.value, 0);
   assert.equal(opaque.measurements.avoidableObligations, 1);
+});
+
+test("captured leverage observations compare across source revisions without reanalysis or learning credit", (t) => {
+  const root = fixture(t);
+  const state = join(root, ".keepup");
+  const events = readFileSync(join(state, "events.jsonl"));
+  const before = input("comparison-before");
+  record(root, before);
+  writeFileSync(join(root, "caller.ts"), "save({ intent: 'order' });\n");
+  assert.equal(
+    spawnSync("git", ["commit", "-am", "repair", "-q"], { cwd: root }).status,
+    0
+  );
+  record(root, {
+    ...before,
+    id: "comparison-after",
+    scenarios: before.scenarios.map((scenario) => ({
+      ...scenario,
+      obligations: [],
+      rating: 1,
+    })),
+  });
+
+  const result = run(
+    root,
+    CLI,
+    "architecture",
+    "compare",
+    before.id,
+    "comparison-after",
+    "--json"
+  );
+
+  assert.equal(result.comparable, true);
+  assert.deepEqual(result.reasons, []);
+  assert.equal(result.before.freshness.status, "stale");
+  assert.equal(result.after.freshness.status, "current");
+  assert.equal(result.changes.value, 0.5);
+  assert.equal(result.changes.avoidableObligations, -1);
+  assert.equal(result.before.assessment.measurements.avoidableObligations, 1);
+  assert.equal(result.after.assessment.measurements.avoidableObligations, 0);
+
+  const report = run(
+    root,
+    CLI,
+    "architecture",
+    "compare-report",
+    before.id,
+    "comparison-after",
+    "--no-open"
+  );
+
+  const html = readFileSync(report.path, "utf-8");
+  assert.match(html, /Architecture comparison/u);
+  assert.match(html, /historical/u);
+  assert.match(html, /&lt;script&gt;/u);
+  assert.doesNotMatch(html, /<script/iu);
+  assert.deepEqual(readFileSync(join(state, "events.jsonl")), events);
+});
+
+test("comparisons reject changed questions, membership and unavailable evidence without inventing deltas", (t) => {
+  const root = fixture(t);
+  const before = input("fixed");
+  record(root, before);
+
+  for (const candidate of [
+    {
+      ...before,
+      id: "question",
+      scenarios: before.scenarios.map((scenario) => ({
+        ...scenario,
+        description: "A different question",
+      })),
+    },
+    {
+      ...before,
+      id: "membership",
+      module: { ...before.module, members: ["module.ts", "caller.ts"] },
+    },
+    {
+      ...before,
+      id: "missing",
+      scenarios: before.scenarios.map((scenario) => ({
+        ...scenario,
+        rating: null,
+      })),
+    },
+    { ...before, id: "empty", scenarios: [] },
+    { ...before, exclusions: ["Ignore retry obligation"], id: "excluded" },
+  ]) {
+    record(root, candidate);
+
+    const result = run(
+      root,
+      CLI,
+      "architecture",
+      "compare",
+      before.id,
+      candidate.id,
+      "--json"
+    );
+
+    assert.equal(result.comparable, false, candidate.id);
+    assert.ok(result.reasons.length > 0);
+    assert.deepEqual(Object.values(result.changes), [null, null, null]);
+  }
+
+  record(root, { ...before, id: "unchanged" });
+
+  const unchanged = run(
+    root,
+    CLI,
+    "architecture",
+    "compare",
+    before.id,
+    "unchanged",
+    "--json"
+  );
+
+  assert.equal(unchanged.comparable, true);
+  assert.equal(unchanged.changes.value, 0);
+  record(root, {
+    ...before,
+    id: "regression",
+    scenarios: before.scenarios.map((scenario) => ({ ...scenario, rating: 0 })),
+  });
+
+  const regression = run(
+    root,
+    CLI,
+    "architecture",
+    "compare",
+    before.id,
+    "regression",
+    "--json"
+  );
+
+  assert.equal(regression.changes.value, -0.5);
 });

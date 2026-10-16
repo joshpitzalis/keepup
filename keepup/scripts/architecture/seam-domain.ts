@@ -24,6 +24,7 @@ export interface DependencyEdge {
   readonly specifier: string;
   readonly kind: "runtime" | "type-only" | "external" | "unresolved";
   readonly dynamic: boolean;
+  readonly typeOnly: boolean;
   readonly reexport: boolean;
   readonly line: number | null;
 }
