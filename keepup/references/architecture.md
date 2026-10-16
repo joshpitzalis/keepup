@@ -368,6 +368,10 @@ behavioural checks become test preparation. Missing scope/target becomes an
 assessment; glossary/ADR conflicts defer work. Missing dimensions remain visible
 and are never healthy defaults. Revisit a stale opportunity against new evidence;
 inspection does not rerun evaluators or silently update its original decision.
+Inspection rechecks every linked assessment, including external analyser assets.
+JSON `freshness.staleAssessments` identifies stale supporting records; separate
+`applicability` decision/reasons require preparation before a stale refactor.
+The nested opportunity, its decision and supporting freshness remain historical.
 
 Recommendations do not start exercises. The [opt-in prepare/start workflow](architecture-exercise.md)
 supports a frozen existing-file seam repair, fresh objective checks and actual

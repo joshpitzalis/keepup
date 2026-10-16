@@ -557,7 +557,14 @@ export function recordOpportunity(
 
 export interface OpportunityInspection {
   readonly opportunity: ArchitectureOpportunity;
-  readonly freshness: { readonly status: "current" | "stale" };
+  readonly freshness: {
+    readonly status: "current" | "stale";
+    readonly staleAssessments: readonly string[];
+  };
+  readonly applicability: {
+    readonly decision: OpportunityInput["decision"];
+    readonly reasons: readonly string[];
+  };
 }
 
 export function inspectOpportunity(
@@ -567,7 +574,14 @@ export function inspectOpportunity(
 ): OpportunityInspection {
   const opportunity = readOpportunity(state, id);
 
+  const staleAssessments = opportunity.assessments.flatMap((captured) => {
+    const current = inspectAssessment(root, state, captured.assessment.id);
+
+    return current.freshness.status === "stale" ? [current.assessment.id] : [];
+  });
+
   const changed =
+    staleAssessments.length > 0 ||
     JSON.stringify(opportunity.observation.manifest) !==
       JSON.stringify(manifest(root)) ||
     JSON.stringify(opportunity.observation.assets) !==
@@ -575,7 +589,19 @@ export function inspectOpportunity(
     opportunity.observation.configHash !==
       architectureDigest(readFileSync(join(state, "config.json")));
 
-  return { freshness: { status: changed ? "stale" : "current" }, opportunity };
+  return {
+    applicability: {
+      decision:
+        changed && opportunity.decision === "refactor"
+          ? "preparation"
+          : opportunity.decision,
+      reasons: changed
+        ? [...opportunity.reasons, "Refresh supporting evidence before acting."]
+        : opportunity.reasons,
+    },
+    freshness: { staleAssessments, status: changed ? "stale" : "current" },
+    opportunity,
+  };
 }
 
 function opportunityText(
@@ -584,7 +610,9 @@ function opportunityText(
   const record = result.opportunity;
 
   return [
-    `Architecture opportunity ${record.id}: ${record.decision} (${record.strength}; proposed qualitative judgement)`,
+    `Architecture opportunity ${record.id}`,
+    `Captured recommendation: ${record.decision} (${record.strength}; proposed qualitative judgement)`,
+    `Current applicability: ${result.applicability.decision}`,
     `Freshness: ${result.freshness.status}`,
     ...(result.freshness.status === "stale"
       ? [
@@ -594,7 +622,8 @@ function opportunityText(
     `Outcome: ${record.input.outcome}`,
     `Raw target: ${JSON.stringify(record.target)}`,
     `Missing dimensions: ${record.missingDimensions.join(", ") || "none"}`,
-    ...record.reasons.map((reason) => `Readiness: ${reason}`),
+    ...result.applicability.reasons.map((reason) => `Readiness: ${reason}`),
+    "The opportunity and its nested supporting freshness describe captured historical evidence; current applicability is checked separately.",
     "Opt-in existing-file exercise prepare/start/assess/complete is separate; a recommendation never starts it or grants exposure, practice or understanding. Workflow availability is captured at opportunity recording.",
     "Test readiness is reviewed evidence; this command does not execute tests.",
     JSON.stringify(record, null, 2),

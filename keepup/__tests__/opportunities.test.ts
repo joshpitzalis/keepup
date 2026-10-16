@@ -675,3 +675,118 @@ test(
     );
   }
 );
+
+test(
+  "opportunity applicability rechecks external supporting analyser assets without rewriting history",
+  { skip: !process.env.KEEPUP_TEST_ANALYSER_DIRECTORY },
+  (t) => {
+    const root = fixture(t);
+    const tool = mkdtempSync(join(tmpdir(), "opportunity-tool-"));
+    t.after(() => rmSync(tool, { force: true, recursive: true }));
+    cpSync(process.env.KEEPUP_TEST_ANALYSER_DIRECTORY ?? "", tool, {
+      recursive: true,
+    });
+    writeFileSync(
+      join(root, "caller.ts"),
+      "import { save } from './policy'; export const run = () => save();\n"
+    );
+    assert.equal(spawnSync("git", ["add", "."], { cwd: root }).status, 0);
+
+    const invoke = (...args: string[]) => {
+      const result = spawnSync(
+        process.execPath,
+        [CLI, "architecture", ...args],
+        {
+          cwd: root,
+          encoding: "utf-8",
+          env: { ...process.env, KEEPUP_ANALYSER_DIRECTORY: tool },
+        }
+      );
+
+      assert.equal(result.status, 0, result.stderr);
+
+      return JSON.parse(result.stdout);
+    };
+
+    invoke(
+      "analyse",
+      JSON.stringify({
+        dimension: "seam-integrity",
+        evidence: [],
+        exclusions: [],
+        id: "seams",
+        limitations: [],
+        modules: [
+          { id: "orders", interface: ["policy.ts"], members: ["policy.ts"] },
+          { id: "caller", interface: ["caller.ts"], members: ["caller.ts"] },
+        ],
+        rules: [
+          {
+            dependency: "all",
+            from: "caller",
+            id: "no-orders",
+            kind: "forbidden",
+            to: "orders",
+          },
+        ],
+      })
+    );
+
+    const captured = invoke(
+      "opportunity",
+      "record",
+      JSON.stringify({
+        ...opportunity("supported"),
+        findings: [
+          {
+            assessmentId: "seams",
+            description: "Forbidden dependency",
+            evidence: ["caller.ts"],
+          },
+        ],
+        rawTarget: { assessmentId: "seams", goal: 0, metric: "violations" },
+        scope: ["caller.ts"],
+      })
+    );
+
+    assert.equal(captured.decision, "refactor");
+
+    const recordPath = join(
+      root,
+      ".keepup/architecture/opportunities/supported.json"
+    );
+
+    const bytes = readFileSync(recordPath);
+    const before = invoke("opportunity", "inspect", "supported", "--json");
+    assert.equal(before.freshness.status, "current");
+    assert.equal(before.applicability.decision, "refactor");
+    const asset = join(tool, "node_modules/dependency-cruiser/package.json");
+    writeFileSync(asset, `${readFileSync(asset, "utf-8")}\n`);
+
+    for (const unavailable of [false, true]) {
+      if (unavailable) {
+        rmSync(asset);
+      }
+
+      assert.equal(
+        invoke("inspect", "seams", "--json").freshness.status,
+        "stale"
+      );
+      const current = invoke("opportunity", "inspect", "supported", "--json");
+      assert.equal(current.freshness.status, "stale");
+      assert.deepEqual(current.freshness.staleAssessments, ["seams"]);
+      assert.equal(current.applicability.decision, "preparation");
+      assert.match(
+        current.applicability.reasons.join(" "),
+        /refresh supporting evidence/iu
+      );
+      assert.deepEqual(current.opportunity, captured);
+      const report = invoke("opportunity", "report", "supported", "--no-open");
+      const html = readFileSync(report.path, "utf-8");
+      assert.match(html, /Current applicability: preparation/u);
+      assert.match(html, /Captured recommendation: refactor/u);
+      assert.match(html, /Freshness: stale/u);
+      assert.deepEqual(readFileSync(recordPath), bytes);
+    }
+  }
+);
