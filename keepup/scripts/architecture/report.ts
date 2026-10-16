@@ -1,8 +1,12 @@
+import { isUtf8 } from "node:buffer";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import type { ArchitectureInspection } from "./domain.ts";
+import type {
+  ArchitectureAssessment,
+  ArchitectureInspection,
+} from "./domain.ts";
 
 function escapeHtml(text: string): string {
   return text
@@ -54,8 +58,43 @@ export function architectureReport(
     "Architecture assessment",
     architectureText(result),
     JSON.stringify(result, null, 2),
-    open
+    open,
+    [result.assessment]
   );
+}
+
+function capturedEvidence(
+  state: string,
+  assessment: ArchitectureAssessment
+): string {
+  const sources = assessment.observation.manifest.filter((entry) =>
+    assessment.input.evidence.includes(entry.path)
+  );
+
+  const rubrics = assessment.observation.assets.filter(
+    (entry) => entry.path === `${assessment.dimension}-rubric.md`
+  );
+
+  return [...sources, ...rubrics]
+    .map((entry) => {
+      const kind = sources.includes(entry) ? "source" : "rubric";
+      const label = `Captured ${kind} ${assessment.id}: ${entry.path}`;
+
+      if (entry.hash === null) {
+        return `<details><summary>${escapeHtml(label)}</summary><p>Captured bytes unavailable.</p></details>`;
+      }
+
+      const bytes = readFileSync(
+        join(state, "architecture", "snapshots", entry.hash)
+      );
+
+      const content = isUtf8(bytes)
+        ? `<pre>${escapeHtml(bytes.toString("utf-8"))}</pre>`
+        : `<p>Binary evidence; snapshot SHA-256 ${entry.hash} (${bytes.length} bytes).</p>`;
+
+      return `<details><summary>${escapeHtml(label)}</summary>${content}</details>`;
+    })
+    .join("");
 }
 
 export function writeArchitectureReport(
@@ -64,14 +103,15 @@ export function writeArchitectureReport(
   title: string,
   text: string,
   details: string,
-  open: boolean
+  open: boolean,
+  assessments: readonly ArchitectureAssessment[] = []
 ): ArchitectureReportResult {
   const directory = join(state, "architecture", "reports");
   mkdirSync(directory, { recursive: true });
   const path = join(directory, `${name}.html`);
   writeFileSync(
     path,
-    `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Architecture ${escapeHtml(name)}</title><style>body{font:18px system-ui;max-width:78ch;margin:2rem auto;padding:1rem;color:#18202a;background:#fff}pre{white-space:pre-wrap;overflow-wrap:anywhere}summary{cursor:pointer;padding:1rem;border:1px solid}summary:focus-visible{outline:3px solid #1765a8}h1{font-size:2rem}</style></head><body><main><h1>${escapeHtml(title)}</h1><p>Experimental reviewed evidence. Assessment does not demonstrate learner understanding.</p><pre>${escapeHtml(text)}</pre><details><summary>Inspect captured evidence and provenance</summary><pre>${escapeHtml(details)}</pre></details></main></body></html>`
+    `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Architecture ${escapeHtml(name)}</title><style>body{font:18px system-ui;max-width:78ch;margin:2rem auto;padding:1rem;color:#18202a;background:#fff}pre{white-space:pre-wrap;overflow-wrap:anywhere}summary{cursor:pointer;padding:1rem;border:1px solid}summary:focus-visible{outline:3px solid #1765a8}h1{font-size:2rem}</style></head><body><main><h1>${escapeHtml(title)}</h1><p>Experimental reviewed evidence. Assessment does not demonstrate learner understanding.</p><pre>${escapeHtml(text)}</pre><details><summary>Inspect captured evidence and provenance</summary><pre>${escapeHtml(details)}</pre></details>${assessments.map((assessment) => capturedEvidence(state, assessment)).join("")}</main></body></html>`
   );
 
   if (!open) {

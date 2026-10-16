@@ -166,6 +166,7 @@ export function comparisonReport(
     "Architecture comparison",
     comparisonText(result),
     JSON.stringify(result, null, 2),
-    open
+    open,
+    [result.before.assessment, result.after.assessment]
   );
 }
