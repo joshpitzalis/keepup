@@ -219,3 +219,7 @@ it. Reviewers must preserve necessary validation at distinct trust boundaries.
 To verify generated reports during development, run `pnpm exec playwright install chromium`
 once, then `pnpm test:browser`. Playwright is a development dependency; copied skills need
 only their documented Node/runtime prerequisites, with no npm dependencies for reviewed assessments.
+
+Bounded architecture recommendations use `architecture opportunity record`,
+`opportunity inspect` and `opportunity report`. They retain supplied mission/change
+context, raw evidence and readiness limits, without granting learning credit.

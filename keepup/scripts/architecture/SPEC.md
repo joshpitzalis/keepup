@@ -74,6 +74,14 @@ omitted. The comparator freezes cycle policy/exceptions and exposes raw group de
 Partial graphs never establish cycle freedom. Repeated reachability intentionally
 serves small local module inventories.
 
+
+`opportunities.ts` records immutable versioned bounded recommendations, supplied
+mission/change context and captured documents. CLI-owned raw baselines and visible
+readiness reasons route unsafe proposals to assessment/preparation/defer; none is
+valid. `opportunity-parse.ts` rejects protected metadata before capture. Shared
+publication/snapshot helpers preserve retries, concurrency and provenance.
+Reports remain derived; opportunities never execute tests or write learning credit.
+
 Behavioural testability uses `testability.ts` for reviewed fixed scenarios and qualification,
 and `testability-run.ts` to execute existing exact top-level Node test cases inside the
 source-capture boundary. Protected execution results retain command/output/environment;
