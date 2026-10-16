@@ -3,6 +3,8 @@ import {
   comparisonReport,
   comparisonText,
 } from "./comparison.ts";
+import type { ExerciseHost } from "./exercise-domain.ts";
+import { exerciseCommand } from "./exercises.ts";
 import { opportunityCommand } from "./opportunities.ts";
 import { parseAssessment } from "./parse.ts";
 import { architectureReport, architectureText } from "./report.ts";
@@ -17,9 +19,19 @@ import { executeTestability } from "./testability-run.ts";
 export function architectureCommand(
   root: string,
   state: string,
-  args: readonly string[]
+  args: readonly string[],
+  exerciseHost?: ExerciseHost
 ): string {
   const [command, value] = args;
+
+  if (command === "exercise") {
+    return exerciseCommand(
+      root,
+      state,
+      args.slice(1),
+      requiredExerciseHost(exerciseHost)
+    );
+  }
 
   if (command === "testability" || command === "analyse") {
     return evaluateCommand(root, state, command, value);
@@ -121,4 +133,12 @@ function evaluateCommand(
   }
 
   throw new Error("Unknown evaluation command");
+}
+
+function requiredExerciseHost(host: ExerciseHost | undefined): ExerciseHost {
+  if (!host) {
+    throw new Error("Exercise workflows require the supported Keepup CLI host");
+  }
+
+  return host;
 }
