@@ -3,6 +3,10 @@ import type {
   LocalityMeasurements,
 } from "./locality.ts";
 import type {
+  NavigabilityAssessmentInput,
+  NavigabilityMeasurements,
+} from "./navigability.ts";
+import type {
   SeamAnalysis,
   SeamAssessmentInput,
   SeamMeasurements,
@@ -62,7 +66,8 @@ export type AssessmentInput =
   | InterfaceAssessmentInput
   | SeamAssessmentInput
   | LocalityAssessmentInput
-  | TestabilityAssessmentInput;
+  | TestabilityAssessmentInput
+  | NavigabilityAssessmentInput;
 
 export interface InterfaceMeasurements {
   readonly status: "measured" | "unavailable" | "not-applicable";
@@ -77,7 +82,8 @@ export type AssessmentMeasurements =
   | InterfaceMeasurements
   | SeamMeasurements
   | LocalityMeasurements
-  | TestabilityMeasurements;
+  | TestabilityMeasurements
+  | NavigabilityMeasurements;
 
 export interface ManifestEntry {
   readonly path: string;

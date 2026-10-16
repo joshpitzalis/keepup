@@ -373,3 +373,59 @@ kind/required compatibility and environment requirements. Adding qualifying test
 deleting hard scenarios changes the question, deleting tests creates gaps, and replacing
 outcomes with mock-interaction checks never earns qualifying credit. These assessments
 remain advisory and never grant learning evidence or safety percentages.
+
+## Navigability
+
+Record `dimension: "navigability"` with the common `id`, `module`, `review`, `evidence`,
+`exclusions` and `limitations` fields and a fixed `questions` array. Each question has:
+
+```json
+{
+  "id": "save-failure", "question": "What happens when saving an order fails?",
+  "owningModule": "orders", "trailStatus": "complete",
+  "readability": "coherent", "readabilityExplanation": "Failure handling stays understandable",
+  "evidence": ["orders.ts"], "namingIssues": [], "disagreements": [],
+  "trail": [{
+    "id": "storage-error", "moduleId": "storage", "file": "storage.ts",
+    "location": "lines 20-28", "kind": "implementation", "necessary": true,
+    "reason": "Must inspect storage to understand which failures are translated"
+  }]
+}
+```
+
+Preserve the exact comprehension question and its owning module. Use `owningModule:
+null` for ambiguous ownership and `moduleId: null` for unresolved necessary attribution;
+both stay unavailable. The known owner must match the assessment's declared module.
+`trailStatus` is `complete`, `incomplete` or `unresolved`. A sufficient trail requires
+concrete evidence and at least one source location. Steps identify reviewed logical
+module ownership and explain why their implementation must be inspected to answer
+this question. Record a sufficient semantic explanation, never an accidental browsing
+sequence, elapsed time or token count. Shared evidence can support several fixed questions.
+
+The [experimental v1 rubric](../scripts/architecture/navigability-rubric.md) averages
+`1 / (1 + transitions)`. Starting at the owner, count logical-module boundaries in the
+ordered **necessary implementation** trail, including return crossings. Several steps
+in the same module add no crossing. `interface` references and `private-helper` steps
+do not count. Hidden helpers use `necessary: false`; a helper whose implementation
+really must be inspected belongs in the implementation trail instead. Unnecessary
+browsing can remain documented with `necessary: false` without changing counts.
+
+Reports show raw per-question transitions and values plus the aggregate. Incomplete,
+unresolved, owner-ambiguous or unsupported trails retain `observedTransitions` as a
+partial diagnostic; their full count/value and the aggregate remain unavailable.
+Zero questions also remain unavailable. Source freshness includes every evidence and
+trail file through the shared immutable manifests, including callers and definitions.
+
+Review internal readability as `coherent`, `unclear` or `consolidation-obscures` and
+explain the judgement. A giant file can hide navigation rather than improve it:
+unclear/obscured readability makes the question unavailable even with zero observed
+crossings. Removing a pass-through that truly requires inspection can improve the
+score; private helpers hidden behind a useful interface do not lower it. Preserve
+interface leverage rather than moving policy burdens into callers to reduce navigation.
+
+Keep `namingIssues` and `disagreements` visible. Navigability asks **where you must look**
+to understand a behaviour; change locality asks **where policy must change**. They share
+possible evidence but cannot substitute for one another. Reviewed scores never establish
+learner understanding, grant quiz credit or enter file-health averages. Comparison freezes
+question identities, exact wording, owners and module membership; a different question
+cannot conceal missing evidence or establish an improvement.

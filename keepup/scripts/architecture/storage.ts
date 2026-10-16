@@ -30,6 +30,11 @@ import {
   localityLimitations,
   localityMeasurements,
 } from "./locality.ts";
+import {
+  navigabilityEvidence,
+  navigabilityLimitations,
+  navigabilityMeasurements,
+} from "./navigability.ts";
 import { parseArchitectureId, parseAssessment } from "./parse.ts";
 import type { SeamAnalysis } from "./seam-domain.ts";
 import { seamMeasurements } from "./seams.ts";
@@ -113,6 +118,15 @@ function revision(root: string): string | null {
 }
 
 export function referencedPaths(input: AssessmentInput): string[] {
+  if (input.dimension === "navigability") {
+    return [
+      ...input.module.members,
+      ...input.module.interface,
+      ...input.evidence,
+      ...navigabilityEvidence(input),
+    ];
+  }
+
   if (input.dimension === "behavioural-testability") {
     return [
       ...input.module.members,
@@ -173,6 +187,16 @@ function limitationsFor(
   input: AssessmentInput,
   analysis?: AssessmentAnalysis
 ): string[] {
+  if (input.dimension === "navigability") {
+    return [
+      ...input.limitations,
+      ...navigabilityLimitations(input),
+      ...(input.review.status === "provisional"
+        ? ["Provisional suggestion; review not accepted"]
+        : []),
+    ];
+  }
+
   if (input.dimension === "behavioural-testability") {
     return [
       ...input.limitations,
@@ -210,6 +234,10 @@ function measurements(
   input: AssessmentInput,
   analysis?: AssessmentAnalysis
 ): AssessmentMeasurements {
+  if (input.dimension === "navigability") {
+    return navigabilityMeasurements(input);
+  }
+
   if (input.dimension === "behavioural-testability") {
     return testabilityMeasurements(
       input,
@@ -538,10 +566,7 @@ export function recordAssessment<Input extends AssessmentInput>(
       manifest: before,
       observer,
       revision: sha,
-      rubric:
-        input.dimension === "seam-integrity"
-          ? "experimental-seam-integrity-v1"
-          : `experimental-${input.dimension}-v1`,
+      rubric: `experimental-${input.dimension}-v1`,
       time: new Date().toISOString(),
     },
     schemaVersion: 1,

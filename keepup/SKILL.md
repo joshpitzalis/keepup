@@ -59,3 +59,8 @@ For behavioural testability, execute existing selected tests with `architecture 
 <json>` and inspect stored results. Review outcome assertions through the intended interface;
 retain dependency compatibility checks and fixed scenario inventories. Missing tests are
 separate preparation work: never author tests to make a learner exercise pass.
+For navigability, record fixed exact questions and reviewed sufficient implementation
+trails via `architecture record`. Count necessary module transitions, never browsing
+history. Incomplete/ambiguous trails and giant-file concealment stay unavailable; hidden
+private helpers add no penalty. Navigability describes where to look, not where policy
+changes belong, and never proves learner understanding.
