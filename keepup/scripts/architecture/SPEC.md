@@ -37,3 +37,9 @@ Historical snapshots remain intact; inspections never evaluate code or run tests
   yields unavailable results, never a healthy default.
 - Capture/inspection costs scale with tracked repository bytes. Untracked material
   cannot support a claim until explicitly tracked. No automatic dependency discovery yet.
+
+`comparison.ts` compares captured observations without evaluating code. It freezes
+module/interface/membership, representative inventory, exclusions and evaluator
+assets; returns explicit incompatibility and null deltas for unavailable evidence.
+Both sides retain raw facts, limitations, provenance and separate freshness labels.
+`compare` and `compare-report` expose the same facts through CLI and escaped HTML.
