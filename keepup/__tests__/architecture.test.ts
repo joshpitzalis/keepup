@@ -115,6 +115,7 @@ test("reviewed facts, provenance, report and supporting-source freshness agree w
   const events = readFileSync(join(state, "events.jsonl"));
   const history = readFileSync(join(state, "history.jsonl"));
   const assessment = record(root, input("before"));
+  assert.ok("avoidableObligations" in assessment.measurements);
   assert.equal(assessment.measurements.value, 0.5);
   assert.equal(assessment.measurements.avoidableObligations, 1);
   assert.equal(assessment.measurements.denominator, 1);
@@ -323,6 +324,8 @@ test("calibration rewards reviewed obligation removal, ignores padding and rejec
     })),
   });
 
+  assert.ok("avoidableObligations" in before.measurements);
+  assert.ok("avoidableObligations" in improved.measurements);
   assert.equal(before.measurements.avoidableObligations, 1);
   assert.equal(improved.measurements.avoidableObligations, 0);
   assert.equal(improved.measurements.value, 1);
@@ -346,6 +349,7 @@ test("calibration rewards reviewed obligation removal, ignores padding and rejec
     })),
   });
 
+  assert.ok("avoidableObligations" in opaque.measurements);
   assert.equal(opaque.measurements.value, 0);
   assert.equal(opaque.measurements.avoidableObligations, 1);
 });
