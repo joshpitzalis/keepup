@@ -64,8 +64,10 @@ CLI examples below use the Claude Code installation path. For Codex, replace `~/
 Run checks in this source checkout with:
 
 ```sh
-pnpm install
-pnpm verify
+pnpm install --frozen-lockfile
+# Install the pinned analyser prerequisite below, then set its prefix:
+export KEEPUP_TEST_ANALYSER_DIRECTORY="$HOME/.local/share/keepup-analyser"
+pnpm verify:full
 ```
 
 ## Linting and formatting
@@ -75,13 +77,15 @@ pnpm verify
 - `pnpm check` checks lint and formatting without changing files.
 - `pnpm fix` applies safe lint fixes and formatting. Rerun `pnpm check` afterward; formatting can expose additional spacing fixes.
 - `pnpm lint` runs Oxlint and fails on warnings; `pnpm format` formats files only.
-- `pnpm verify` runs lint/format checks, strict TypeScript 7 checking, and all tests.
+- `pnpm verify` requires the pinned analyser and runs lint/format, strict TypeScript and every Node test against a frozen source snapshot; skipped suites cannot pass.
+- `pnpm verify:full` also runs Chromium; CI runs this fresh on pull requests.
+- `pnpm verify:reuse` reuses only a matching successful full receipt. Changed inputs run fresh checks.
 
 All 18 generic [anti-slop rules](https://github.com/dmmulroy/anti-slop), its five Effect rules, and native `oxc/no-accumulating-spread` are enabled as errors. The plugin is vendored unchanged in `tools/oxlint/anti-slop/`; `UPSTREAM.md` records the revision and both upstream licenses are retained. Keep `oxlint` and `@oxlint/plugins` on the same exact version when upgrading.
 
 Documented exceptions preserve the current hand-written input parsers, generic pipe implementation, open evidence payloads and invalid-input tests. Validated branded assertions require `SAFETY:` explanations; one phantom tuple brand still needs a justified chained assertion. Two existing workflows have local complexity exceptions. Function declarations, local helpers and POSIX permission masks retain the project's conventions. Other application code receives the full anti-slop ruleset, and a CLI smoke test checks that representative violations fail.
 
-Learning state, installed agent assets and vendored rules are excluded from checks; Markdown is excluded from formatting. These tools are development dependencies and do not change skill installation or introduce Effect into runtime code. No Git hooks are installed.
+Learning state, installed agent assets and vendored rules are excluded from checks; Markdown is excluded from formatting. These tools are development dependencies and do not change skill installation or introduce Effect into runtime code. Dependency installation activates Lefthook's pre-commit formatting/lint and TypeScript checks. See [the agent workflow](docs/agents/workflow.md) for frozen verification, receipts, acceptance evidence review and local skill overrides.
 
 ## TypeScript and Effect
 
