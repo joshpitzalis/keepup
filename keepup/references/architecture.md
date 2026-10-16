@@ -276,7 +276,7 @@ context, target, conflicts or evidence):
   speculative, with an explicit deferred refactor.
 - `decision`: `refactor`, `assessment`, `preparation`, `defer`, or `none`.
 - `rawTarget`: `{assessmentId,metric,goal}` or null. Supported raw counts are
-  `avoidableObligations`, `independentPolicySites` and `violations`, according to
+  `avoidableObligations`, `independentPolicySites`, `transitions` and `violations`, according to
   the linked dimension. The CLI supplies the captured baseline; the proposed
   nonnegative goal must strictly reduce it. Reviewed targets remain advisory.
 - `verification`: `{testCommand:string|null,readiness,evidence:[test paths],

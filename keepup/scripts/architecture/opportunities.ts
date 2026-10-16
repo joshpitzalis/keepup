@@ -51,7 +51,8 @@ export interface OpportunityInput {
     readonly metric:
       | "avoidableObligations"
       | "independentPolicySites"
-      | "violations";
+      | "violations"
+      | "transitions";
     readonly goal: number;
   } | null;
   readonly scope: readonly string[];
@@ -135,6 +136,10 @@ function rawValue(
     measurements.violations >= 0
   ) {
     return measurements.violations;
+  }
+
+  if (metric === "transitions" && "transitions" in measurements) {
+    return measurements.transitions;
   }
 
   return null;

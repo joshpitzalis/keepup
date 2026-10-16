@@ -414,3 +414,93 @@ test("concurrent opportunity retries publish one immutable observation and malfo
   assert.equal(result.status, 1);
   assert.deepEqual(readFileSync(path), partial);
 });
+
+test("a navigability opportunity targets raw transitions while retaining the fixed behaviour question", (t) => {
+  const root = fixture(t);
+  writeFileSync(
+    join(root, "policy.ts"),
+    "import { retry } from './retry'; export const save = () => retry();\n"
+  );
+  writeFileSync(join(root, "retry.ts"), "export const retry = () => 1;\n");
+  assert.equal(
+    spawnSync("git", ["add", "policy.ts", "retry.ts"], { cwd: root }).status,
+    0
+  );
+  run(
+    root,
+    CLI,
+    "architecture",
+    "record",
+    JSON.stringify({
+      dimension: "navigability",
+      evidence: [],
+      exclusions: [],
+      id: "navigation",
+      limitations: [],
+      module: {
+        id: "orders",
+        interface: ["policy.ts"],
+        members: ["policy.ts"],
+      },
+      questions: [
+        {
+          disagreements: [],
+          evidence: ["policy.ts", "retry.ts"],
+          id: "return",
+          namingIssues: [],
+          owningModule: "orders",
+          question: "How does save choose its return value?",
+          readability: "coherent",
+          readabilityExplanation: "One named return policy",
+          trail: [
+            {
+              file: "retry.ts",
+              id: "retry",
+              kind: "implementation",
+              location: "line 1",
+              moduleId: "retries",
+              necessary: true,
+              reason: "Save delegates its return policy to retry",
+            },
+          ],
+          trailStatus: "complete",
+        },
+      ],
+      review: {
+        confidence: "medium",
+        notes: "Traced actual save return path",
+        reviewer: "Learner",
+        status: "reviewed",
+      },
+    })
+  );
+  const input = opportunity("navigation-work");
+
+  const result = run(
+    root,
+    CLI,
+    "architecture",
+    "opportunity",
+    "record",
+    JSON.stringify({
+      ...input,
+      findings: [
+        {
+          assessmentId: "navigation",
+          description:
+            "Understanding return value requires retry-module inspection",
+          evidence: ["policy.ts", "retry.ts"],
+        },
+      ],
+      rawTarget: { assessmentId: "navigation", goal: 0, metric: "transitions" },
+      scope: ["policy.ts", "retry.ts"],
+    })
+  );
+
+  assert.equal(result.decision, "refactor");
+  assert.deepEqual(result.target, {
+    baseline: 1,
+    goal: 0,
+    metric: "transitions",
+  });
+});
