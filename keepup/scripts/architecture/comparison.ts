@@ -1,6 +1,7 @@
 import type {
   ArchitectureAssessment,
   ArchitectureInspection,
+  AssessmentMeasurements,
 } from "./domain.ts";
 import { architectureText, writeArchitectureReport } from "./report.ts";
 import type { ArchitectureReportResult } from "./report.ts";
@@ -12,12 +13,21 @@ export interface ArchitectureComparison {
   readonly reasons: readonly string[];
   readonly before: ArchitectureInspection;
   readonly after: ArchitectureInspection;
-  readonly changes: {
-    readonly value: number | null;
-    readonly domainObligations: number | null;
-    readonly avoidableObligations: number | null;
-  };
+  readonly changes: ArchitectureChanges;
 }
+
+export type ArchitectureChanges =
+  | {
+      readonly value: number | null;
+      readonly domainObligations: number | null;
+      readonly avoidableObligations: number | null;
+    }
+  | {
+      readonly value: number | null;
+      readonly independentPolicySites: number | null;
+      readonly calls: number | null;
+    }
+  | { readonly value: null };
 
 function definition(assessment: ArchitectureAssessment): string {
   const { input, observation } = assessment;
@@ -26,18 +36,37 @@ function definition(assessment: ArchitectureAssessment): string {
     assets: observation.assets,
     dimension: input.dimension,
     exclusions: input.exclusions.toSorted(),
+    inventory:
+      input.dimension === "interface-leverage"
+        ? input.scenarios
+            .map((scenario) => ({
+              description: scenario.description,
+              id: scenario.id,
+            }))
+            .toSorted((one, two) => one.id.localeCompare(two.id))
+        : {
+            changes: input.changes
+              .map((change) => ({
+                affectedOwners: change.affectedOwners.toSorted(),
+                description: change.description,
+                id: change.id,
+              }))
+              .toSorted((one, two) => one.id.localeCompare(two.id)),
+            rules: input.rules
+              .map((rule) => ({
+                description: rule.description,
+                equivalence: rule.equivalence,
+                id: rule.id,
+                status: rule.status,
+              }))
+              .toSorted((one, two) => one.id.localeCompare(two.id)),
+          },
     module: {
       id: input.module.id,
       interface: input.module.interface.toSorted(),
       members: input.module.members.toSorted(),
     },
     rubric: observation.rubric,
-    scenarios: input.scenarios
-      .map((scenario) => ({
-        description: scenario.description,
-        id: scenario.id,
-      }))
-      .toSorted((one, two) => one.id.localeCompare(two.id)),
   });
 }
 
@@ -53,7 +82,7 @@ export function compareAssessments(
 
   if (definition(before.assessment) !== definition(after.assessment)) {
     reasons.push(
-      "Subject, membership, interface, scenario inventory, exclusions or evaluator definitions changed"
+      "Subject, membership, interface, scenario/rule/change inventory, exclusions or evaluator definitions changed"
     );
   }
 
@@ -71,22 +100,46 @@ export function compareAssessments(
   return {
     after,
     before,
-    changes: {
-      avoidableObligations: comparable
-        ? two.avoidableObligations - one.avoidableObligations
-        : null,
-      domainObligations: comparable
-        ? two.domainObligations - one.domainObligations
-        : null,
-      value:
-        comparable && one.value !== null && two.value !== null
-          ? two.value - one.value
-          : null,
-    },
+    changes: measurementChanges(one, two, comparable),
     comparable,
     reasons,
     schemaVersion: 1,
   };
+}
+
+function measurementChanges(
+  before: AssessmentMeasurements,
+  after: AssessmentMeasurements,
+  comparable: boolean
+): ArchitectureChanges {
+  const value =
+    comparable && before.value !== null && after.value !== null
+      ? after.value - before.value
+      : null;
+
+  if ("domainObligations" in before && "domainObligations" in after) {
+    return {
+      avoidableObligations: comparable
+        ? after.avoidableObligations - before.avoidableObligations
+        : null,
+      domainObligations: comparable
+        ? after.domainObligations - before.domainObligations
+        : null,
+      value,
+    };
+  }
+
+  if ("independentPolicySites" in before && "independentPolicySites" in after) {
+    return {
+      calls: comparable ? after.calls - before.calls : null,
+      independentPolicySites: comparable
+        ? after.independentPolicySites - before.independentPolicySites
+        : null,
+      value,
+    };
+  }
+
+  return { value: null };
 }
 
 export function comparisonText(result: ArchitectureComparison): string {

@@ -95,3 +95,54 @@ may change as the same representative behaviour improves. Adding unrelated cases
 cannot improve a fixed-inventory comparison. Ordinary comparisons reject moves or
 membership changes; explicit reviewed mappings arrive with reshaping exercises.
 Recording, inspecting, comparing and reporting do not grant learning credit.
+## Change locality
+
+Record `dimension: "change-locality"` with the same `id`, `module`, `review`,
+`evidence`, `exclusions` and `limitations` fields. Replace `scenarios` with:
+
+```json
+{
+  "rules": [{
+    "id": "minimum-order", "description": "Minimum order amount",
+    "status": "confirmed", "equivalence": "Both sites apply the same order minimum",
+    "evidence": ["policy.ts"],
+    "sites": [{
+      "id": "checkout-minimum", "file": "policy.ts", "location": "lines 10-12",
+      "role": "policy", "implementation": null, "trustBoundary": null,
+      "reason": "Independently maintained minimum", "evidence": ["policy.ts"]
+    }]
+  }],
+  "changes": [{
+    "id": "raise-minimum", "description": "Raise the order minimum",
+    "affectedOwners": ["Checkout", "Sales"], "evidence": ["policy.ts"]
+  }],
+  "disagreements": []
+}
+```
+
+These are additional fields, not a complete input. Rule status is `confirmed`,
+`proposed` or `unclear`. Each independent policy site needs a stable identity,
+distinct concrete source location, evidence and semantic explanation. A `call`
+site instead names the implementing policy-site ID in `implementation`; it does
+not inflate the independently maintained policy count. Two copies in one file
+still count twice. Duplicate identities/locations and dangling calls fail validation.
+
+The [experimental locality rubric](../scripts/architecture/change-locality-rubric.md)
+averages `1 / independent policy sites` across the fixed confirmed-rule inventory.
+Raw per-rule counts, the denominator and exclusions accompany the aggregate. Missing
+sites/evidence make confirmed rules unavailable, never perfect. Proposed or unclear
+rules stay visibly outside the confirmed denominator. A provisional proposal can be
+inspected before acceptance; record the accepted review under a new ID so its original
+evidence remains intact. Reviewer disagreements remain visible in reports.
+
+Semantic equivalence requires human review: matching text or historical Git co-change
+cannot establish that two sites own the same rule. Owner evidence belongs to explicit
+representative changes; owners never enter the policy-site score. Put material owner,
+rule or inventory definitions in tracked evidence files so edits mark earlier results
+stale. Input definitions are immutable; comparisons must freeze their meaning.
+
+Consolidating independent policy can help. Merging files without consolidating sites
+cannot. Necessary repeated validation at distinct trust boundaries must remain: label
+the boundary in `trustBoundary` and explain why it needs validation in `reason`. Reports
+preserve this warning even when the raw count lowers locality. Scores remain advisory;
+never remove necessary validation or award practice to improve a number.

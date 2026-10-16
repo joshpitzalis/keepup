@@ -1,3 +1,8 @@
+import type {
+  LocalityAssessmentInput,
+  LocalityMeasurements,
+} from "./locality.ts";
+
 export interface ArchitectureModule {
   readonly id: string;
   readonly members: readonly string[];
@@ -43,9 +48,15 @@ export interface InterfaceAssessmentInput {
   readonly limitations: readonly string[];
 }
 
-export type AssessmentInput = InterfaceAssessmentInput;
+export type AssessmentInput =
+  | InterfaceAssessmentInput
+  | LocalityAssessmentInput;
 
-export interface AssessmentMeasurements {
+export type AssessmentMeasurements =
+  | InterfaceMeasurements
+  | LocalityMeasurements;
+
+export interface InterfaceMeasurements {
   readonly status: "measured" | "unavailable" | "not-applicable";
   readonly value: number | null;
   readonly denominator: number;

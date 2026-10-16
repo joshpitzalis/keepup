@@ -22,11 +22,16 @@ import type {
   AssessmentInput,
   AssessmentMeasurements,
   ManifestEntry,
+  InterfaceAssessmentInput,
 } from "./domain.ts";
+import {
+  localityEvidence,
+  localityLimitations,
+  localityMeasurements,
+} from "./locality.ts";
 import { parseArchitectureId, parseAssessment } from "./parse.ts";
 
 const ASSET_DIRECTORY = import.meta.dirname;
-const RUBRIC = "experimental-interface-leverage-v1";
 
 export function architectureDigest(bytes: string | Buffer): string {
   return createHash("sha256").update(bytes).digest("hex");
@@ -101,15 +106,17 @@ function referencedPaths(input: AssessmentInput): string[] {
     ...input.module.members,
     ...input.module.interface,
     ...input.evidence,
-    ...input.scenarios.flatMap((scenario) => [
-      ...scenario.evidence,
-      ...scenario.obligations.flatMap((obligation) => obligation.evidence),
-    ]),
+    ...(input.dimension === "change-locality"
+      ? localityEvidence(input)
+      : input.scenarios.flatMap((scenario) => [
+          ...scenario.evidence,
+          ...scenario.obligations.flatMap((obligation) => obligation.evidence),
+        ])),
   ];
 }
 
-function limitationsFor(input: AssessmentInput): string[] {
-  const limitations = [...input.limitations];
+function interfaceLimitations(input: InterfaceAssessmentInput): string[] {
+  const limitations: string[] = [];
 
   if (!input.scenarios.length) {
     limitations.push(
@@ -129,6 +136,17 @@ function limitationsFor(input: AssessmentInput): string[] {
     }
   }
 
+  return limitations;
+}
+
+function limitationsFor(input: AssessmentInput): string[] {
+  const limitations = [
+    ...input.limitations,
+    ...(input.dimension === "change-locality"
+      ? localityLimitations(input)
+      : interfaceLimitations(input)),
+  ];
+
   if (input.review.status === "provisional") {
     limitations.push(
       "Provisional suggestion; reviewer judgement has not been accepted"
@@ -139,6 +157,10 @@ function limitationsFor(input: AssessmentInput): string[] {
 }
 
 function measurements(input: AssessmentInput): AssessmentMeasurements {
+  if (input.dimension === "change-locality") {
+    return localityMeasurements(input);
+  }
+
   const assessed = input.scenarios.filter(
     (scenario) =>
       scenario.rating !== null &&
@@ -370,7 +392,7 @@ export function recordAssessment(
   const result: ArchitectureAssessment = {
     coverage: {
       assessed: measurements(input).assessed,
-      total: input.scenarios.length,
+      total: measurements(input).denominator,
     },
     dimension: input.dimension,
     id: input.id,
@@ -385,7 +407,10 @@ export function recordAssessment(
       manifest: before,
       observer,
       revision: sha,
-      rubric: RUBRIC,
+      rubric:
+        input.dimension === "change-locality"
+          ? "experimental-change-locality-v1"
+          : "experimental-interface-leverage-v1",
       time: new Date().toISOString(),
     },
     schemaVersion: 1,
