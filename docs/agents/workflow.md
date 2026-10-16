@@ -29,11 +29,15 @@ Snapshots contain tracked working bytes (including staged additions/deletions) a
 nonignored new files in code/test/tool/docs/skill/workflow directories plus named
 root configuration files. Stage other new root files before verification. Learner
 state, dependencies and generated verification artifacts are excluded. Installed
-development dependencies are shared read-only by convention and must match the
-frozen lockfile. Keep dependency installs separate from verification runs.
+development dependencies are shared and fingerprinted by exact bytes, permissions
+and symlink targets. Install them from the frozen lockfile and keep dependency
+installs separate from verification runs; changes deny reuse or a successful receipt.
+Full-profile receipts also fingerprint installed Chromium and headless-shell payloads.
+Checks disable pnpm's automatic dependency installation. Operating-system browser
+libraries remain part of the host environment.
 
 Successful receipts in `.verification/receipts/` include source manifests, Git
-revision, Node/OS, environment hash, analyser version/fingerprint, commands and
+revision, Node/OS, environment hash, analyser version/fingerprint, installed prerequisite fingerprints, commands and
 durations. Environment values are not saved. Receipts describe captured bytes,
 not edits made afterward. Use `pnpm verify:reuse` to reuse an exact full-profile
 receipt; changed inputs run fresh checks. CI always executes checks. Browser

@@ -266,3 +266,77 @@ test(
     );
   }
 );
+
+test(
+  "installed dependency changes invalidate receipts and mutation during checks denies a receipt",
+  { skip: !TOOL },
+  (t) => {
+    const root = fixture(t);
+    mkdirSync(join(root, "node_modules"));
+    writeFileSync(join(root, ".gitignore"), "node_modules/\n.verification/\n");
+    const dependency = join(root, "node_modules/check.cjs");
+    writeFileSync(dependency, "process.exit(0);\n");
+    const packagePath = join(root, "package.json");
+    const packageJson = JSON.parse(readFileSync(packagePath, "utf-8"));
+    packageJson.scripts.check = "node node_modules/check.cjs";
+    writeFileSync(packagePath, JSON.stringify(packageJson));
+    assert.equal(run(root, TOOL).status, 0);
+    writeFileSync(join(root, "input.txt"), "original");
+    writeFileSync(dependency, "process.exit(23);\n");
+    const changed = run(root, TOOL, "--reuse");
+    assert.notEqual(changed.status, 0);
+    assert.doesNotMatch(String(changed.stdout), /Reusing passed receipt/u);
+
+    writeFileSync(
+      dependency,
+      "require('node:fs').writeFileSync(__filename, 'process.exit(0);');\n"
+    );
+    const mutation = run(root, TOOL);
+    assert.notEqual(mutation.status, 0);
+    assert.match(String(mutation.stderr), /prerequisites changed/u);
+  }
+);
+
+test(
+  "full-profile receipts include installed Chromium and headless-shell bytes",
+  { skip: !TOOL },
+  (t) => {
+    const root = fixture(t);
+    writeFileSync(
+      join(root, ".gitignore"),
+      "node_modules/\n.verification/\nbrowsers/\n"
+    );
+    const browserRoot = join(root, "browsers");
+
+    for (const name of ["chromium-123", "chromium_headless_shell-123"]) {
+      mkdirSync(join(browserRoot, name), { recursive: true });
+      writeFileSync(join(browserRoot, name, "chrome"), "original browser");
+    }
+
+    mkdirSync(join(root, "node_modules/@playwright/test"), { recursive: true });
+    writeFileSync(
+      join(root, "node_modules/@playwright/test/package.json"),
+      JSON.stringify({ main: "index.js", type: "module" })
+    );
+    writeFileSync(
+      join(root, "node_modules/@playwright/test/index.js"),
+      `export const chromium = { executablePath: () => ${JSON.stringify(join(browserRoot, "chromium-123/chrome"))} };`
+    );
+    const packagePath = join(root, "package.json");
+    const packageJson = JSON.parse(readFileSync(packagePath, "utf-8"));
+    packageJson.scripts["test:browser"] = "node --check check.test.mjs";
+    writeFileSync(packagePath, JSON.stringify(packageJson));
+    const first = run(root, TOOL, "--browser");
+    assert.equal(first.status, 0, String(first.stderr));
+    writeFileSync(join(root, "input.txt"), "original");
+    const same = run(root, TOOL, "--browser", "--reuse");
+    assert.match(String(same.stdout), /Reusing passed receipt/u);
+    writeFileSync(
+      join(browserRoot, "chromium_headless_shell-123/chrome"),
+      "changed shell"
+    );
+    const changed = run(root, TOOL, "--browser", "--reuse");
+    assert.equal(changed.status, 0, String(changed.stderr));
+    assert.doesNotMatch(String(changed.stdout), /Reusing passed receipt/u);
+  }
+);

@@ -16,9 +16,9 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      KEEPUP_TEST_ANALYSER_DIRECTORY: ${{ runner.temp }}/keepup-analyser
     steps:
+      - name: Set isolated analyser path
+        run: echo "KEEPUP_TEST_ANALYSER_DIRECTORY=$RUNNER_TEMP/keepup-analyser" >> "$GITHUB_ENV"
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false

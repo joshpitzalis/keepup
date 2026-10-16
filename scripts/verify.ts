@@ -10,13 +10,16 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
+  readlinkSync,
+  realpathSync,
   renameSync,
   rmSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 
 import {
   analyserTool,
@@ -37,6 +40,111 @@ interface CheckResult {
 
 function digest(value: string | Buffer): string {
   return createHash("sha256").update(value).digest("hex");
+}
+
+function installedFingerprint(paths: readonly string[]): string {
+  const hash = createHash("sha256");
+  const visited = new Set<string>();
+
+  function visit(path: string): void {
+    hash.update(JSON.stringify(path));
+
+    if (!existsSync(path)) {
+      hash.update("missing");
+
+      return;
+    }
+
+    const info = lstatSync(path);
+    hash.update(String(info.mode & 0o777));
+
+    if (info.isSymbolicLink()) {
+      hash.update(readlinkSync(path));
+      visit(realpathSync(path));
+
+      return;
+    }
+
+    if (visited.has(path)) {
+      return;
+    }
+
+    visited.add(path);
+
+    if (info.isDirectory()) {
+      for (const name of readdirSync(path).toSorted()) {
+        visit(join(path, name));
+      }
+
+      return;
+    }
+
+    if (!info.isFile()) {
+      throw new Error(`Unsupported verification prerequisite: ${path}`);
+    }
+
+    hash.update(digest(readFileSync(path)));
+  }
+
+  for (const path of paths) {
+    visit(path);
+  }
+
+  return hash.digest("hex");
+}
+
+function assertInstalledFingerprint(
+  paths: readonly string[],
+  expected: string
+): void {
+  if (installedFingerprint(paths) !== expected) {
+    throw new Error(
+      "Installed prerequisites changed during checks; no receipt issued"
+    );
+  }
+}
+
+function chromiumInstallations(root: string): string[] {
+  const result = spawnSync(
+    process.execPath,
+    [
+      "--input-type=module",
+      "-e",
+      "import { chromium } from '@playwright/test'; console.log(chromium.executablePath());",
+    ],
+    { cwd: root, encoding: "utf-8" }
+  );
+
+  if (result.status !== 0) {
+    throw new Error(`Cannot locate Chromium prerequisite: ${result.stderr}`);
+  }
+
+  let directory = dirname(result.stdout.trim());
+
+  while (!/^chromium-\d+$/u.test(basename(directory))) {
+    const parent = dirname(directory);
+
+    if (parent === directory) {
+      throw new Error("Cannot locate Chromium installation directory");
+    }
+
+    directory = parent;
+  }
+
+  const cache = dirname(directory);
+
+  // Chromium's default headless launch uses a separate installed shell payload.
+  return readdirSync(cache)
+    .filter((name) => /^chromium(?:_headless_shell)?-\d+$/u.test(name))
+    .toSorted()
+    .map((name) => join(cache, name));
+}
+
+function prerequisitePaths(root: string, profile: string): string[] {
+  return [
+    join(root, "node_modules"),
+    ...(profile === "full" ? chromiumInstallations(root) : []),
+  ];
 }
 
 function git(root: string, ...args: string[]): string {
@@ -113,13 +221,17 @@ function runCheck(root: string, script: string): CheckResult {
   console.log(`Running pnpm ${script} against frozen inputs`);
   const started = Date.now();
 
-  const result = spawnSync("pnpm", ["run", script], {
-    cwd: root,
-    encoding: "utf-8",
-    env: { ...process.env, NODE_TEST_CONTEXT: undefined },
-    maxBuffer: 32 * 1024 * 1024,
-    timeout: 20 * 60_000,
-  });
+  const result = spawnSync(
+    "pnpm",
+    ["--config.verify-deps-before-run=false", "run", script],
+    {
+      cwd: root,
+      encoding: "utf-8",
+      env: { ...process.env, NODE_TEST_CONTEXT: undefined },
+      maxBuffer: 32 * 1024 * 1024,
+      timeout: 20 * 60_000,
+    }
+  );
 
   process.stdout.write(result.stdout ?? "");
   process.stderr.write(result.stderr ?? "");
@@ -215,6 +327,8 @@ function verify(): void {
   const manifest = sourceFiles(root);
   const profile = args.includes("--browser") ? "full" : "node";
 
+  const prerequisites = prerequisitePaths(root, profile);
+
   const environment = Object.entries(process.env)
     .filter(
       ([key]) =>
@@ -235,6 +349,7 @@ function verify(): void {
     environmentHash: digest(JSON.stringify(environment)),
     manifest,
     platform: process.platform,
+    prerequisites: installedFingerprint(prerequisites),
     profile,
     revision: git(root, "rev-parse", "HEAD"),
     runtime: process.version,
@@ -314,10 +429,10 @@ function verify(): void {
       throw new Error("Frozen source changed during checks; no receipt issued");
     }
 
+    assertInstalledFingerprint(prerequisites, inputs.prerequisites);
+
     if (analyserToolChanged(tool)) {
-      throw new Error(
-        "Analyser changed during verification; no receipt issued"
-      );
+      throw new Error("Analyser changed during checks; no receipt issued");
     }
 
     mkdirSync(receipts, { recursive: true });
