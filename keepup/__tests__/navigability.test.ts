@@ -269,7 +269,44 @@ test("calibration rewards removed pass-throughs, ignores hidden private helpers 
   const source = input("before");
   const [question] = source.questions;
   assert.ok(question);
+
+  const checkBehaviour = () => {
+    const result = spawnSync(
+      process.execPath,
+      [
+        "--input-type=module",
+        "-e",
+        "import assert from 'node:assert/strict'; import { save } from './orders.ts'; assert.equal(save(), 'unavailable'); assert.equal(save(false), 'saved');",
+      ],
+      { cwd: root, encoding: "utf-8" }
+    );
+
+    assert.equal(result.status, 0, result.stderr);
+  };
+
+  const handleFailure =
+    "export const save = (fail = true) => { try { return persist(fail); } catch { return 'unavailable'; } };\n";
+
+  writeFileSync(
+    join(root, "storage.ts"),
+    "export const persist = (fail) => { if (fail) throw new Error('offline'); return 'saved'; };\n"
+  );
+  writeFileSync(
+    join(root, "pass-through.ts"),
+    "export { persist } from './storage.ts';\n"
+  );
+  writeFileSync(
+    join(root, "orders.ts"),
+    `import { persist } from './pass-through.ts';\n${handleFailure}`
+  );
+  checkBehaviour();
   const before = record(root, source);
+  assert.equal(before.measurements.transitions, 2);
+  writeFileSync(
+    join(root, "orders.ts"),
+    `import { persist } from './storage.ts';\n${handleFailure}`
+  );
+  checkBehaviour();
 
   const improved = record(root, {
     ...source,
@@ -284,6 +321,15 @@ test("calibration rewards removed pass-throughs, ignores hidden private helpers 
 
   assert.equal(improved.measurements.transitions, 1);
   assert.equal(improved.measurements.value, 0.5);
+
+  writeFileSync(
+    join(root, "orders.ts"),
+    `import { persist } from './pass-through.ts';\nfunction normalise(value) { return value; }\n${handleFailure.replace(
+      "return persist(fail)",
+      "return normalise(persist(fail))"
+    )}`
+  );
+  checkBehaviour();
 
   const withPrivate = record(root, {
     ...source,
@@ -309,6 +355,19 @@ test("calibration rewards removed pass-throughs, ignores hidden private helpers 
   });
 
   assert.equal(withPrivate.measurements.value, before.measurements.value);
+
+  writeFileSync(
+    join(root, "orders.ts"),
+    `${Array.from(
+      { length: 200 },
+      (_, index) => `const unrelatedPolicy${index} = ${index};`
+    ).join(
+      "\n"
+    )}\nconst persist = (fail) => { if (fail) throw new Error('offline'); return 'saved'; };\n${
+      handleFailure
+    }`
+  );
+  checkBehaviour();
 
   const concealed = record(root, {
     ...source,
