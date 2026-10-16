@@ -111,6 +111,10 @@ interface CompilerNode {
   readonly expression?: CompilerNode;
   readonly text?: string;
   readonly moduleSpecifier?: CompilerNode;
+  readonly parent?: CompilerNode;
+  readonly name?: CompilerNode;
+  readonly typeName?: CompilerNode;
+  readonly argumentExpression?: CompilerNode;
   readonly arguments?: readonly CompilerNode[];
   readonly getStart: (source: CompilerNode) => number;
 }
@@ -135,12 +139,54 @@ interface CompilerApi {
   readonly isImportDeclaration: (node: CompilerNode) => boolean;
   readonly isExportDeclaration: (node: CompilerNode) => boolean;
   readonly isCallExpression: (node: CompilerNode) => boolean;
+  readonly isPropertyAccessExpression: (node: CompilerNode) => boolean;
+  readonly isElementAccessExpression: (node: CompilerNode) => boolean;
   readonly isIdentifier: (node: CompilerNode) => boolean;
   readonly isStringLiteralLike: (node: CompilerNode) => boolean;
   readonly forEachChild: (
     node: CompilerNode,
     visit: (child: CompilerNode) => void
   ) => void;
+}
+
+const INDIRECT_LOADERS = new Set([
+  "require",
+  "createRequire",
+  "eval",
+  "Function",
+]);
+
+function indirectLoader(compiler: CompilerApi, node: CompilerNode): boolean {
+  if (compiler.isPropertyAccessExpression(node)) {
+    return INDIRECT_LOADERS.has(node.name?.text ?? "");
+  }
+
+  if (compiler.isElementAccessExpression(node)) {
+    const key = node.argumentExpression;
+
+    return (
+      key !== undefined &&
+      compiler.isStringLiteralLike(key) &&
+      INDIRECT_LOADERS.has(key.text ?? "")
+    );
+  }
+
+  if (!compiler.isIdentifier(node) || !INDIRECT_LOADERS.has(node.text ?? "")) {
+    return false;
+  }
+
+  const { parent } = node;
+
+  if (parent?.name === node || parent?.typeName === node) {
+    return false;
+  }
+
+  return (
+    node.text !== "require" ||
+    parent === undefined ||
+    !compiler.isCallExpression(parent) ||
+    parent.expression !== node
+  );
 }
 
 function sourceImports(
@@ -165,6 +211,14 @@ function sourceImports(
 
   function visit(node: CompilerNode): void {
     let specifier: CompilerNode | undefined;
+
+    if (indirectLoader(compiler, node)) {
+      imports.push({
+        line:
+          source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
+        specifier: null,
+      });
+    }
 
     if (compiler.isImportDeclaration(node)) {
       specifier = node.moduleSpecifier;
