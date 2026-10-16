@@ -246,6 +246,68 @@ remain separate observed evidence and may change after consolidation. Changed tr
 justifications remain visible in the captured input for review. Different or absent
 dimensions are incomparable; their missing facts never imply zero improvement.
 
+## Prohibited logical module cycles (experimental v1)
+
+Add optional `cycles` to a seam definition to enforce a cycle policy through the
+same `architecture analyse` operation, graph acquisition, stored evidence and
+report. Existing definitions without this field retain their original meaning and
+serialized input: no cycle policy is implied retroactively.
+
+```json
+"cycles": {
+  "id": "no-runtime-cycles",
+  "dependency": "runtime",
+  "exceptions": [
+    {
+      "id": "recursive-types",
+      "modules": ["types-a", "types-b"],
+      "reason": "Reviewed mutually recursive public types"
+    }
+  ]
+}
+```
+
+Choose `runtime`, `type-only` or `all` explicitly. `all` includes mixed runtime/type
+paths. External, unresolved and internal same-module edges do not become logical
+module cycle edges. A logical module cycle can span separate implementation files
+without any single file cycle: the finding concerns dependency direction between
+declared modules, not execution recursion.
+
+Count **one prohibited strongly connected group**, regardless of overlapping
+cycles or traversal order. A strongly connected group contains at least two logical
+modules that can all reach one another. `cyclicGroups` displays this absolute count;
+each prohibited group adds one `prohibited-cycle` finding to raw seam `violations`.
+Edge-policy findings remain separate entries in that total. Never substitute a
+percentage or an eligible-edge denominator for either raw target.
+
+Each group preserves sorted module identities, the cycle policy ID and a
+deterministic closed explanatory walk through every member. A walk may revisit a
+module when cycles overlap. Every step retains an actual source-file dependency,
+line, destination and dependency kind. Adding more edges or reordering files cannot
+conceal an existing group. Removing one of several overlapping loops can leave one
+prohibited group; inspect the remaining path rather than treating a smaller drawing
+as success.
+
+Exceptions permit an **exact entire strongly connected group**, identified by its
+sorted module inventory. They never remove edges from the graph. The group and
+complete path remain visible with `permittedBy`, and the definition retains the
+exception's identity and rationale. An exception for A/B does not exempt a larger
+A/B/C group. Changing a policy or exception makes ordinary comparison incomparable;
+it cannot count as repairing an old target.
+
+Incomplete graphs retain known groups but cannot establish cycle freedom. A
+reported known count of zero with partial/unavailable coverage is not proof that
+no prohibited cycle exists; comparisons with incomplete coverage remain
+incomparable. A complete acyclic graph can report raw zero even when a percentage
+would have no eligible-edge denominator. Architecture assessment remains separate
+from learner understanding and grants no learning events.
+
+The implementation uses repeated reachability on the declared module graph and
+deterministic breadth-first evidence paths. This suits small local module
+inventories; very large inventories would need a linear SCC algorithm. It does not
+parse another language or invoke a second analyser. Use the same pinned prerequisite
+and copied-install workflow as seam analysis.
+
 ## Behavioural testability
 
 Use `architecture testability '<json>'` to execute **existing** tests and record their

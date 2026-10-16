@@ -68,6 +68,11 @@ export function architectureText(result: ArchitectureInspection): string {
       `Modules: ${input.modules.map((module) => module.id).join(", ")}; freshness: ${freshness.status}`,
       `Violations: ${measurements.violations}; eligible edges: ${measurements.eligibleEdges}; coverage: ${assessment.analysis && "status" in assessment.analysis ? assessment.analysis.status : "unavailable"}`,
       `Rubric: ${assessment.observation.rubric} (experimental); raw violations are targets, no architecture grade`,
+      ...("cyclicGroups" in measurements
+        ? [
+            `Cyclic groups: ${measurements.cyclicGroups}; one per prohibited strongly connected logical group; permitted groups remain visible in evidence`,
+          ]
+        : []),
       ...assessment.limitations.map(
         (limitation) => `Limitation: ${limitation}`
       ),

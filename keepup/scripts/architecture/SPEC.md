@@ -65,6 +65,15 @@ implementations; ownership scenarios remain separate. Missing sites/evidence sta
 caution. Proposed/unclear equivalence, disagreements and exclusions remain visible. Consolidation
 can improve locality; file merging cannot. Necessary repeated trust-boundary validation remains.
 
+`cycles.ts` collapses the acquired graph to declared logical modules, selects the
+explicit runtime/type policy and counts one prohibited strongly connected group.
+Deterministic closed evidence walks cover every member with actual file edges;
+exact group exceptions remain visible without removing edges. Optional cycle
+input/analysis/measurements preserve pre-cycle seam record canonical bytes when
+omitted. The comparator freezes cycle policy/exceptions and exposes raw group deltas.
+Partial graphs never establish cycle freedom. Repeated reachability intentionally
+serves small local module inventories.
+
 Behavioural testability uses `testability.ts` for reviewed fixed scenarios and qualification,
 and `testability-run.ts` to execute existing exact top-level Node test cases inside the
 source-capture boundary. Protected execution results retain command/output/environment;

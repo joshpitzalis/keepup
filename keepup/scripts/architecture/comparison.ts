@@ -6,6 +6,7 @@ import type {
 } from "./domain.ts";
 import { architectureText, writeArchitectureReport } from "./report.ts";
 import type { ArchitectureReportResult } from "./report.ts";
+import type { SeamMeasurements } from "./seam-domain.ts";
 import { architectureDigest, inspectAssessment } from "./storage.ts";
 
 export interface ArchitectureComparison {
@@ -31,6 +32,7 @@ export type ArchitectureChanges =
   | {
       readonly value: null;
       readonly violations: number | null;
+      readonly cyclicGroups?: number | null;
       readonly eligibleEdges: number | null;
     }
   | { readonly value: number | null; readonly qualifying: number | null }
@@ -100,6 +102,7 @@ function definition(assessment: ArchitectureAssessment): string {
   if (input.dimension === "seam-integrity") {
     return JSON.stringify({
       assets: observation.assets,
+      cycles: input.cycles ?? null,
       dimension: input.dimension,
       exclusions: input.exclusions.toSorted(),
       modules: input.modules,
@@ -176,6 +179,25 @@ export function compareAssessments(
   };
 }
 
+function cycleMeasurementChanges(
+  before: SeamMeasurements,
+  after: SeamMeasurements,
+  comparable: boolean
+): ArchitectureChanges | null {
+  if (before.cyclicGroups === undefined || after.cyclicGroups === undefined) {
+    return null;
+  }
+
+  return {
+    cyclicGroups: comparable ? after.cyclicGroups - before.cyclicGroups : null,
+    eligibleEdges: comparable
+      ? after.eligibleEdges - before.eligibleEdges
+      : null,
+    value: null,
+    violations: comparable ? after.violations - before.violations : null,
+  };
+}
+
 function measurementDelta(
   before: number | null,
   after: number | null,
@@ -216,6 +238,12 @@ function measurementChanges(
   }
 
   if ("violations" in before && "violations" in after) {
+    const cycles = cycleMeasurementChanges(before, after, comparable);
+
+    if (cycles) {
+      return cycles;
+    }
+
     return {
       eligibleEdges: comparable
         ? after.eligibleEdges - before.eligibleEdges
