@@ -1,5 +1,5 @@
 /* oxlint-disable anti-slop/no-runtime-typeof, anti-slop/no-unknown-parameters, anti-slop/no-unsafe-dictionary-type -- Common architecture JSON boundary returns reconstructed fields. */
-import type { ArchitectureModule } from "./domain.ts";
+import type { ArchitectureModule, ArchitectureReview } from "./domain.ts";
 
 export function object(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -57,5 +57,29 @@ export function parseModule(value: unknown): ArchitectureModule {
     id: parseArchitectureId(source.id),
     interface: [...new Set(entryPoints)].toSorted(),
     members: [...new Set(members)].toSorted(),
+  };
+}
+
+export function parseReview(value: unknown): ArchitectureReview {
+  const source = object(value);
+  const { status, confidence } = source;
+
+  if (status !== "reviewed" && status !== "provisional") {
+    throw new Error("Review status must be reviewed or provisional");
+  }
+
+  if (
+    confidence !== "low" &&
+    confidence !== "medium" &&
+    confidence !== "high"
+  ) {
+    throw new Error("Review confidence must be low, medium or high");
+  }
+
+  return {
+    confidence,
+    notes: text(source.notes),
+    reviewer: text(source.reviewer),
+    status,
   };
 }
