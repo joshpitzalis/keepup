@@ -226,6 +226,30 @@ test("calibration recognises consolidation, rejects file merging and retains nec
   const root = fixture(t);
   const source = input("before");
 
+  const checkBehaviour = () => {
+    const result = spawnSync(
+      process.execPath,
+      [
+        "--input-type=module",
+        "-e",
+        "import assert from 'node:assert/strict'; import { checkout } from './policy.ts'; import { queue } from './other.ts'; for (const accepts of [checkout, queue]) assert.deepEqual([9, 10, 11, NaN, '10'].map(accepts), [false, true, true, false, false]);",
+      ],
+      { cwd: root, encoding: "utf-8" }
+    );
+
+    assert.equal(result.status, 0, result.stderr);
+  };
+
+  const checkout =
+    "export const checkout = (amount) => Number.isFinite(amount) && amount >= 10;\n";
+
+  const queue =
+    "export const queue = (amount) => Number.isFinite(amount) && amount >= 10;\n";
+
+  writeFileSync(join(root, "policy.ts"), checkout);
+  writeFileSync(join(root, "other.ts"), queue);
+  checkBehaviour();
+
   const split = record(root, {
     ...source,
     rules: source.rules.map((rule) => ({
@@ -236,9 +260,21 @@ test("calibration recognises consolidation, rejects file merging and retains nec
     })),
   });
 
+  writeFileSync(join(root, "policy.ts"), checkout + queue);
+  writeFileSync(
+    join(root, "other.ts"),
+    "export { queue } from './policy.ts';\n"
+  );
+  checkBehaviour();
   const mergedFiles = record(root, { ...source, id: "merged-files" });
   assert.equal(split.measurements.independentPolicySites, 2);
   assert.equal(mergedFiles.measurements.value, split.measurements.value);
+
+  writeFileSync(
+    join(root, "policy.ts"),
+    "const minimum = 10;\nconst accepts = (amount) => Number.isFinite(amount) && amount >= minimum;\nexport const checkout = accepts;\nexport const queue = accepts;\n"
+  );
+  checkBehaviour();
 
   const consolidated = record(root, {
     ...source,
@@ -251,6 +287,9 @@ test("calibration recognises consolidation, rejects file merging and retains nec
 
   assert.equal(consolidated.measurements.value, 1);
   assert.equal(consolidated.measurements.independentPolicySites, 1);
+
+  writeFileSync(join(root, "policy.ts"), checkout + queue);
+  checkBehaviour();
 
   const boundaries = record(root, {
     ...source,

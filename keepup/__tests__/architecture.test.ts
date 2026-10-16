@@ -339,7 +339,40 @@ test("copied installation captures rubric freshness, legacy state, and failed br
 
 test("calibration rewards reviewed obligation removal, ignores padding and rejects catch-all depth by inspection", (t) => {
   const root = fixture(t);
+
+  const callerRetry =
+    "import { save } from './module.ts';\nexport const saveOrder = (send) => { try { return save(send); } catch { return save(send); } };\n";
+
+  const moduleRetry =
+    "export const save = (send) => { try { return send(); } catch { return send(); } };\n";
+
+  const checkBehaviour = () => {
+    const result = spawnSync(
+      process.execPath,
+      [
+        "--input-type=module",
+        "-e",
+        "import assert from 'node:assert/strict'; import { saveOrder } from './caller.ts'; let attempts = 0; assert.equal(saveOrder(() => { if (++attempts === 1) throw new Error('transient'); return 'saved'; }), 'saved'); assert.equal(attempts, 2);",
+      ],
+      { cwd: root, encoding: "utf-8" }
+    );
+
+    assert.equal(result.status, 0, result.stderr);
+  };
+
+  writeFileSync(
+    join(root, "module.ts"),
+    "export const save = (send) => send();\n"
+  );
+  writeFileSync(join(root, "caller.ts"), callerRetry);
+  checkBehaviour();
   const before = record(root, input("before"));
+  writeFileSync(join(root, "module.ts"), moduleRetry);
+  writeFileSync(
+    join(root, "caller.ts"),
+    "import { save } from './module.ts';\nexport const saveOrder = (send) => save(send);\n"
+  );
+  checkBehaviour();
   const repair = input("repair");
 
   const improved = record(root, {
@@ -359,12 +392,25 @@ test("calibration rewards reviewed obligation removal, ignores padding and rejec
   assert.equal(improved.measurements.value, 1);
   writeFileSync(
     join(root, "module.ts"),
-    `${"// padding\n".repeat(200)}export const save = () => 1;\n`
+    `${"// padding\n".repeat(200)}export const save = (send) => send();\n`
   );
+  writeFileSync(join(root, "caller.ts"), callerRetry);
+  checkBehaviour();
   assert.equal(
     record(root, input("padded")).measurements.value,
     before.measurements.value
   );
+  writeFileSync(
+    join(root, "module.ts"),
+    "export const execute = (operation) => operation();\n"
+  );
+  writeFileSync(
+    join(root, "caller.ts"),
+    callerRetry
+      .replaceAll("save", "execute")
+      .replace("executeOrder", "saveOrder")
+  );
+  checkBehaviour();
   const catchAll = input("catch-all");
 
   const opaque = record(root, {
