@@ -73,3 +73,10 @@ input/analysis/measurements preserve pre-cycle seam record canonical bytes when
 omitted. The comparator freezes cycle policy/exceptions and exposes raw group deltas.
 Partial graphs never establish cycle freedom. Repeated reachability intentionally
 serves small local module inventories.
+
+Behavioural testability uses `testability.ts` for reviewed fixed scenarios and qualification,
+and `testability-run.ts` to execute existing exact top-level Node test cases inside the
+source-capture boundary. Protected execution results retain command/output/environment;
+inspection never reruns. Gaps, failures, skips and unavailable discovery stay distinct.
+Production compatibility checks remain necessary for owned/true external dependencies.
+The versioned testability rubric grants no learner evidence or overall correctness claim.
