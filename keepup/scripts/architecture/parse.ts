@@ -1,5 +1,4 @@
 import type {
-  ArchitectureReview,
   AssessmentInput,
   CallerObligation,
   InterfaceScenario,
@@ -10,6 +9,7 @@ import type {
   PolicyChange,
   PolicySite,
 } from "./locality.ts";
+import { parseNavigabilityAssessment } from "./navigability-parse.ts";
 /* oxlint-disable anti-slop/no-runtime-typeof, anti-slop/no-unknown-parameters, anti-slop/no-unsafe-dictionary-type -- This JSON trust boundary reconstructs every accepted field before any writes. */
 import {
   object,
@@ -17,6 +17,7 @@ import {
   strings,
   parseArchitectureId,
   parseModule,
+  parseReview,
 } from "./parse-common.ts";
 import { parseSeamAssessment } from "./seam-parse.ts";
 import type {
@@ -25,31 +26,11 @@ import type {
   TestabilityScenario,
 } from "./testability.ts";
 
-export { parseArchitectureId, parseModule } from "./parse-common.ts";
-
-export function parseReview(value: unknown): ArchitectureReview {
-  const source = object(value);
-  const { status, confidence } = source;
-
-  if (status !== "reviewed" && status !== "provisional") {
-    throw new Error("Review status must be reviewed or provisional");
-  }
-
-  if (
-    confidence !== "low" &&
-    confidence !== "medium" &&
-    confidence !== "high"
-  ) {
-    throw new Error("Review confidence must be low, medium or high");
-  }
-
-  return {
-    confidence,
-    notes: text(source.notes),
-    reviewer: text(source.reviewer),
-    status,
-  };
-}
+export {
+  parseArchitectureId,
+  parseModule,
+  parseReview,
+} from "./parse-common.ts";
 
 function parseObligation(value: unknown): CallerObligation {
   const source = object(value);
@@ -101,6 +82,10 @@ function parseScenario(value: unknown): InterfaceScenario {
 
 export function parseAssessment(value: unknown): AssessmentInput {
   const source = object(value);
+
+  if (source.dimension === "navigability") {
+    return parseNavigabilityAssessment(source);
+  }
 
   if (source.dimension === "behavioural-testability") {
     return parseTestabilityAssessment(source);
