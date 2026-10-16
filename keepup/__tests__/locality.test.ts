@@ -341,6 +341,10 @@ test("locality comparisons keep the rule question fixed while exposing raw conso
 
   const after = {
     ...before,
+    changes: before.changes.map((change) => ({
+      ...change,
+      affectedOwners: ["Sales"],
+    })),
     id: "after-comparison",
     rules: before.rules.map((rule) => ({
       ...rule,
@@ -363,6 +367,13 @@ test("locality comparisons keep the rule question fixed while exposing raw conso
 
   assert.equal(compared.comparable, true);
   assert.equal(compared.changes.independentPolicySites, -1);
+  assert.deepEqual(compared.before.assessment.input.changes[0].affectedOwners, [
+    "Sales",
+    "Checkout",
+  ]);
+  assert.deepEqual(compared.after.assessment.input.changes[0].affectedOwners, [
+    "Sales",
+  ]);
   assert.ok(compared.changes.value > 0);
   assert.equal(
     compared.before.assessment.measurements.rules[0].independentPolicySites,

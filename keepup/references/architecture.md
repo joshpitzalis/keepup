@@ -148,8 +148,8 @@ preserve this warning even when the raw count lowers locality. Scores remain adv
 never remove necessary validation or award practice to improve a number.
 
 For change locality, comparison freezes rule identities, descriptions, review
-status and policy-equivalence meaning, plus representative change questions and
-affected-owner inventory. Policy sites may consolidate within the fixed module;
-raw independent-site and call changes accompany the value. Changed trust-boundary
+status and policy-equivalence meaning, plus representative change questions. Policy sites may consolidate within the fixed
+module; raw independent-site and call changes accompany the value. Affected owners
+remain separate observed evidence and may change after consolidation. Changed trust-boundary
 justifications remain visible in the captured input for review. Different or absent
 dimensions are incomparable; their missing facts never imply zero improvement.

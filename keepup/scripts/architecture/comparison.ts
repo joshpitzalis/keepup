@@ -47,7 +47,6 @@ function definition(assessment: ArchitectureAssessment): string {
         : {
             changes: input.changes
               .map((change) => ({
-                affectedOwners: change.affectedOwners.toSorted(),
                 description: change.description,
                 id: change.id,
               }))
