@@ -544,3 +544,113 @@ test(
     );
   }
 );
+
+test(
+  "copied static analysis cannot claim complete seam coverage for unsupported Node loader forms",
+  { skip: !TOOL },
+  (t) => {
+    const root = fixture(t);
+    writeFileSync(join(root, "caller.ts"), "export const value = 1;\n");
+    writeFileSync(join(root, "caller.cjs"), "");
+    writeFileSync(join(root, "caller.mjs"), "");
+    writeFileSync(
+      join(root, "private.cjs"),
+      "module.exports = { secret: 1 };\n"
+    );
+    assert.equal(spawnSync("git", ["add", "."], { cwd: root }).status, 0);
+    const installed = join(root, "installed");
+    cpSync(dirname(dirname(CLI)), installed, { recursive: true });
+    const cli = join(installed, "scripts/keepup.mjs");
+
+    const definition = (id: string) => ({
+      ...input(id),
+      modules: input(id).modules.map((module) => ({
+        ...module,
+        members: [
+          ...module.members,
+          ...(module.id === "orders"
+            ? ["private.cjs"]
+            : ["caller.cjs", "caller.mjs"]),
+        ],
+      })),
+    });
+
+    const observations = [];
+
+    for (const [id, file, source] of [
+      ["module-require", "caller.cjs", "module.require('./private.cjs');\n"],
+      [
+        "aliased-require",
+        "caller.cjs",
+        "const load = require; load('./private.cjs');\n",
+      ],
+      [
+        "create-require-cjs",
+        "caller.cjs",
+        "const { createRequire } = require('node:module'); const load = createRequire(__filename); load('./private.cjs');\n",
+      ],
+      [
+        "create-require-esm",
+        "caller.mjs",
+        "import { createRequire as makeLoader } from 'node:module'; const load = makeLoader(import.meta.url); load('./private.cjs');\n",
+      ],
+      ["eval-loader", "caller.cjs", "eval(\"require('./private.cjs')\");\n"],
+      [
+        "function-loader",
+        "caller.cjs",
+        "Function(\"return require('./private.cjs')\")();\n",
+      ],
+      [
+        "new-function-loader",
+        "caller.cjs",
+        "new Function(\"return require('./private.cjs')\")();\n",
+      ],
+    ] as const) {
+      writeFileSync(join(root, "caller.cjs"), "");
+      writeFileSync(join(root, "caller.mjs"), "");
+      writeFileSync(join(root, file), source);
+
+      const result = run(
+        root,
+        cli,
+        "architecture",
+        "analyse",
+        JSON.stringify(definition(id))
+      );
+
+      observations.push({
+        id,
+        limitations: result.limitations,
+        status: result.analysis.status,
+        violations: result.measurements.violations,
+      });
+    }
+
+    writeFileSync(join(root, "caller.cjs"), "require('./public.ts');\n");
+    writeFileSync(
+      join(root, "caller.mjs"),
+      "import { save } from './public.ts'; export const saved = save;\n"
+    );
+
+    const direct = run(
+      root,
+      cli,
+      "architecture",
+      "analyse",
+      JSON.stringify(definition("direct-control"))
+    );
+
+    assert.equal(direct.analysis.status, "complete");
+    assert.equal(direct.measurements.violations, 0);
+    assert.ok(
+      observations.every(
+        (result) =>
+          result.status === "partial" &&
+          result.limitations.some((limitation: string) =>
+            limitation.includes("Opaque dynamic dependency")
+          )
+      ),
+      JSON.stringify(observations, null, 2)
+    );
+  }
+);
