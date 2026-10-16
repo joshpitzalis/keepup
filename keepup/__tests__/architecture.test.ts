@@ -180,6 +180,8 @@ test("missing scenarios or evidence stays unavailable and provisional findings s
 
   assert.equal(missing.measurements.value, null);
   assert.equal(missing.measurements.assessed, 0);
+  assert.equal(missing.input.dimension, "interface-leverage");
+  assert.ok("review" in missing.input);
   assert.equal(missing.input.review.status, "provisional");
   assert.match(
     missing.limitations.join(" "),
@@ -323,7 +325,9 @@ test("calibration rewards reviewed obligation removal, ignores padding and rejec
     })),
   });
 
+  assert.ok("avoidableObligations" in before.measurements);
   assert.equal(before.measurements.avoidableObligations, 1);
+  assert.ok("avoidableObligations" in improved.measurements);
   assert.equal(improved.measurements.avoidableObligations, 0);
   assert.equal(improved.measurements.value, 1);
   writeFileSync(

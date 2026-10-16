@@ -1,5 +1,6 @@
 import { parseAssessment } from "./parse.ts";
 import { architectureReport, architectureText } from "./report.ts";
+import { analyseSeams } from "./seams.ts";
 import {
   inspectAssessment,
   listAssessments,
@@ -13,10 +14,30 @@ export function architectureCommand(
 ): string {
   const [command, value] = args;
 
-  if (command === "record") {
+  if (command === "analyse") {
+    const input = parseAssessment(JSON.parse(value ?? ""));
+
+    if (input.dimension !== "seam-integrity") {
+      throw new Error("analyse requires seam-integrity definition");
+    }
+
     return JSON.stringify(
-      recordAssessment(root, state, parseAssessment(JSON.parse(value ?? "")))
+      recordAssessment(root, state, input, (definition) =>
+        analyseSeams(root, definition, process.env.KEEPUP_ANALYSER_DIRECTORY)
+      )
     );
+  }
+
+  if (command === "record") {
+    const input = parseAssessment(JSON.parse(value ?? ""));
+
+    if (input.dimension === "seam-integrity") {
+      throw new Error(
+        "Use architecture analyse; automated observations are CLI-owned"
+      );
+    }
+
+    return JSON.stringify(recordAssessment(root, state, input));
   }
 
   if (command === "list") {
@@ -42,6 +63,6 @@ export function architectureCommand(
   }
 
   throw new Error(
-    "Usage: keepup architecture record <json> | list | inspect <id> [--json] | report <id> [--no-open]"
+    "Usage: keepup architecture record <json> | analyse <json> | list | inspect <id> [--json] | report <id> [--no-open]"
   );
 }

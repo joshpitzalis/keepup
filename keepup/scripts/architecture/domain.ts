@@ -1,3 +1,9 @@
+import type {
+  SeamAnalysis,
+  SeamAssessmentInput,
+  SeamMeasurements,
+} from "./seam-domain.ts";
+
 export interface ArchitectureModule {
   readonly id: string;
   readonly members: readonly string[];
@@ -43,9 +49,9 @@ export interface InterfaceAssessmentInput {
   readonly limitations: readonly string[];
 }
 
-export type AssessmentInput = InterfaceAssessmentInput;
+export type AssessmentInput = InterfaceAssessmentInput | SeamAssessmentInput;
 
-export interface AssessmentMeasurements {
+export interface InterfaceMeasurements {
   readonly status: "measured" | "unavailable" | "not-applicable";
   readonly value: number | null;
   readonly denominator: number;
@@ -53,6 +59,8 @@ export interface AssessmentMeasurements {
   readonly domainObligations: number;
   readonly avoidableObligations: number;
 }
+
+export type AssessmentMeasurements = InterfaceMeasurements | SeamMeasurements;
 
 export interface ManifestEntry {
   readonly path: string;
@@ -67,6 +75,7 @@ export interface ArchitectureAssessment {
   readonly input: AssessmentInput;
   readonly inputDigest: string;
   readonly measurements: AssessmentMeasurements;
+  readonly analysis?: SeamAnalysis;
   readonly limitations: readonly string[];
   readonly coverage: { readonly assessed: number; readonly total: number };
   readonly observation: {
