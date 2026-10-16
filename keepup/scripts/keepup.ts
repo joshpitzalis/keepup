@@ -30,6 +30,7 @@ import {
 } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { architectureCommand } from "./architecture/commands.ts";
 import { parseEvent } from "./handlers/parse-event.ts";
 import type { EventType, EventWithKataSubmit } from "./handlers/types.ts";
 
@@ -1384,6 +1385,8 @@ try {
 
   if (command === "init") {
     console.log(JSON.stringify(initialize()));
+  } else if (command === "architecture") {
+    console.log(architectureCommand(root, state, process.argv.slice(3)));
   } else if (command === "log") {
     console.log(JSON.stringify(logEvent(JSON.parse(process.argv[3] ?? ""))));
   } else if (command === "status") {
@@ -1399,7 +1402,7 @@ try {
     console.log(JSON.stringify(withLock(inPlay)));
   } else {
     throw new Error(
-      "Usage: keepup init | log <json> | status [--json] | map | in-play"
+      "Usage: keepup init | log <json> | status [--json] | map | in-play | architecture"
     );
   }
 } catch (error) {

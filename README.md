@@ -205,3 +205,9 @@ Without a prior event, or when that event's commit is unavailable or no longer a
 The skill is now named `keepup`. New projects use `.keepup/`; projects with an existing `.cogdebt/` keep using that directory, preserving events, snapshots, configuration and scorers. Use the `state` path returned by CLI `init` for those projects instead of assuming `.keepup/`. Neither folder is included in learning targets. If both exist, the CLI stops before changing state so you can choose which history to use.
 
 Scorers receive `KEEPUP_STATE` and `KEEPUP_LEARNER`, along with the old `COGDEBT_STATE` and `COGDEBT_LEARNER` aliases. `KEEPUP_NOW` takes precedence over the legacy `COGDEBT_NOW` test clock. Stored event types and response values are unchanged, including the response word `next`.
+
+Reviewed module architecture assessments are available through `architecture record`,
+`inspect`, `list` and `report`. See [the workflow and input example](keepup/references/architecture.md).
+The experimental interface-leverage rubric exposes raw obligations, review provenance,
+source freshness and limitations. These records never award learning credit or change
+ordinary code-health scores. Generated HTML works offline without JavaScript.

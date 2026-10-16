@@ -45,3 +45,9 @@ For `/keepup submit`, read [the submit workflow](references/submit.md). Assess t
 ## on
 
 For `/keepup on`, read [the interactive learning workflow](references/on.md). Offer one item, wait for the learner's response, then continue until they say “stop”. This runs in the current conversation, including a second terminal; it installs no hook or background watcher. Record only actual presentation and the learner's response.
+
+## architecture
+
+For module interface assessments, read [the architecture workflow](references/architecture.md).
+Use `architecture record <json>`, `inspect <id> [--json]`, `list` and `report <id>`.
+Keep reviewed architecture judgements separate from file scores and learner understanding.
