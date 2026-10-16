@@ -77,3 +77,9 @@ source-capture boundary. Protected execution results retain command/output/envir
 inspection never reruns. Gaps, failures, skips and unavailable discovery stay distinct.
 Production compatibility checks remain necessary for owned/true external dependencies.
 The versioned testability rubric grants no learner evidence or overall correctness claim.
+
+Navigability uses `navigability.ts` for reviewed sufficient comprehension trails and raw
+implementation-module transitions, plus `navigability-parse.ts` for its input boundary.
+`navigability-rubric.md` fixes the experimental count. Incomplete/ambiguous trails and
+obscured readability stay unavailable; private helpers and accidental browsing do not
+inflate counts. Questions/owners freeze comparisons; naming disagreements stay visible.

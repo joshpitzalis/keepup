@@ -20,6 +20,16 @@ function escapeHtml(text: string): string {
 }
 
 function measurementText(measurements: AssessmentMeasurements): string[] {
+  if ("questions" in measurements) {
+    return [
+      `Necessary external implementation transitions: ${measurements.transitions ?? "unavailable"}`,
+      ...measurements.questions.map(
+        (question) =>
+          `${question.id}: ${question.question}; transitions ${question.transitions ?? "unavailable"}; observed ${question.observedTransitions}; value ${question.value ?? "unavailable"}`
+      ),
+    ];
+  }
+
   if ("qualifying" in measurements) {
     return [
       `Qualifying scenarios: ${measurements.qualifying}/${measurements.denominator}`,

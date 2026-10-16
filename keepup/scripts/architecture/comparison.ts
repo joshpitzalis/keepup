@@ -34,11 +34,24 @@ export type ArchitectureChanges =
       readonly eligibleEdges: number | null;
     }
   | { readonly value: number | null; readonly qualifying: number | null }
+  | { readonly value: number | null; readonly transitions: number | null }
   | { readonly value: null };
 
 function inventoryDefinition(
   input: Exclude<AssessmentInput, { readonly dimension: "seam-integrity" }>
 ): string {
+  if (input.dimension === "navigability") {
+    return JSON.stringify(
+      input.questions
+        .map((question) => ({
+          id: question.id,
+          owningModule: question.owningModule,
+          question: question.question,
+        }))
+        .toSorted((one, two) => one.id.localeCompare(two.id))
+    );
+  }
+
   if (input.dimension === "behavioural-testability") {
     return JSON.stringify({
       environmentRequirements: input.environmentRequirements.toSorted(),
@@ -163,15 +176,22 @@ export function compareAssessments(
   };
 }
 
+function measurementDelta(
+  before: number | null,
+  after: number | null,
+  comparable: boolean
+): number | null {
+  return comparable && before !== null && after !== null
+    ? after - before
+    : null;
+}
+
 function measurementChanges(
   before: AssessmentMeasurements,
   after: AssessmentMeasurements,
   comparable: boolean
 ): ArchitectureChanges {
-  const value =
-    comparable && before.value !== null && after.value !== null
-      ? after.value - before.value
-      : null;
+  const value = measurementDelta(before.value, after.value, comparable);
 
   if ("domainObligations" in before && "domainObligations" in after) {
     return {
@@ -208,6 +228,17 @@ function measurementChanges(
   if ("qualifying" in before && "qualifying" in after) {
     return {
       qualifying: comparable ? after.qualifying - before.qualifying : null,
+      value,
+    };
+  }
+
+  if ("questions" in before && "questions" in after) {
+    return {
+      transitions: measurementDelta(
+        before.transitions,
+        after.transitions,
+        comparable
+      ),
       value,
     };
   }
