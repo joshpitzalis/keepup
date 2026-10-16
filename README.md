@@ -1,6 +1,8 @@
 # keepup
 
-A Claude Code skill for understanding and practising refactors in an agent-built repository. Learning state lives in the repository's `.keepup/` directory.
+A skill for Claude Code and Codex for understanding and practising refactors in an agent-built repository. Learning state lives in the repository's `.keepup/` directory.
+
+In Claude Code:
 
 ```text
 /keepup status   — see debt, code health and due checks
@@ -11,6 +13,18 @@ A Claude Code skill for understanding and practising refactors in an agent-built
 
 Run `/keepup init` once per repository first. Finish exercises with `/keepup submit`; use `/keepup check` for delayed recall.
 
+In Codex, use `$keepup`:
+
+```text
+$keepup init
+$keepup status
+$keepup kata
+$keepup on
+$keepup map
+$keepup submit
+$keepup check
+```
+
 ## Install
 
 Install for Claude Code across your projects:
@@ -19,9 +33,17 @@ Install for Claude Code across your projects:
 npx skills@latest add joshpitzalis/keepup --skill keepup -g -a claude-code -y
 ```
 
-Requires Git, Node.js **24.8 or newer**, and Claude Code. The bundled complexity scorer also needs [uv](https://docs.astral.sh/uv/getting-started/installation/); it runs lizard through `uvx` on demand. The installer copies the skill bundle; install these prerequisites separately. The skill has no Node runtime dependencies.
+Or install for Codex across your projects:
 
-Start a new Claude Code session in your project and invoke `/keepup init`. The skill interviews you about why the code matters, success, constraints and exclusions, then records that mission. Keep the mission within one screen. It requests your existing test command when inference cannot find one.
+```sh
+npx skills@latest add joshpitzalis/keepup --skill keepup -g -a codex -y
+```
+
+Requires Git, Node.js **24.8 or newer**, and Claude Code or Codex. The bundled complexity scorer also needs [uv](https://docs.astral.sh/uv/getting-started/installation/); it runs lizard through `uvx` on demand. The installer copies the skill bundle; install these prerequisites separately. The skill has no Node runtime dependencies.
+
+Open your project in Claude Code and invoke `/keepup init`, or in Codex and invoke `$keepup init`. Restart your agent if the newly installed skill does not appear. The skill interviews you about why the code matters, success, constraints and exclusions, then records that mission. Keep the mission within one screen. It requests your existing test command when inference cannot find one.
+
+Codex skill discovery and `$` invocation follow the [official OpenAI documentation](https://developers.openai.com/codex/skills). The shared CLI and GitHub installation have been tested; the full teaching workflow in Codex has not yet been verified.
 
 Update the installed skill with:
 
@@ -29,13 +51,15 @@ Update the installed skill with:
 npx skills@latest update keepup -g
 ```
 
-Restart Claude Code after updating. Existing project learning state stays in the project.
+Restart your agent after updating. Existing project learning state stays in the project.
 
 For deterministic setup without the interview:
 
 ```sh
 node ~/.claude/skills/keepup/scripts/keepup.mjs init
 ```
+
+CLI examples below use the Claude Code installation path. For Codex, replace `~/.claude/skills/keepup` with `~/.agents/skills/keepup`. In Codex prompts, replace `/keepup` with `$keepup`.
 
 Run checks in this source checkout with:
 
