@@ -21,7 +21,15 @@ export function architectureText(result: ArchitectureInspection): string {
     `Architecture ${assessment.id}: ${assessment.dimension} (${assessment.method}, ${input.review.status})`,
     `Module: ${input.module.id}; freshness: ${freshness.status}`,
     `Value: ${measurements.value ?? "unavailable"}; assessed ${measurements.assessed}/${measurements.denominator}`,
-    `Caller obligations: domain ${measurements.domainObligations}; avoidable ${measurements.avoidableObligations}`,
+    ...("independentPolicySites" in measurements
+      ? [
+          `Independent policy sites: ${measurements.independentPolicySites}; calls: ${measurements.calls}; confirmed rules: ${measurements.denominator}`,
+          `Proposed rules: ${measurements.proposedRules}; unclear rules: ${measurements.unclearRules}`,
+          "Affected owners and trust boundaries remain separate from locality score; see reviewed inventory below",
+        ]
+      : [
+          `Caller obligations: domain ${measurements.domainObligations}; avoidable ${measurements.avoidableObligations}`,
+        ]),
     `Rubric: ${assessment.observation.rubric} (experimental)`,
     ...assessment.limitations.map((limitation) => `Limitation: ${limitation}`),
     ...freshness.changed.map((file) => `Changed supporting evidence: ${file}`),

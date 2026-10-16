@@ -37,3 +37,10 @@ Historical snapshots remain intact; inspections never evaluate code or run tests
   yields unavailable results, never a healthy default.
 - Capture/inspection costs scale with tracked repository bytes. Untracked material
   cannot support a claim until explicitly tracked. No automatic dependency discovery yet.
+
+Change locality extends the same record path with a fixed confirmed domain-rule inventory.
+`locality.ts` counts independent evidence-backed policy sites, excluding calls to shared
+implementations; ownership scenarios remain separate. Missing sites/evidence stay unavailable.
+`change-locality-rubric.md` publishes the fingerprinted experimental rule and trust-boundary
+caution. Proposed/unclear equivalence, disagreements and exclusions remain visible. Consolidation
+can improve locality; file merging cannot. Necessary repeated trust-boundary validation remains.

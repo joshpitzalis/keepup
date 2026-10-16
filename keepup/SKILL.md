@@ -51,3 +51,6 @@ For `/keepup on`, read [the interactive learning workflow](references/on.md). Of
 For module interface assessments, read [the architecture workflow](references/architecture.md).
 Use `architecture record <json>`, `inspect <id> [--json]`, `list` and `report <id>`.
 Keep reviewed architecture judgements separate from file scores and learner understanding.
+For reviewed change locality, use the same workflow's Change locality section. Confirm
+semantic equivalence before accepting rules; preserve required validation at each trust
+boundary. Affected owners and Git co-change never substitute for independent-site evidence.
