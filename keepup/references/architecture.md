@@ -153,3 +153,52 @@ module; raw independent-site and call changes accompany the value. Affected owne
 remain separate observed evidence and may change after consolidation. Changed trust-boundary
 justifications remain visible in the captured input for review. Different or absent
 dimensions are incomparable; their missing facts never imply zero improvement.
+
+## Recommend bounded opportunities
+
+Use `architecture opportunity record <json>` to record a **proposed qualitative
+recommendation**, `opportunity inspect <id> [--json]` to recover it, and
+`opportunity report <id> [--no-open]` for the same facts in HTML. These operations
+never refactor source, execute tests, or write learning events.
+
+Before proposing work, read the current findings and the learner's supplied
+mission or next change. Read any supplied tracked glossary/ADR paths; cite a
+conflict explicitly rather than editing or overriding a decision. Do not invent
+incidents, future work or learner gaps. Optional hotspot evidence can inform the
+explanation when supplied; no activity engine or hotspot dependency exists here.
+A valid answer may recommend no refactor.
+
+The JSON has these required fields (use explicit null or empty arrays for absent
+context, target, conflicts or evidence):
+
+- `id`, `behaviour`, `modules`, `outcome`, `scope` (existing tracked source paths),
+  `risks`, `stopCondition`, and `limitations` describe the bounded work.
+- `findings`: `{assessmentId,description,evidence:[tracked paths]}` entries link
+  interpretations to captured assessments. The CLI verifies source membership;
+  the agent must justify why the observation supports the recommendation.
+- `context`: `{mission:string|null,nextChange:string|null,documents:[paths]}`;
+  `relevance:string|null` explains the connection to that supplied context.
+  Documents retain captured exact-byte provenance and readable text.
+- `strength`: `strong`, `worth-exploring`, or `speculative`; these are qualitative
+  judgments, never fabricated probabilities. Unsupported relevance becomes
+  speculative, with an explicit deferred refactor.
+- `decision`: `refactor`, `assessment`, `preparation`, `defer`, or `none`.
+- `rawTarget`: `{assessmentId,metric,goal}` or null. Supported raw counts are
+  `avoidableObligations`, `independentPolicySites` and `violations`, according to
+  the linked dimension. The CLI supplies the captured baseline; the proposed
+  nonnegative goal must strictly reduce it. Reviewed targets remain advisory.
+- `verification`: `{testCommand:string|null,readiness,evidence:[test paths],
+  invariants:[behaviours]}`. Readiness is `reviewed-ready`, `unknown`, or
+  `inadequate`; the command must match the configured existing suite. Reviewed
+  readiness records the proposal's evidence, not a claim that tests ran.
+- `conflicts`: `{document,description}` entries citing supplied context paths.
+
+A stale/incomplete/provisional finding becomes assessment work. Inadequate
+behavioural checks become test preparation. Missing scope/target becomes an
+assessment; glossary/ADR conflicts defer work. Missing dimensions remain visible
+and are never healthy defaults. Revisit a stale opportunity against new evidence;
+inspection does not rerun evaluators or silently update its original decision.
+
+Architecture exercises remain unavailable in this phase. A recommendation is
+separate from exercise acceptance and grants no exposure, practice, understanding
+or delayed retention evidence. The learner owns all eventual code and test edits.

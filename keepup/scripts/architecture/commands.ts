@@ -1,3 +1,4 @@
+import { opportunityCommand } from "./opportunities.ts";
 import {
   compareAssessments,
   comparisonReport,
@@ -17,6 +18,10 @@ export function architectureCommand(
   args: readonly string[]
 ): string {
   const [command, value] = args;
+
+  if (command === "opportunity") {
+    return opportunityCommand(root, state, args.slice(1));
+  }
 
   if (command === "record") {
     return JSON.stringify(

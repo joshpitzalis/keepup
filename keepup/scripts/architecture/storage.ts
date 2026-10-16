@@ -78,21 +78,21 @@ function sourcePaths(root: string): string[] {
     .toSorted();
 }
 
-function manifest(root: string): ManifestEntry[] {
+export function manifest(root: string): ManifestEntry[] {
   return sourcePaths(root).map((path) => ({
     hash: fileHash(root, path),
     path,
   }));
 }
 
-function assets(): ManifestEntry[] {
+export function assets(): ManifestEntry[] {
   return readdirSync(ASSET_DIRECTORY)
     .toSorted()
     .filter((name) => /\.(?:ts|md)$/u.test(name))
     .map((path) => ({ hash: fileHash(ASSET_DIRECTORY, path), path }));
 }
 
-function revision(root: string): string | null {
+export function revision(root: string): string | null {
   const result = spawnSync("git", ["rev-parse", "HEAD"], {
     cwd: root,
     encoding: "utf-8",
@@ -101,7 +101,7 @@ function revision(root: string): string | null {
   return result.status === 0 ? result.stdout.trim() : null;
 }
 
-function referencedPaths(input: AssessmentInput): string[] {
+export function referencedPaths(input: AssessmentInput): string[] {
   return [
     ...input.module.members,
     ...input.module.interface,
@@ -192,7 +192,7 @@ function measurements(input: AssessmentInput): AssessmentMeasurements {
   };
 }
 
-function atomicPublish(path: string, bytes: string | Buffer): boolean {
+export function atomicPublish(path: string, bytes: string | Buffer): boolean {
   mkdirSync(dirname(path), { recursive: true });
   const temporary = `${path}.${randomUUID()}.tmp`;
   const descriptor = openSync(temporary, "wx", 0o600);
@@ -219,7 +219,7 @@ function atomicPublish(path: string, bytes: string | Buffer): boolean {
   }
 }
 
-function archive(
+export function archive(
   root: string,
   state: string,
   entries: readonly ManifestEntry[]
@@ -254,7 +254,7 @@ function assessmentPath(state: string, id: string): string {
 }
 
 /* oxlint-disable anti-slop/no-runtime-typeof -- Stored JSON metadata is checked at this persistence boundary. */
-function verifySnapshots(
+export function verifySnapshots(
   state: string,
   entries: readonly ManifestEntry[]
 ): void {

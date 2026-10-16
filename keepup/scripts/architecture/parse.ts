@@ -13,7 +13,7 @@ import type {
   PolicySite,
 } from "./locality.ts";
 
-function object(value: unknown): Record<string, unknown> {
+export function object(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error("Expected architecture object");
   }
@@ -22,7 +22,7 @@ function object(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function text(value: unknown): string {
+export function text(value: unknown): string {
   if (typeof value !== "string" || !value.trim()) {
     throw new Error("Expected nonempty architecture text");
   }
@@ -30,7 +30,7 @@ function text(value: unknown): string {
   return value;
 }
 
-function strings(value: unknown): string[] {
+export function strings(value: unknown): string[] {
   if (!Array.isArray(value)) {
     throw new TypeError("Expected architecture string array");
   }

@@ -49,3 +49,10 @@ implementations; ownership scenarios remain separate. Missing sites/evidence sta
 `change-locality-rubric.md` publishes the fingerprinted experimental rule and trust-boundary
 caution. Proposed/unclear equivalence, disagreements and exclusions remain visible. Consolidation
 can improve locality; file merging cannot. Necessary repeated trust-boundary validation remains.
+
+`opportunities.ts` records immutable versioned bounded recommendations, supplied
+mission/change context and captured documents. CLI-owned raw baselines and visible
+readiness reasons route unsafe proposals to assessment/preparation/defer; none is
+valid. `opportunity-parse.ts` rejects protected metadata before capture. Shared
+publication/snapshot helpers preserve retries, concurrency and provenance.
+Reports remain derived; opportunities never execute tests or write learning credit.
