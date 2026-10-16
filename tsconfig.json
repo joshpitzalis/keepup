@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    /* Base options (Total TypeScript TSConfig Cheat Sheet) */
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "target": "es2023",
+    "allowJs": true,
+    "resolveJsonModule": true,
+    "moduleDetection": "force",
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+
+    /* Strictness */
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+
+    /* Not transpiling: Node runs the files directly */
+    "module": "NodeNext",
+    "noEmit": true,
+    "erasableSyntaxOnly": true,
+    "allowImportingTsExtensions": true,
+    "lib": ["es2023"],
+    "types": ["node"],
+
+    /* Check the compatibility launcher too. */
+    "checkJs": true
+  },
+  "include": [
+    "keepup/**/*.mjs",
+    "keepup/**/*.ts",
+    "keepup/**/*.mts",
+    "tests/**/*.ts",
+    "*.config.ts"
+  ]
+}

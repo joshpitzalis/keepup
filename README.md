@@ -64,8 +64,38 @@ CLI examples below use the Claude Code installation path. For Codex, replace `~/
 Run checks in this source checkout with:
 
 ```sh
-node --test keepup/__tests__/cli.test.mjs
+pnpm install
+pnpm verify
 ```
+
+## Linting and formatting
+
+[Ultracite](https://www.ultracite.ai/) configures Oxlint and Oxfmt through `oxlint.config.ts` and `oxfmt.config.ts`.
+
+- `pnpm check` checks lint and formatting without changing files.
+- `pnpm fix` applies safe lint fixes and formatting. Rerun `pnpm check` afterward; formatting can expose additional spacing fixes.
+- `pnpm lint` runs Oxlint and fails on warnings; `pnpm format` formats files only.
+- `pnpm verify` runs lint/format checks, strict TypeScript 7 checking, and all tests.
+
+All 18 generic [anti-slop rules](https://github.com/dmmulroy/anti-slop), its five Effect rules, and native `oxc/no-accumulating-spread` are enabled as errors. The plugin is vendored unchanged in `tools/oxlint/anti-slop/`; `UPSTREAM.md` records the revision and both upstream licenses are retained. Keep `oxlint` and `@oxlint/plugins` on the same exact version when upgrading.
+
+Documented exceptions preserve the current hand-written input parsers, generic pipe implementation, open evidence payloads and invalid-input tests. Validated branded assertions require `SAFETY:` explanations; one phantom tuple brand still needs a justified chained assertion. Two existing workflows have local complexity exceptions. Function declarations, local helpers and POSIX permission masks retain the project's conventions. Other application code receives the full anti-slop ruleset, and a CLI smoke test checks that representative violations fail.
+
+Learning state, installed agent assets and vendored rules are excluded from checks; Markdown is excluded from formatting. These tools are development dependencies and do not change skill installation or introduce Effect into runtime code. No Git hooks are installed.
+
+## TypeScript and Effect
+
+Node 24.8+ runs the TypeScript source directly; no build step or TS loader is needed. `pnpm typecheck` checks the CLI, event parsers, scorer and tests in strict mode. `pnpm test` runs the CLI regressions and an Effect import/runtime smoke test. The browser map remains inline JavaScript so the generated HTML opens without a build step.
+
+The existing `scripts/keepup.mjs` command delegates to `scripts/keepup.ts`. The skill's own `package.json` declares ESM so copied installations work inside CommonJS projects too. The executable `scorers/complexity` launches its non-executable `complexity.mts` companion; keep both files when copying or distributing it.
+
+Effect **4.0.5** is pinned as a development dependency for refactoring in this checkout. Import from `"effect"` when needed. The shipped CLI does not use it yet, so installing the skill still requires no Node dependency installation.
+
+Introduce Effect at one complete command workflow at a time: for example, the Git/file/scorer work coordinated by `computeStatus`, or the lock/snapshot/append work coordinated by `logEvent`. Keep calculations such as `answerAccuracy` and `lineCount` as ordinary TypeScript. Keep the current event parser synchronous until a refactor benefits from typed errors or Schema decoding.
+
+Within an adopted workflow, describe fallible I/O with named effects and compose them; run the program once at the CLI boundary. Preserve lock release, snapshot-before-append ordering, retry identity, timeouts and visible failures. Do not run an Effect separately in every helper or retry state writes indiscriminately. Add services and layers only when the workflow needs dependency substitution or resource management.
+
+Before importing Effect into shipped runtime code, update the skill's distribution so a copied installation can resolve it independently of this checkout, then extend the copied-install regression test. The root development dependency alone does not travel with an installed skill.
 
 ## Configuration
 
@@ -132,7 +162,7 @@ Every quiz file must have an answer, with nonempty strings for its concept, ques
 
 The CLI owns `t`, `who`, `sha`, `snapshots`, `retryDigest`, assigned start `kataNumber` and `baseline`; unknown or protected input fields are rejected. Continuations reference an existing kata for the same learner, using only that kata's files. Pass or abandonment closes a kata; failed attempts leave it active. `status.katas` includes all of the learner's starts, their full context and baseline, `active`, `submissions`, `hints`, `quizzes` and `explanations`.
 
-A kata starts only on clean target files, including the index. Start captures the commit, scoped content and scoring definitions before running scorers, then rechecks them and target cleanliness; concurrent changes reject the start without appending an event. Starting snapshots use those captured bytes. Its numeric goal must strictly exceed an available target metric score and lie in 0–1. The CLI captures every scoped file's scores and SHA256 current-content hash in `baseline.files` and `baseline.contentHashes`; the baseline also stores summaries, metric names and scorer warnings. These hashes permit detecting touched files across later commits without attributing pre-existing unrelated edits to the learner. The CLI also captures `baseline.definitionHashes`, mapping `config.json` and every executable `scorers/<name>` to their SHA256 bytes. Submit compares these definitions and the executable-scorer set before accepting baseline comparisons; changing scope, test command or scorer code requires a fresh kata. Baseline hashes grant no learning evidence. The teaching workflow runs the existing tests and scorer guardrails before reporting a passed submission; the event log records that assessment.
+A kata starts only on clean target files, including the index. Start captures the commit, scoped content and scoring definitions before running scorers, then rechecks them and target cleanliness; concurrent changes reject the start without appending an event. Starting snapshots use those captured bytes. Its numeric goal must strictly exceed an available target metric score and lie in 0–1. The CLI captures every scoped file's scores and SHA256 current-content hash in `baseline.files` and `baseline.contentHashes`; the baseline also stores summaries, metric names and scorer warnings. These hashes permit detecting touched files across later commits without attributing pre-existing unrelated edits to the learner. The CLI also captures `baseline.definitionHashes`, mapping `config.json` and every executable `scorers/<name>` plus the bundled `scorers/complexity.mts` source to their SHA256 bytes. Submit compares these definitions and the executable-scorer set before accepting baseline comparisons; changing scope, test command or scorer code (including its TypeScript source) requires a fresh kata. Baseline hashes grant no learning evidence. The teaching workflow runs the existing tests and scorer guardrails before reporting a passed submission; the event log records that assessment.
 
 Snapshots preserve exact bytes under their SHA256 hashes. Shown cards, quizzes, kata starts and passed submissions snapshot their associated files. The newest evidence snapshot determines drift: additions plus deletions divided by its line count, capped at one. A replacement counts as two changes. Empty snapshots have zero drift when unchanged and full drift otherwise. Missing, damaged or changed binary snapshots conservatively mean full drift with a warning. Mind is multiplied by `1 − drift`; practice falls back to exposed only above 0.5 drift. Another learner's evidence never changes your scores.
 
