@@ -1,2 +1,3 @@
 .keepup/map.html
 node_modules/
+.amp/portals/*

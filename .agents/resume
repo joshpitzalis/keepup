@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Orb resume for the keepup skill repository.
+# No resume work is needed: this repo has no databases, background services,
+# tunnels, or authentication. The toolchain (Git, Node.js, uv) and the warmed
+# lizard cache are installed by .agents/setup and persist in the orb snapshot.
+# Keep this script a fast no-op so orb wakeups stay within the resume window.
+set -euo pipefail
+exit 0

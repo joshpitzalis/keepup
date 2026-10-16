@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+# Orb setup for the keepup skill repository.
+# Installs the toolchain a fresh orb needs to run and test this repo:
+# Git, Node.js 24.8+, uv/uvx, and a warmed lizard cache for the bundled
+# complexity scorer (which runs `uvx lizard` on demand).
+# The skill itself has no Node runtime dependencies (keepup.mjs uses only
+# Node builtins), so there is nothing to npm-install.
+# Must stay non-interactive, idempotent, and fast on a warm filesystem.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+log() {
+  printf 'setup: %s\n' "$*"
+}
+
+timed() {
+  local name="$1"
+  shift
+  local start end
+  start=$(date +%s)
+  "$@"
+  end=$(date +%s)
+  log "$name done in $((end - start))s"
+}
+
+SUDO=""
+if [ "$(id -u)" -ne 0 ]; then
+  SUDO="sudo"
+fi
+
+apt_install() {
+  # Install only missing Debian packages so warm runs skip apt entirely.
+  local missing=()
+  local pkg
+  for pkg in "$@"; do
+    dpkg -s "$pkg" >/dev/null 2>&1 || missing+=("$pkg")
+  done
+  if [ "${#missing[@]}" -gt 0 ]; then
+    log "installing system packages: ${missing[*]}"
+    $SUDO apt-get update
+    $SUDO apt-get install -y "${missing[@]}"
+  else
+    log "system packages already present: $*"
+  fi
+}
+
+node_ok() {
+  command -v node >/dev/null 2>&1 || return 1
+  local v major minor rest
+  v=$(node --version 2>/dev/null) || return 1
+  v=${v#v}
+  major=${v%%.*}
+  rest=${v#*.}
+  minor=${rest%%.*}
+  [[ "$major" =~ ^[0-9]+$ && "$minor" =~ ^[0-9]+$ ]] || return 1
+  ((major > 24 || (major == 24 && minor >= 8)))
+}
+
+install_node() {
+  log "node >= 24.8 not found; installing Node.js 24.x via NodeSource"
+  apt_install ca-certificates curl gnupg
+  if [ ! -f /etc/apt/keyrings/nodesource.gpg ]; then
+    $SUDO mkdir -p /etc/apt/keyrings
+    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
+      | $SUDO gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+  fi
+  if [ ! -f /etc/apt/sources.list.d/nodesource.list ]; then
+    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_24.x nodistro main" \
+      | $SUDO tee /etc/apt/sources.list.d/nodesource.list >/dev/null
+  fi
+  $SUDO apt-get update
+  $SUDO apt-get install -y nodejs
+}
+
+ensure_git() {
+  if command -v git >/dev/null 2>&1; then
+    log "git present: $(git --version)"
+  else
+    log "git not found; installing"
+    apt_install git
+  fi
+}
+
+ensure_node() {
+  if node_ok; then
+    log "node present: $(node --version)"
+  else
+    install_node
+    log "node now: $(node --version)"
+    node_ok || { log "ERROR: node still < 24.8 after install"; return 1; }
+  fi
+}
+
+ensure_uv() {
+  if command -v uv >/dev/null 2>&1 && command -v uvx >/dev/null 2>&1; then
+    log "uv present: $(uv --version)"
+    return 0
+  fi
+  log "uv not found; installing via official installer"
+  apt_install ca-certificates curl
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  export PATH="$HOME/.local/bin:$PATH"
+  log "uv now: $(uv --version)"
+}
+
+warm_lizard() {
+  # Pre-download lizard into the uv cache so the first scorer run is instant.
+  # Fully cached on warm runs; prints the lizard version.
+  uvx lizard --version
+}
+
+smoke_cli() {
+  node keepup/scripts/keepup.mjs --help >/dev/null
+  log "keepup CLI smoke check passed"
+}
+
+timed "ensure_git" ensure_git
+timed "ensure_node" ensure_node
+timed "ensure_uv" ensure_uv
+timed "warm_lizard_cache" warm_lizard
+timed "smoke_cli" smoke_cli
+
+log "orb setup complete"
