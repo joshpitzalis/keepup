@@ -25,6 +25,8 @@ Historical snapshots remain intact; inspections never evaluate code or run tests
 - `parse.ts` reconstructs accepted JSON at the trust boundary.
 - `storage.ts` captures evidence, publishes complete observations, checks retries and freshness.
 - `report.ts` presents the same facts as text and script-free accessible HTML.
+- Reports expose declared evidence and the versioned rubric from archived snapshots;
+  native details keep historical source inspectable by keyboard without executing it.
 - `interface-leverage-rubric.md` publishes the fingerprinted experimental judgement rules.
 
 ## No-gos & known complexities
