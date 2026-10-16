@@ -1,8 +1,14 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import test from "node:test";
 import type { TestContext } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -368,4 +374,88 @@ test("execution is immutable, inspection never reruns, source mutation aborts an
   assert.equal(result.status, 1);
   assert.match(result.stderr, /Source changed/u);
   assert.deepEqual(run(mutationRoot, CLI, "architecture", "list"), []);
+});
+
+test("copied installation compares fixed meaningful scenarios and deleting tests cannot improve qualification", (t) => {
+  const root = fixture(t);
+  const installed = join(root, "copied-skill");
+  cpSync(dirname(dirname(CLI)), installed, { recursive: true });
+  const cli = join(installed, "scripts/keepup.mjs");
+  const source = input("before");
+  const [scenario] = source.scenarios;
+  assert.ok(scenario);
+
+  const before = assess(
+    root,
+    { ...source, scenarios: [{ ...scenario, tests: [] }] },
+    cli
+  );
+
+  const after = assess(root, input("after"), cli);
+  assert.equal(before.measurements.value, 0);
+  assert.equal(after.measurements.value, 1);
+
+  const comparison = run(
+    root,
+    cli,
+    "architecture",
+    "compare",
+    "before",
+    "after",
+    "--json"
+  );
+
+  assert.equal(comparison.comparable, true);
+  assert.equal(comparison.changes.qualifying, 1);
+
+  const deletedScenario = assess(
+    root,
+    { ...input("deleted-scenario"), scenarios: [] },
+    cli
+  );
+
+  assert.equal(deletedScenario.measurements.value, null);
+  assert.equal(
+    run(
+      root,
+      cli,
+      "architecture",
+      "compare",
+      "after",
+      "deleted-scenario",
+      "--json"
+    ).comparable,
+    false
+  );
+  rmSync(join(root, "existing.test.mjs"));
+
+  const deletedTest = assess(
+    root,
+    {
+      ...input("deleted-test"),
+      scenarios: [
+        { ...scenario, assertion: { ...scenario.assertion, evidence: [] } },
+      ],
+    },
+    cli
+  );
+
+  assert.equal(deletedTest.measurements.value, 0);
+  assert.equal(deletedTest.analysis.results[0].checks[0].status, "missing");
+
+  const report = run(
+    root,
+    cli,
+    "architecture",
+    "report",
+    "deleted-test",
+    "--no-open"
+  );
+
+  assert.match(
+    readFileSync(report.path, "utf-8"),
+    /Qualifying scenarios: 0\/1/u
+  );
+  assert.equal(readFileSync(join(root, ".keepup/events.jsonl"), "utf-8"), "");
+  assert.equal(readFileSync(join(root, ".keepup/history.jsonl"), "utf-8"), "");
 });

@@ -2,6 +2,7 @@ import type {
   ArchitectureAssessment,
   ArchitectureInspection,
   AssessmentMeasurements,
+  AssessmentInput,
 } from "./domain.ts";
 import { architectureText, writeArchitectureReport } from "./report.ts";
 import type { ArchitectureReportResult } from "./report.ts";
@@ -27,7 +28,51 @@ export type ArchitectureChanges =
       readonly independentPolicySites: number | null;
       readonly calls: number | null;
     }
+  | { readonly value: number | null; readonly qualifying: number | null }
   | { readonly value: null };
+
+function inventoryDefinition(input: AssessmentInput): string {
+  if (input.dimension === "behavioural-testability") {
+    return JSON.stringify({
+      environmentRequirements: input.environmentRequirements.toSorted(),
+      scenarios: input.scenarios
+        .map((scenario) => ({
+          behaviour: scenario.behaviour,
+          compatibilityRequired: scenario.dependency.compatibilityRequired,
+          dependencyKind: scenario.dependency.kind,
+          failureInvariant: scenario.failureInvariant,
+          id: scenario.id,
+          intendedInterface: scenario.intendedInterface,
+        }))
+        .toSorted((one, two) => one.id.localeCompare(two.id)),
+    });
+  }
+
+  if (input.dimension === "interface-leverage") {
+    return JSON.stringify(
+      input.scenarios
+        .map((scenario) => ({
+          description: scenario.description,
+          id: scenario.id,
+        }))
+        .toSorted((one, two) => one.id.localeCompare(two.id))
+    );
+  }
+
+  return JSON.stringify({
+    changes: input.changes
+      .map((change) => ({ description: change.description, id: change.id }))
+      .toSorted((one, two) => one.id.localeCompare(two.id)),
+    rules: input.rules
+      .map((rule) => ({
+        description: rule.description,
+        equivalence: rule.equivalence,
+        id: rule.id,
+        status: rule.status,
+      }))
+      .toSorted((one, two) => one.id.localeCompare(two.id)),
+  });
+}
 
 function definition(assessment: ArchitectureAssessment): string {
   const { input, observation } = assessment;
@@ -36,30 +81,7 @@ function definition(assessment: ArchitectureAssessment): string {
     assets: observation.assets,
     dimension: input.dimension,
     exclusions: input.exclusions.toSorted(),
-    inventory:
-      input.dimension === "interface-leverage"
-        ? input.scenarios
-            .map((scenario) => ({
-              description: scenario.description,
-              id: scenario.id,
-            }))
-            .toSorted((one, two) => one.id.localeCompare(two.id))
-        : {
-            changes: input.changes
-              .map((change) => ({
-                description: change.description,
-                id: change.id,
-              }))
-              .toSorted((one, two) => one.id.localeCompare(two.id)),
-            rules: input.rules
-              .map((rule) => ({
-                description: rule.description,
-                equivalence: rule.equivalence,
-                id: rule.id,
-                status: rule.status,
-              }))
-              .toSorted((one, two) => one.id.localeCompare(two.id)),
-          },
+    inventory: inventoryDefinition(input),
     module: {
       id: input.module.id,
       interface: input.module.interface.toSorted(),
@@ -134,6 +156,13 @@ function measurementChanges(
       independentPolicySites: comparable
         ? after.independentPolicySites - before.independentPolicySites
         : null,
+      value,
+    };
+  }
+
+  if ("qualifying" in before && "qualifying" in after) {
+    return {
+      qualifying: comparable ? after.qualifying - before.qualifying : null,
       value,
     };
   }

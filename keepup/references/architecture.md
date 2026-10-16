@@ -153,3 +153,69 @@ module; raw independent-site and call changes accompany the value. Affected owne
 remain separate observed evidence and may change after consolidation. Changed trust-boundary
 justifications remain visible in the captured input for review. Different or absent
 dimensions are incomparable; their missing facts never imply zero improvement.
+
+## Behavioural testability
+
+Use `architecture testability '<json>'` to execute **existing** tests and record their
+CLI-owned results. `architecture record` cannot fabricate execution evidence. Inspection
+and reports read captured results and never rerun tests. Use a new ID for new execution;
+identical retries retain their original run even if sources have changed.
+
+Use `dimension: "behavioural-testability"` with the common `id`, `module`, `review`,
+`evidence`, `exclusions` and `limitations`. Add `discovery: "complete"` or `"incomplete"`,
+`environmentRequirements: ["Node >=24", "required local services"]` and fixed `scenarios`:
+
+```json
+{
+  "id": "calculate-total", "behaviour": "Return the order total",
+  "failureInvariant": "Reject invalid quantities without saving",
+  "intendedInterface": "orders.mjs",
+  "assertion": {
+    "status": "reviewed", "kind": "observable-outcome", "throughInterface": true,
+    "explanation": "Checks returned total and invalid-quantity result through public API",
+    "evidence": ["orders.test.mjs"]
+  },
+  "dependency": {
+    "kind": "pure", "justification": "No external dependencies",
+    "compatibilityRequired": false
+  },
+  "tests": [{"file": "orders.test.mjs", "name": "total and invalid quantities"}],
+  "compatibility": []
+}
+```
+
+The intended interface must belong to the declared module interface. Existing test
+references name tracked relative files and exact top-level case names. Current execution
+support covers Node's built-in test runner and top-level TAP cases; Node executes each
+selected case with an exact escaped name filter. Nested cases, other test frameworks,
+ambiguous case discovery and missing runtime/import dependencies yield unavailable
+evidence. There is no fallback that turns suite exit zero into scenario coverage.
+Each invocation has a 30-second timeout and a 2 MiB output bound. Failed and skipped
+relevant cases remain separate from missing tests and unavailable discovery.
+
+The CLI stores exact commands, exit codes, outputs, Node/platform and source/evaluator
+manifests around execution. A tracked source edit during execution aborts publication.
+Node/platform changes mark applicability stale. Track environment configuration and
+external contract definitions as evidence. Ambient secrets and remote service state
+are not snapshotted: reviewers must confirm requirements and rerun when those change.
+
+Use dependency kinds `pure`, `local-substitute`, `owned-remote` or `true-external` with a
+specific justification. Set `compatibilityRequired` for necessary production checks and
+reference their existing cases in `compatibility`. Owned remote and true external adapters
+always require checks. Local substitutes do not waive necessary contract verification.
+A reviewed assertion must inspect meaningful outcomes through the intended interface;
+`interaction-only` assertions and private helper checks do not establish orchestration
+coverage. Review the concrete test body: execution alone proves no semantic coverage.
+
+The [experimental rubric](../scripts/architecture/behavioural-testability-rubric.md)
+shows qualifying/total scenarios plus individual gap, failed, skipped and unavailable
+reasons. An agreed scenario with `tests: []` is a known gap, not an excuse to delete it.
+Missing implementation tests need separate preparation work; do not write tests to make
+a learner's architecture exercise pass. Rehearse with the repository's existing cases,
+inspect the stored run diagnostics and identify preparation work separately.
+
+Comparison freezes scenario identity, behaviour, failure invariant, interface, dependency
+kind/required compatibility and environment requirements. Adding qualifying tests can help;
+deleting hard scenarios changes the question, deleting tests creates gaps, and replacing
+outcomes with mock-interaction checks never earns qualifying credit. These assessments
+remain advisory and never grant learning evidence or safety percentages.

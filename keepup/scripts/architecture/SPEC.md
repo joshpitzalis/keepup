@@ -49,3 +49,10 @@ implementations; ownership scenarios remain separate. Missing sites/evidence sta
 `change-locality-rubric.md` publishes the fingerprinted experimental rule and trust-boundary
 caution. Proposed/unclear equivalence, disagreements and exclusions remain visible. Consolidation
 can improve locality; file merging cannot. Necessary repeated trust-boundary validation remains.
+
+Behavioural testability uses `testability.ts` for reviewed fixed scenarios and qualification,
+and `testability-run.ts` to execute existing exact top-level Node test cases inside the
+source-capture boundary. Protected execution results retain command/output/environment;
+inspection never reruns. Gaps, failures, skips and unavailable discovery stay distinct.
+Production compatibility checks remain necessary for owned/true external dependencies.
+The versioned testability rubric grants no learner evidence or overall correctness claim.
