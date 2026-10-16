@@ -27,7 +27,7 @@ function report(root: string, id: string, rating: number | null): void {
     "record",
     JSON.stringify({
       dimension: "interface-leverage",
-      evidence: ["src/module.ts", "src/caller.ts"],
+      evidence: ["src/module.ts", "src/caller.ts", "src/binary.dat"],
       exclusions: [],
       id,
       limitations: rating === null ? ["Scenario evidence is incomplete"] : [],
@@ -81,6 +81,40 @@ test("reviewed facts and escaped evidence remain readable without JavaScript", a
   await expect(inspection).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page.getByText(/"schemaVersion": 1/u)).toBeVisible();
+
+  const source = page.getByText("Captured source reviewed: src/module.ts", {
+    exact: true,
+  });
+
+  await source.focus();
+  await page.keyboard.press("Enter");
+  await expect(
+    page.getByText(
+      'export const label = "</script><script>alert(1)</script>";',
+      { exact: true }
+    )
+  ).toBeVisible();
+
+  const rubric = page.getByText(
+    "Captured rubric reviewed: interface-leverage-rubric.md",
+    { exact: true }
+  );
+
+  await rubric.focus();
+  await page.keyboard.press("Enter");
+  await expect(
+    page.getByText(/# Experimental interface-leverage rubric v1/u)
+  ).toBeVisible();
+
+  const binary = page.getByText("Captured source reviewed: src/binary.dat", {
+    exact: true,
+  });
+
+  await binary.focus();
+  await page.keyboard.press("Enter");
+  await expect(
+    page.getByText(/Binary evidence; snapshot SHA-256.*\(2 bytes\)/u)
+  ).toBeVisible();
   await page.screenshot({
     fullPage: true,
     path: testInfo.outputPath("desktop.png"),
@@ -103,4 +137,46 @@ test("missing evidence and source drift remain visible", async ({
   await page.goto("/report.html");
   await expect(page.getByRole("main")).toContainText("unavailable");
   await expect(page.getByRole("main")).toContainText("stale");
+});
+
+test("comparison keeps a historical baseline distinct from current evidence", async ({
+  page,
+  reportRoot,
+}) => {
+  report(reportRoot, "before", 0);
+  writeFileSync(
+    join(reportRoot, "src/module.ts"),
+    "export const label = 'intent';\n"
+  );
+  report(reportRoot, "after", 1);
+
+  const result = architecture(
+    reportRoot,
+    "compare-report",
+    "before",
+    "after",
+    "--no-open"
+  );
+
+  copyFileSync(result.path, join(reportRoot, "report.html"));
+  await page.goto("/report.html");
+  await expect(
+    page.getByRole("heading", { name: /comparison/iu })
+  ).toBeVisible();
+  await expect(page.getByRole("main")).toContainText("historical");
+  await expect(page.getByRole("main")).toContainText("current");
+
+  const historicalSource = page.getByText(
+    "Captured source before: src/module.ts",
+    { exact: true }
+  );
+
+  await historicalSource.focus();
+  await page.keyboard.press("Enter");
+  await expect(
+    page.getByText(
+      'export const label = "</script><script>alert(1)</script>";',
+      { exact: true }
+    )
+  ).toBeVisible();
 });

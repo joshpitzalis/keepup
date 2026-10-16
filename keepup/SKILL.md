@@ -50,6 +50,7 @@ For `/keepup on`, read [the interactive learning workflow](references/on.md). Of
 
 For module interface assessments, read [the architecture workflow](references/architecture.md).
 Use `architecture record <json>`, `inspect <id> [--json]`, `list` and `report <id>`.
+For automated seam rules, use `architecture analyse <json>` with the explicit pinned analyser prerequisite in that workflow. Preserve raw violations, graph coverage, rule identities and source locations; reports alone never prove learning.
 Keep reviewed architecture judgements separate from file scores and learner understanding.
 For a bounded improvement recommendation, read the opportunity section in that workflow.
 `architecture opportunity record|inspect|report` preserves supplied context and
@@ -58,3 +59,7 @@ Architecture exercises are unavailable until the exercise workflow lands.
 For reviewed change locality, use the same workflow's Change locality section. Confirm
 semantic equivalence before accepting rules; preserve required validation at each trust
 boundary. Affected owners and Git co-change never substitute for independent-site evidence.
+For behavioural testability, execute existing selected tests with `architecture testability
+<json>` and inspect stored results. Review outcome assertions through the intended interface;
+retain dependency compatibility checks and fixed scenario inventories. Missing tests are
+separate preparation work: never author tests to make a learner exercise pass.

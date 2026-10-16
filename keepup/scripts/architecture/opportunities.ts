@@ -132,8 +132,7 @@ function rawValue(
   if (
     metric === "violations" &&
     "violations" in measurements &&
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The optional seam dimension can supply only a numeric raw violation target.
-    typeof measurements.violations === "number"
+    measurements.violations >= 0
   ) {
     return measurements.violations;
   }
@@ -272,9 +271,15 @@ function verifyOpportunityReferences(
     assessments.length &&
     input.modules.some(
       (id) =>
-        !assessments.some(
-          (inspection) => inspection.assessment.input.module.id === id
-        )
+        !assessments.some((inspection) => {
+          const declaration = inspection.assessment.input;
+          const modules =
+            declaration.dimension === "seam-integrity"
+              ? declaration.modules
+              : [declaration.module];
+
+          return modules.some((module) => module.id === id);
+        })
     )
   ) {
     throw new Error("Opportunity module must belong to its linked assessment");
@@ -570,6 +575,11 @@ function opportunityText(
   return [
     `Architecture opportunity ${record.id}: ${record.decision} (${record.strength}; proposed qualitative judgement)`,
     `Freshness: ${result.freshness.status}`,
+    ...(result.freshness.status === "stale"
+      ? [
+          "Historical recommendation; refresh supporting evidence before acting.",
+        ]
+      : []),
     `Outcome: ${record.input.outcome}`,
     `Raw target: ${JSON.stringify(record.target)}`,
     `Missing dimensions: ${record.missingDimensions.join(", ") || "none"}`,
@@ -604,7 +614,10 @@ export function opportunityCommand(
           "Architecture opportunity",
           opportunityText(result),
           JSON.stringify(result, null, 2),
-          !args.includes("--no-open")
+          !args.includes("--no-open"),
+          result.opportunity.assessments.map(
+            (inspection) => inspection.assessment
+          )
         )
       );
     }

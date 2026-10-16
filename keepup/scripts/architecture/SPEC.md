@@ -25,6 +25,8 @@ Historical snapshots remain intact; inspections never evaluate code or run tests
 - `parse.ts` reconstructs accepted JSON at the trust boundary.
 - `storage.ts` captures evidence, publishes complete observations, checks retries and freshness.
 - `report.ts` presents the same facts as text and script-free accessible HTML.
+- Reports expose declared evidence and the versioned rubric from archived snapshots;
+  native details keep historical source inspectable by keyboard without executing it.
 - `interface-leverage-rubric.md` publishes the fingerprinted experimental judgement rules.
 
 ## No-gos & known complexities
@@ -36,7 +38,20 @@ Historical snapshots remain intact; inspections never evaluate code or run tests
 - All evidence references must name tracked regular files. Incomplete scenario evidence
   yields unavailable results, never a healthy default.
 - Capture/inspection costs scale with tracked repository bytes. Untracked material
-  cannot support a claim until explicitly tracked. No automatic dependency discovery yet.
+  cannot support a claim until explicitly tracked. Automated JS/TS seam analysis runs only on explicit `analyse` requests.
+
+## Automated seam integrity
+
+`seam-domain.ts` names explicit modules, dependency policies, raw graph evidence and
+findings. `seam-parse.ts` reconstructs definitions; shared JSON fields live in
+`parse-common.ts`. `analyser.ts` owns the pinned dependency-cruiser process and
+compiler AST coverage/locations; `dependency-cruiser.json` fixes supported resolution.
+`seams.ts` evaluates public-only/forbidden policies without parsing a language.
+Graph metadata can only enter through the CLI-owned evaluator inside source capture.
+Tool assets and transitive resolver implementation are snapshotted and checked for
+freshness without executing analysis during reads. Raw violations remain distinct
+from eligible-edge denominators; unavailable/partial coverage never reports healthy.
+
 
 `comparison.ts` compares captured observations without evaluating code. It freezes
 module/interface/membership, representative inventory, exclusions and evaluator
@@ -56,3 +71,9 @@ readiness reasons route unsafe proposals to assessment/preparation/defer; none i
 valid. `opportunity-parse.ts` rejects protected metadata before capture. Shared
 publication/snapshot helpers preserve retries, concurrency and provenance.
 Reports remain derived; opportunities never execute tests or write learning credit.
+Behavioural testability uses `testability.ts` for reviewed fixed scenarios and qualification,
+and `testability-run.ts` to execute existing exact top-level Node test cases inside the
+source-capture boundary. Protected execution results retain command/output/environment;
+inspection never reruns. Gaps, failures, skips and unavailable discovery stay distinct.
+Production compatibility checks remain necessary for owned/true external dependencies.
+The versioned testability rubric grants no learner evidence or overall correctness claim.

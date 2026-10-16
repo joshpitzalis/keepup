@@ -2,6 +2,16 @@ import type {
   LocalityAssessmentInput,
   LocalityMeasurements,
 } from "./locality.ts";
+import type {
+  SeamAnalysis,
+  SeamAssessmentInput,
+  SeamMeasurements,
+} from "./seam-domain.ts";
+import type {
+  TestabilityAssessmentInput,
+  TestabilityMeasurements,
+  TestabilityAnalysis,
+} from "./testability.ts";
 
 export interface ArchitectureModule {
   readonly id: string;
@@ -50,11 +60,9 @@ export interface InterfaceAssessmentInput {
 
 export type AssessmentInput =
   | InterfaceAssessmentInput
-  | LocalityAssessmentInput;
-
-export type AssessmentMeasurements =
-  | InterfaceMeasurements
-  | LocalityMeasurements;
+  | SeamAssessmentInput
+  | LocalityAssessmentInput
+  | TestabilityAssessmentInput;
 
 export interface InterfaceMeasurements {
   readonly status: "measured" | "unavailable" | "not-applicable";
@@ -65,12 +73,19 @@ export interface InterfaceMeasurements {
   readonly avoidableObligations: number;
 }
 
+export type AssessmentMeasurements =
+  | InterfaceMeasurements
+  | SeamMeasurements
+  | LocalityMeasurements
+  | TestabilityMeasurements;
+
 export interface ManifestEntry {
   readonly path: string;
   readonly hash: string | null;
 }
 
 export interface ArchitectureAssessment {
+  readonly analysis?: SeamAnalysis | TestabilityAnalysis;
   readonly schemaVersion: 1;
   readonly id: string;
   readonly dimension: AssessmentInput["dimension"];

@@ -1,5 +1,5 @@
 import type { OpportunityInput } from "./opportunities.ts";
-import { object, parseArchitectureId, strings, text } from "./parse.ts";
+import { object, parseArchitectureId, strings, text } from "./parse-common.ts";
 
 /* oxlint-disable anti-slop/no-runtime-typeof, anti-slop/no-unknown-parameters, anti-slop/no-unsafe-dictionary-type -- This JSON boundary reconstructs all fields and rejects protected metadata. */
 function fields(

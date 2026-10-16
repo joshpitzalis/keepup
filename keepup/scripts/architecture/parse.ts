@@ -1,76 +1,31 @@
 import type {
-  ArchitectureModule,
   ArchitectureReview,
   AssessmentInput,
   CallerObligation,
   InterfaceScenario,
 } from "./domain.ts";
-/* oxlint-disable anti-slop/no-runtime-typeof, anti-slop/no-unknown-parameters, anti-slop/no-unsafe-dictionary-type -- This JSON trust boundary reconstructs every accepted field before any writes. */
 import type {
   LocalityAssessmentInput,
   LocalityRule,
   PolicyChange,
   PolicySite,
 } from "./locality.ts";
+/* oxlint-disable anti-slop/no-runtime-typeof, anti-slop/no-unknown-parameters, anti-slop/no-unsafe-dictionary-type -- This JSON trust boundary reconstructs every accepted field before any writes. */
+import {
+  object,
+  text,
+  strings,
+  parseArchitectureId,
+  parseModule,
+} from "./parse-common.ts";
+import { parseSeamAssessment } from "./seam-parse.ts";
+import type {
+  ExistingTest,
+  TestabilityAssessmentInput,
+  TestabilityScenario,
+} from "./testability.ts";
 
-export function object(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error("Expected architecture object");
-  }
-
-  // SAFETY: non-null, non-array object established; values remain unknown.
-  return value as Record<string, unknown>;
-}
-
-export function text(value: unknown): string {
-  if (typeof value !== "string" || !value.trim()) {
-    throw new Error("Expected nonempty architecture text");
-  }
-
-  return value;
-}
-
-export function strings(value: unknown): string[] {
-  if (!Array.isArray(value)) {
-    throw new TypeError("Expected architecture string array");
-  }
-
-  return value.map(text);
-}
-
-export function parseArchitectureId(value: unknown): string {
-  const id = text(value);
-
-  if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/u.test(id)) {
-    throw new Error(
-      "Architecture id must be 1-128 letters, numbers, dots, underscores or hyphens"
-    );
-  }
-
-  return id;
-}
-
-export function parseModule(value: unknown): ArchitectureModule {
-  const source = object(value);
-  const members = strings(source.members);
-  const entryPoints = strings(source.interface);
-
-  if (
-    !members.length ||
-    !entryPoints.length ||
-    entryPoints.some((file) => !members.includes(file))
-  ) {
-    throw new Error(
-      "Module requires members and intended interface files within members"
-    );
-  }
-
-  return {
-    id: parseArchitectureId(source.id),
-    interface: [...new Set(entryPoints)].toSorted(),
-    members: [...new Set(members)].toSorted(),
-  };
-}
+export { parseArchitectureId, parseModule } from "./parse-common.ts";
 
 export function parseReview(value: unknown): ArchitectureReview {
   const source = object(value);
@@ -147,8 +102,16 @@ function parseScenario(value: unknown): InterfaceScenario {
 export function parseAssessment(value: unknown): AssessmentInput {
   const source = object(value);
 
+  if (source.dimension === "behavioural-testability") {
+    return parseTestabilityAssessment(source);
+  }
+
   if (source.dimension === "change-locality") {
     return parseLocalityAssessment(source);
+  }
+
+  if (source.dimension === "seam-integrity") {
+    return parseSeamAssessment(value);
   }
 
   if (
@@ -340,5 +303,141 @@ function parseLocalityAssessment(
     module: parseModule(source.module),
     review: parseReview(source.review),
     rules,
+  };
+}
+
+function parseExistingTest(value: unknown): ExistingTest {
+  const source = object(value);
+  const file = text(source.file);
+  const name = text(source.name);
+
+  if (
+    file.startsWith("-") ||
+    file.startsWith("/") ||
+    file.split(/[\\/]/u).includes("..") ||
+    /[\r\n#]/u.test(name)
+  ) {
+    throw new Error(
+      "Existing tests require relative source paths and a single-line top-level case name without #"
+    );
+  }
+
+  return { file, name };
+}
+
+function parseTestabilityScenario(value: unknown): TestabilityScenario {
+  const source = object(value);
+  const assertion = object(source.assertion);
+  const dependency = object(source.dependency);
+  const { kind } = dependency;
+
+  if (
+    kind !== "pure" &&
+    kind !== "local-substitute" &&
+    kind !== "owned-remote" &&
+    kind !== "true-external"
+  ) {
+    throw new Error("Unknown test dependency strategy");
+  }
+
+  if (assertion.status !== "reviewed" && assertion.status !== "provisional") {
+    throw new Error("Assertion review status required");
+  }
+
+  if (
+    assertion.kind !== "observable-outcome" &&
+    assertion.kind !== "interaction-only"
+  ) {
+    throw new Error("Assertion outcome classification required");
+  }
+
+  if (
+    typeof assertion.throughInterface !== "boolean" ||
+    typeof dependency.compatibilityRequired !== "boolean"
+  ) {
+    throw new TypeError(
+      "Explicit interface and compatibility decisions required"
+    );
+  }
+
+  if (!Array.isArray(source.tests) || !Array.isArray(source.compatibility)) {
+    throw new TypeError("Existing tests and compatibility inventory required");
+  }
+
+  return {
+    assertion: {
+      evidence: strings(assertion.evidence),
+      explanation: text(assertion.explanation),
+      kind: assertion.kind,
+      status: assertion.status,
+      throughInterface: assertion.throughInterface,
+    },
+    behaviour: text(source.behaviour),
+    compatibility: source.compatibility.map(parseExistingTest),
+    dependency: {
+      compatibilityRequired: dependency.compatibilityRequired,
+      justification: text(dependency.justification),
+      kind,
+    },
+    failureInvariant: text(source.failureInvariant),
+    id: parseArchitectureId(source.id),
+    intendedInterface: text(source.intendedInterface),
+    tests: source.tests.map(parseExistingTest),
+  };
+}
+
+function parseTestabilityAssessment(
+  source: Record<string, unknown>
+): TestabilityAssessmentInput {
+  const allowed = new Set([
+    "id",
+    "dimension",
+    "module",
+    "scenarios",
+    "discovery",
+    "environmentRequirements",
+    "review",
+    "evidence",
+    "exclusions",
+    "limitations",
+  ]);
+
+  if (Object.keys(source).some((key) => !allowed.has(key))) {
+    throw new Error(
+      "Unknown testability field; execution metadata is CLI-owned"
+    );
+  }
+
+  if (source.discovery !== "complete" && source.discovery !== "incomplete") {
+    throw new Error("Explicit testability discovery status required");
+  }
+
+  if (!Array.isArray(source.scenarios)) {
+    throw new TypeError("Fixed testability scenario inventory required");
+  }
+
+  const scenarios = source.scenarios.map(parseTestabilityScenario);
+  uniqueIds(scenarios);
+  const module = parseModule(source.module);
+
+  if (
+    scenarios.some(
+      (scenario) => !module.interface.includes(scenario.intendedInterface)
+    )
+  ) {
+    throw new Error("Scenarios must name a declared intended module interface");
+  }
+
+  return {
+    dimension: "behavioural-testability",
+    discovery: source.discovery,
+    environmentRequirements: strings(source.environmentRequirements),
+    evidence: strings(source.evidence),
+    exclusions: strings(source.exclusions),
+    id: parseArchitectureId(source.id),
+    limitations: strings(source.limitations),
+    module,
+    review: parseReview(source.review),
+    scenarios,
   };
 }

@@ -75,6 +75,98 @@ Agents may propose and record evidence after reviewing it; they must label provi
 judgements and preserve unknowns/disagreements. Only actual learner answers and eligible
 CLI learning events establish learner evidence. Architecture recording grants no practice.
 
+## Automated seam integrity (experimental v1)
+
+`architecture analyse <json>` acquires a JavaScript/TypeScript dependency graph and
+records an immutable automated observation. `record` rejects automated payloads;
+graphs, findings, observation metadata and raw measurements are CLI-owned.
+`inspect`, `list` and `report` also work for automated assessments and never rerun
+the analyser. No learning events or ordinary file scores change.
+
+Install the explicit prerequisite once in a dedicated directory, separate from the
+skill and target repository. Node 24 is supported. Installation is never automatic:
+
+```sh
+npm install --prefix "$HOME/.local/share/keepup-analyser" --save-exact --ignore-scripts dependency-cruiser@18.6.0 typescript@5.9.3
+export KEEPUP_ANALYSER_DIRECTORY="$HOME/.local/share/keepup-analyser"
+```
+
+Use this definition (all paths must be tracked regular repository files):
+
+```json
+{
+  "id": "orders-seams-before",
+  "dimension": "seam-integrity",
+  "modules": [
+    { "id": "orders", "members": ["src/orders/index.ts", "src/orders/private.ts"], "interface": ["src/orders/index.ts"] },
+    { "id": "checkout", "members": ["src/checkout.ts"], "interface": ["src/checkout.ts"] }
+  ],
+  "rules": [
+    { "id": "checkout-orders", "from": "checkout", "to": "orders", "kind": "public-only", "dependency": "all" }
+  ],
+  "evidence": [],
+  "exclusions": [],
+  "limitations": []
+}
+```
+
+Rule `public-only` detects imports of private members; `forbidden` rejects the
+specified direction entirely. `dependency` selects `all`, `runtime` or `type-only`.
+Directions without rules are unconstrained. Membership cannot overlap. Interface
+files re-exporting private implementation violate `public-only`, including named
+and star re-exports: changing a barrel cannot silently repair a private import.
+Explicitly declaring an exported implementation as interface changes the contract
+and requires a fresh assessment/comparison inventory. This deliberately strict file
+policy does not judge which exported operations constitute a good interface.
+
+Each finding includes source file, line (when located), destination and rule. Raw
+violation counts remain targets. Eligible edges count known cross-module
+source/destination dependency relationships; more allowed relationships cannot
+cancel violations. No composite architecture grade or percentage pass gate exists.
+Zero eligible edges are not applicable; missing/incomplete graphs are unavailable,
+even when they retain concrete valid findings. Measured zero violations differs
+from unavailable coverage. Keep exclusions and limitations visible.
+
+The pinned JSON config uses TypeScript compiler parsing, `tsPreCompilationDeps:
+"specify"`, Node relative/package resolution and no traversal into `node_modules`.
+JS/JSX, CJS/ESM and TS/TSX/CTS/MTS are supported with the pinned TS 5 compiler;
+TypeScript 7 is not a replacement for this analyser prerequisite. Framework loaders,
+TS path aliases and nonstandard bundler resolution are unsupported in this initial
+config; unresolved imports show partial coverage. All tracked supported source files are acquisition roots, including callers outside
+declared modules. Consumers outside declared membership that import declared modules
+make coverage partial until their membership/rules are declared. Resolved untracked
+sources, opaque and unresolved dependencies also make coverage partial. Add all
+relevant callers to the declared inventory.
+Literal dynamic imports retain destinations; computed imports/require calls use
+the pinned compiler AST to expose opaque coverage. Repeated source specifiers may
+be merged by dependency-cruiser, so mixed import forms are explicitly partial.
+Custom loader functions and reflective runtime resolution are outside this static
+analysis contract. Syntax the pinned compiler cannot parse yields unavailable.
+
+The process runs from the target repository with the shipped JSON config, all tracked supported
+source paths, a 30-second timeout and 16 MiB output bound. Environment variable
+`KEEPUP_ANALYSER_TIMEOUT_MS` may lower the timeout (1–30000 ms). Tool absence,
+version mismatch, failure, malformed output and timeout create unavailable records
+under fresh IDs; identical retries return the original observation without running
+the tool. Changing source during analysis rejects the mixed observation entirely.
+Earlier observations remain intact.
+
+The CLI snapshots exact tool implementation/configuration and transitive resolver
+assets (JS/JSON plus installation lockfile), alongside source and evaluator assets.
+Changing installed tool bytes with the same version makes results stale; inspection
+hashes assets without executing tools. Use the documented npm installation layout;
+symlinked package-manager layouts are not supported. Capture/inspection cost scales
+with repository and tool installation bytes; graphs cost one analyser process plus
+compiler AST inspection. Copied skill installations use this explicit prerequisite,
+never dependencies from the Keepup development checkout.
+
+Development verification: set `KEEPUP_TEST_ANALYSER_DIRECTORY` to the same pinned
+installation and run `node --test keepup/__tests__/architecture-seams.test.ts`.
+Real fixture cases cover private/public edges, repair, types, opaque imports,
+unresolved dependencies and re-export laundering; controlled process failures check
+that old records survive. Without this test prerequisite, real-analyser cases skip
+and the ordinary unavailable-tool path still runs.
+
 ## Compare captured observations
 
 Run `node <CLI> architecture compare <before-id> <after-id> --json` for structured
@@ -202,3 +294,68 @@ inspection does not rerun evaluators or silently update its original decision.
 Architecture exercises remain unavailable in this phase. A recommendation is
 separate from exercise acceptance and grants no exposure, practice, understanding
 or delayed retention evidence. The learner owns all eventual code and test edits.
+## Behavioural testability
+
+Use `architecture testability '<json>'` to execute **existing** tests and record their
+CLI-owned results. `architecture record` cannot fabricate execution evidence. Inspection
+and reports read captured results and never rerun tests. Use a new ID for new execution;
+identical retries retain their original run even if sources have changed.
+
+Use `dimension: "behavioural-testability"` with the common `id`, `module`, `review`,
+`evidence`, `exclusions` and `limitations`. Add `discovery: "complete"` or `"incomplete"`,
+`environmentRequirements: ["Node >=24", "required local services"]` and fixed `scenarios`:
+
+```json
+{
+  "id": "calculate-total", "behaviour": "Return the order total",
+  "failureInvariant": "Reject invalid quantities without saving",
+  "intendedInterface": "orders.mjs",
+  "assertion": {
+    "status": "reviewed", "kind": "observable-outcome", "throughInterface": true,
+    "explanation": "Checks returned total and invalid-quantity result through public API",
+    "evidence": ["orders.test.mjs"]
+  },
+  "dependency": {
+    "kind": "pure", "justification": "No external dependencies",
+    "compatibilityRequired": false
+  },
+  "tests": [{"file": "orders.test.mjs", "name": "total and invalid quantities"}],
+  "compatibility": []
+}
+```
+
+The intended interface must belong to the declared module interface. Existing test
+references name tracked relative files and exact top-level case names. Current execution
+support covers Node's built-in test runner and top-level TAP cases; Node executes each
+selected case with an exact escaped name filter. Nested cases, other test frameworks,
+ambiguous case discovery and missing runtime/import dependencies yield unavailable
+evidence. There is no fallback that turns suite exit zero into scenario coverage.
+Each invocation has a 30-second timeout and a 2 MiB output bound. Failed and skipped
+relevant cases remain separate from missing tests and unavailable discovery.
+
+The CLI stores exact commands, exit codes, outputs, Node/platform and source/evaluator
+manifests around execution. A tracked source edit during execution aborts publication.
+Node/platform changes mark applicability stale. Track environment configuration and
+external contract definitions as evidence. Ambient secrets and remote service state
+are not snapshotted: reviewers must confirm requirements and rerun when those change.
+
+Use dependency kinds `pure`, `local-substitute`, `owned-remote` or `true-external` with a
+specific justification. Set `compatibilityRequired` for necessary production checks and
+reference their existing cases in `compatibility`. Owned remote and true external adapters
+always require checks. Local substitutes do not waive necessary contract verification.
+A reviewed assertion must inspect meaningful outcomes through the intended interface;
+`interaction-only` assertions and private helper checks do not establish orchestration
+coverage. Review the concrete test body: execution alone proves no semantic coverage.
+
+The [experimental rubric](../scripts/architecture/behavioural-testability-rubric.md)
+shows qualifying/total scenarios plus individual gap, failed, skipped and unavailable
+reasons. An agreed scenario with `tests: []` is a known gap, not an excuse to delete it.
+Missing implementation tests need separate preparation work; do not write tests to make
+a learner's architecture exercise pass. Rehearse with the repository's existing cases,
+inspect the stored run diagnostics and identify preparation work separately.
+
+Comparison freezes scenario identity, behaviour, failure invariant, interface, dependency
+kind/required compatibility and environment requirements. Adding qualifying tests can help;
+deleting hard scenarios changes the question, deleting tests creates gaps, and replacing
+outcomes with mock-interaction checks never earns qualifying credit. These assessments
+remain advisory and never grant learning evidence or safety percentages.
