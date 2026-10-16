@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>keepup · Repository map</title>
+<style>
+:root{color-scheme:light dark;--paper:#f5f3ec;--ink:#242923;--muted:#5a6259;--edge:#c4c8bc;--panel:#fffdf6;--dark:#59636b;--exposed:#c59730;--verified:#337caa;--practised:#3d8654}
+@media(prefers-color-scheme:dark){:root{--paper:#151c19;--ink:#e4e8dc;--muted:#b2bbaf;--edge:#48554b;--panel:#202a24;--dark:#59636b;--exposed:#b88a20;--verified:#347eae;--practised:#418758}}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 Georgia,serif}main{max-width:1600px;margin:auto;padding:32px}header{border-top:4px solid var(--ink);padding-top:15px;display:flex;justify-content:space-between;gap:24px;align-items:end}h1{font-size:clamp(30px,4vw,48px);font-weight:400;line-height:1.05;margin:8px 0 14px}p{margin:8px 0}.eyebrow,label,select,.legend,.directory,.file,.scores,dt{font-family:ui-monospace,monospace}.eyebrow{letter-spacing:.15em;font-size:12px;text-transform:uppercase;color:var(--muted)}#learner{overflow-wrap:anywhere;color:var(--muted)}select{max-width:100%;padding:9px;background:var(--panel);color:var(--ink);border:1px solid var(--edge);border-radius:2px}label{display:block;font-size:12px;margin-bottom:5px}.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;margin:18px 0}.legend span{display:flex;gap:6px;align-items:center}.legend i{height:11px;width:11px;background:var(--swatch);display:inline-block}#scale{color:var(--muted);font:12px ui-monospace,monospace}#summary{border-bottom:1px solid var(--edge);padding-bottom:18px;color:var(--muted)}.layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:24px;margin-top:22px}#map{position:relative;height:610px;background:var(--panel);border:1px solid var(--edge);overflow:hidden}.directory{position:absolute;border:1px solid var(--edge);pointer-events:none;font-size:11px;overflow:hidden;color:var(--ink)}.directory span{display:block;padding:1px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.file{position:absolute;border:1px solid var(--paper);border-radius:0;text-align:left;padding:6px;overflow:hidden;font-size:11px;line-height:1.35;cursor:pointer;color:white;text-shadow:0 1px 2px #0009}.file:hover,.file:focus-visible{outline:3px solid var(--ink);outline-offset:-3px;z-index:2}.file.unavailable{background:repeating-linear-gradient(135deg,#626865 0 5px,#858b87 5px 10px)!important}aside{border-top:2px solid var(--ink);padding-top:13px;min-width:0}#file-picker{width:100%}h2{font-size:22px;font-weight:400;overflow-wrap:anywhere;margin:22px 0 10px}dl{margin:0}dt{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-top:13px}dd{margin:1px 0;overflow-wrap:anywhere;white-space:pre-wrap}#warnings{color:var(--muted);overflow-wrap:anywhere}#notice{padding:10px 0;color:var(--muted)}footer{border-top:1px solid var(--edge);margin-top:25px;padding-top:12px;color:var(--muted);font-size:13px}button:focus-visible,select:focus-visible{outline:3px solid var(--ink);outline-offset:2px}@media(max-width:800px){main{padding:20px}header{display:block}.layout{grid-template-columns:1fr}#map{height:450px}aside{padding-bottom:20px}.legend{gap:12px}}
+</style>
+<main>
+<header><div><div class="eyebrow">keepup / repository atlas</div><h1>Know the code you ship.</h1><p id="learner"></p></div><div><label for="lens">Colour by</label><select id="lens"><option value="state">Learning state</option><option value="debt">Cognitive debt</option><option value="drift">Drift</option></select></div></header>
+<p id="summary" class="scores"></p>
+<div class="legend"><span><i style="--swatch:var(--dark)"></i>Dark</span><span><i style="--swatch:var(--exposed)"></i>Exposed</span><span><i style="--swatch:var(--verified)"></i>Verified</span><span><i style="--swatch:var(--practised)"></i>Practised</span></div>
+<p id="scale"></p><div id="warnings" role="status"></div>
+<div class="layout"><section aria-label="Repository treemap"><p id="notice">Loading treemap. Rendering requires access to cdnjs; file details remain available below.</p><div id="map" aria-label="Files sized by lines"></div></section><aside aria-label="File details"><label for="file-picker">Inspect a file · keyboard accessible</label><select id="file-picker"><option value="">Choose a file</option></select><h2 id="file-name">Your code, by directory.</h2><p id="hint">Box area represents lines. Hover or focus a file to inspect it. Empty files appear in the file selector.</p><dl id="details"></dl></aside></div>
+<footer>A snapshot of this learner's evidence. Regenerate with /keepup map after code or learning changes. Scorer values run from 0 to 1; higher means healthier code.</footer>
+</main>
+<script id="status-data" type="application/json"><!--STATUS_DATA--></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script>
+const data=JSON.parse(document.getElementById('status-data').textContent);
+const element=id=>document.getElementById(id);
+const percent=value=>value==null?'Unavailable':(value*100).toFixed(1)+'%';
+element('learner').textContent=data.who;
+element('summary').textContent=`Cognitive debt ${percent(data.summary.cognitiveDebt)} · Code health ${percent(data.summary.codeHealth)} · ${data.files.length} files · ${data.summary.due} checks due`;
+for(const warning of data.warnings){const p=document.createElement('p');p.textContent=warning;element('warnings').append(p);}
+for(const metric of data.metrics){const option=document.createElement('option');option.value='metric:'+metric;option.textContent=metric;element('lens').append(option);}
+for(const file of data.files){const option=document.createElement('option');option.value=file.file;option.textContent=file.file;element('file-picker').append(option);}
+function fileDetails(file){
+  return [['State',file.state+(file.due?' · check due':'')],['Lines',file.lines],['Code score',percent(file.codeScore)],['Mind',percent(file.mind)],['Accuracy',percent(file.accuracy)],['Cognitive debt',file.debt.toFixed(3)],['Weight',file.weight.toFixed(3)],['Drift',percent(file.drift)],...data.metrics.map(metric=>{const report=file.metrics[metric];return [metric,report?`${percent(report.value)}${report.raw===undefined?'':` · raw ${report.raw}`}${report.fn?` · ${report.fn}`:''}${report.line?` · line ${report.line}`:''}`:'Unavailable'];}),['Last quiz',file.lastQuiz||'No quiz yet'],['Latest explain-back',file.explain||'No explain-back yet']];
+}
+function inspect(file){
+  element('file-name').textContent=file.file;element('file-picker').value=file.file;element('hint').hidden=true;element('details').replaceChildren();
+  for(const [name,value] of fileDetails(file)){const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=name;dd.textContent=value;element('details').append(dt,dd);}
+}
+element('file-picker').addEventListener('change',event=>{const file=data.files.find(file=>file.file===event.target.value);if(file)inspect(file);});
+function directoryTree(){
+  const tree={name:'Repository',children:[]};const directories=new Map([['',tree]]);
+  for(const file of data.files){const parts=file.file.split('/');let path='';let parent=tree;for(const name of parts.slice(0,-1)){path+=(path?'/':'')+name;if(!directories.has(path)){const directory={name,children:[]};directories.set(path,directory);parent.children.push(directory);}parent=directories.get(path);}parent.children.push({name:parts.at(-1),file});}
+  return tree;
+}
+function render(){
+  const map=element('map'),lens=element('lens').value;map.replaceChildren();
+  element('scale').textContent=lens==='state'?'Colour shows learning evidence. Hatched boxes indicate unavailable scores.':lens.startsWith('metric:')?'Red = 0, green = 1. Hatched = unavailable.':'Green = 0, red = 1. Hatched = unavailable.';
+  if(!data.files.length){element('notice').textContent='No tracked files match your configured scope.';return;}
+  if(!window.d3){element('notice').textContent='Treemap unavailable: d3 could not load from cdnjs. Check your connection, then reload. Use the file selector to inspect all scores.';return;}
+  if(!data.files.some(file=>file.lines>0)){element('notice').textContent='All scoped files are empty. Inspect them with the file selector.';return;}
+  element('notice').textContent='Directories contain their files. Each area represents line count.';
+  const tree=d3.hierarchy(directoryTree()).sum(node=>node.file?.lines||0).sort((a,b)=>b.value-a.value);
+  d3.treemap().size([map.clientWidth,map.clientHeight]).paddingOuter(4).paddingTop(21).paddingInner(2)(tree);
+  for(const node of tree.descendants().slice(1)){
+    const file=node.data.file;const box=document.createElement(file?'button':'div');box.className=file?'file':'directory';
+    Object.assign(box.style,{left:node.x0+'px',top:node.y0+'px',width:Math.max(0,node.x1-node.x0)+'px',height:Math.max(0,node.y1-node.y0)+'px'});
+    if(!file){const label=document.createElement('span');label.textContent=node.data.name;box.append(label);map.append(box);continue;}
+    const value=lens.startsWith('metric:')?file.metrics[lens.slice(7)]?.value:file[lens];
+    if(lens==='state')box.style.background=`var(--${file.state})`;
+    else if(value==null)box.classList.add('unavailable');
+    else box.style.background=d3.interpolateRdYlGn(0.15+0.7*(lens.startsWith('metric:')?value:1-value));
+    if(lens!=='state'&&value!=null)box.style.color='black';
+    box.textContent=node.data.name;box.title=[file.file,...fileDetails(file).map(([name,value])=>name+': '+value)].join('\n');box.setAttribute('aria-label',file.file+' · '+file.state);
+    box.addEventListener('mouseenter',()=>inspect(file));box.addEventListener('focus',()=>inspect(file));box.addEventListener('click',()=>inspect(file));map.append(box);
+  }
+}
+element('lens').addEventListener('change',render);
+new ResizeObserver(render).observe(element('map'));
+render();
+</script>
+</html>

@@ -1,0 +1,41 @@
+#!/usr/bin/env node
+import { readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { resolve } from 'node:path';
+
+// Lizard CSV has no header; quoted function names may contain commas and quotes.
+function csvRows(text) {
+  const rows = [];
+  let row = [], field = '', quoted = false;
+  for (let index = 0; index < text.length; index++) {
+    const char = text[index];
+    if (char === '"' && quoted && text[index+1] === '"') { field += '"'; index++; continue; }
+    if (char === '"') { quoted = !quoted; continue; }
+    if (char === ',' && !quoted) { row.push(field); field = ''; continue; }
+    if (char === '\n' && !quoted) { row.push(field.replace(/\r$/, '')); rows.push(row); row = []; field = ''; continue; }
+    field += char;
+  }
+  if (quoted) throw new Error('Unterminated lizard CSV quote');
+  if (field || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+try {
+  const files = readFileSync(0, 'utf8').split(/\r?\n/).filter(Boolean);
+  if (!files.length) process.exit(0);
+  const absolute = new Map(files.map(file => [resolve(file), file]));
+  const result = spawnSync('uvx', ['lizard', '--csv', '-i', '-1', ...absolute.keys()], {encoding:'utf8', timeout:110000, maxBuffer:16 * 1024 * 1024});
+  if (result.error || result.status !== 0) throw new Error(result.error?.message || result.stderr.trim() || `lizard exit ${result.status}`);
+  const worst = new Map();
+  for (const row of csvRows(result.stdout)) {
+    if (row.length !== 11) throw new Error('Invalid lizard CSV columns');
+    const file = absolute.get(resolve(row[6]));
+    const ccn = Number(row[1]), line = Number(row[9]);
+    if (!file || !Number.isFinite(ccn) || ccn < 1 || !Number.isInteger(line) || line < 1) throw new Error('Invalid lizard CSV values');
+    if (!worst.has(file) || ccn > worst.get(file).raw) worst.set(file, {file,metric:'complexity',value:Math.min(1,5/ccn),raw:ccn,line,fn:row[7]});
+  }
+  for (const report of worst.values()) console.log(JSON.stringify(report));
+  if (result.stderr.trim()) console.error(result.stderr.trim());
+} catch (error) {
+  console.error(error.message);
+  process.exitCode = 1;
+}
