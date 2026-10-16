@@ -6,6 +6,7 @@ import { join } from "node:path";
 import type {
   ArchitectureAssessment,
   ArchitectureInspection,
+  AssessmentMeasurements,
 } from "./domain.ts";
 
 function escapeHtml(text: string): string {
@@ -17,6 +18,35 @@ function escapeHtml(text: string): string {
     .replaceAll("'", "&#39;");
 }
 
+function measurementText(measurements: AssessmentMeasurements): string[] {
+  if ("qualifying" in measurements) {
+    return [
+      `Qualifying scenarios: ${measurements.qualifying}/${measurements.denominator}`,
+      ...measurements.scenarios.map(
+        (scenario) => `${scenario.id}: ${scenario.status}; ${scenario.reason}`
+      ),
+    ];
+  }
+
+  if ("independentPolicySites" in measurements) {
+    return [
+      `Independent policy sites: ${measurements.independentPolicySites}; calls: ${measurements.calls}; confirmed rules: ${measurements.denominator}`,
+      `Proposed rules: ${measurements.proposedRules}; unclear rules: ${measurements.unclearRules}`,
+      "Affected owners and trust boundaries remain separate from locality score; see reviewed inventory below",
+    ];
+  }
+
+  if ("violations" in measurements) {
+    return [
+      `Violations: ${measurements.violations}; eligible edges: ${measurements.eligibleEdges}`,
+    ];
+  }
+
+  return [
+    `Caller obligations: domain ${measurements.domainObligations}; avoidable ${measurements.avoidableObligations}`,
+  ];
+}
+
 export function architectureText(result: ArchitectureInspection): string {
   const { assessment, freshness } = result;
   const { measurements, input } = assessment;
@@ -25,7 +55,7 @@ export function architectureText(result: ArchitectureInspection): string {
     return [
       `Architecture ${assessment.id}: seam-integrity (automated)`,
       `Modules: ${input.modules.map((module) => module.id).join(", ")}; freshness: ${freshness.status}`,
-      `Violations: ${measurements.violations}; eligible edges: ${measurements.eligibleEdges}; coverage: ${assessment.analysis?.status ?? "unavailable"}`,
+      `Violations: ${measurements.violations}; eligible edges: ${measurements.eligibleEdges}; coverage: ${assessment.analysis && "status" in assessment.analysis ? assessment.analysis.status : "unavailable"}`,
       `Rubric: ${assessment.observation.rubric} (experimental); raw violations are targets, no architecture grade`,
       ...assessment.limitations.map(
         (limitation) => `Limitation: ${limitation}`
@@ -46,15 +76,7 @@ export function architectureText(result: ArchitectureInspection): string {
     `Architecture ${assessment.id}: ${assessment.dimension} (${assessment.method}, ${input.review.status})`,
     `Module: ${input.module.id}; freshness: ${freshness.status}`,
     `Value: ${measurements.value ?? "unavailable"}; assessed ${measurements.assessed}/${measurements.denominator}`,
-    ...("independentPolicySites" in measurements
-      ? [
-          `Independent policy sites: ${measurements.independentPolicySites}; calls: ${measurements.calls}; confirmed rules: ${measurements.denominator}`,
-          `Proposed rules: ${measurements.proposedRules}; unclear rules: ${measurements.unclearRules}`,
-          "Affected owners and trust boundaries remain separate from locality score; see reviewed inventory below",
-        ]
-      : [
-          `Caller obligations: domain ${measurements.domainObligations}; avoidable ${measurements.avoidableObligations}`,
-        ]),
+    ...measurementText(measurements),
     `Rubric: ${assessment.observation.rubric} (experimental)`,
     ...assessment.limitations.map((limitation) => `Limitation: ${limitation}`),
     ...freshness.changed.map((file) => `Changed supporting evidence: ${file}`),

@@ -31,8 +31,16 @@ import {
   localityMeasurements,
 } from "./locality.ts";
 import { parseArchitectureId, parseAssessment } from "./parse.ts";
-import type { SeamAnalysis, SeamAssessmentInput } from "./seam-domain.ts";
+import type { SeamAnalysis } from "./seam-domain.ts";
 import { seamMeasurements } from "./seams.ts";
+import type { TestabilityAnalysis } from "./testability.ts";
+import {
+  testabilityEvidence,
+  testabilityLimitations,
+  testabilityMeasurements,
+} from "./testability.ts";
+
+type AssessmentAnalysis = SeamAnalysis | TestabilityAnalysis;
 
 const ASSET_DIRECTORY = import.meta.dirname;
 
@@ -105,6 +113,15 @@ function revision(root: string): string | null {
 }
 
 function referencedPaths(input: AssessmentInput): string[] {
+  if (input.dimension === "behavioural-testability") {
+    return [
+      ...input.module.members,
+      ...input.module.interface,
+      ...input.evidence,
+      ...testabilityEvidence(input),
+    ];
+  }
+
   if (input.dimension === "seam-integrity") {
     return [
       ...input.modules.flatMap((module) => [
@@ -152,7 +169,23 @@ function interfaceLimitations(input: InterfaceAssessmentInput): string[] {
   return limitations;
 }
 
-function limitationsFor(input: AssessmentInput): string[] {
+function limitationsFor(
+  input: AssessmentInput,
+  analysis?: AssessmentAnalysis
+): string[] {
+  if (input.dimension === "behavioural-testability") {
+    return [
+      ...input.limitations,
+      ...testabilityLimitations(
+        input,
+        analysis && "kind" in analysis ? analysis : undefined
+      ),
+      ...(input.review.status === "provisional"
+        ? ["Provisional suggestion; review not accepted"]
+        : []),
+    ];
+  }
+
   if (input.dimension === "seam-integrity") {
     return [...input.limitations];
   }
@@ -175,10 +208,17 @@ function limitationsFor(input: AssessmentInput): string[] {
 
 function measurements(
   input: AssessmentInput,
-  analysis?: SeamAnalysis
+  analysis?: AssessmentAnalysis
 ): AssessmentMeasurements {
+  if (input.dimension === "behavioural-testability") {
+    return testabilityMeasurements(
+      input,
+      analysis && "kind" in analysis ? analysis : undefined
+    );
+  }
+
   if (input.dimension === "seam-integrity") {
-    if (!analysis) {
+    if (!analysis || !("tool" in analysis)) {
       throw new Error("Automated seam analysis is CLI-owned");
     }
 
@@ -358,7 +398,7 @@ export function readAssessment(
     ...result.observation.assets,
   ]);
 
-  if (result.analysis?.tool) {
+  if (result.analysis && "tool" in result.analysis && result.analysis.tool) {
     verifySnapshots(state, result.analysis.tool.assets);
   }
 
@@ -373,12 +413,15 @@ interface AssessmentCoverage {
 
 function coverageFor(
   input: AssessmentInput,
-  analysis: SeamAnalysis | undefined
+  analysis: AssessmentAnalysis | undefined
 ): AssessmentCoverage {
   if (input.dimension === "seam-integrity") {
     return {
       assessed:
-        analysis?.analysedFiles.filter((file) =>
+        (analysis && "tool" in analysis
+          ? analysis
+          : undefined
+        )?.analysedFiles.filter((file) =>
           input.modules.some((module) => module.members.includes(file))
         ).length ?? 0,
       total: input.modules.flatMap((module) => module.members).length,
@@ -386,31 +429,42 @@ function coverageFor(
   }
 
   return {
-    assessed: measurements(input).assessed,
-    total: measurements(input).denominator,
+    assessed: measurements(input, analysis).assessed,
+    total: measurements(input, analysis).denominator,
   };
 }
 
-function evaluateAssessment(
-  input: AssessmentInput,
-  evaluate: ((input: SeamAssessmentInput) => SeamAnalysis) | undefined
-): SeamAnalysis | undefined {
-  if (input.dimension !== "seam-integrity") {
+function evaluateAssessment<Input extends AssessmentInput>(
+  input: Input,
+  evaluate: ((input: Input) => AssessmentAnalysis) | undefined
+): AssessmentAnalysis | undefined {
+  if (
+    input.dimension !== "seam-integrity" &&
+    input.dimension !== "behavioural-testability"
+  ) {
     return undefined;
   }
 
   if (!evaluate) {
-    throw new Error("Automated seam analysis is CLI-owned");
+    throw new Error(
+      "Automated evaluation is CLI-owned; use architecture analyse or testability"
+    );
   }
 
-  return evaluate(input);
+  const analysis = evaluate(input);
+
+  if ((input.dimension === "seam-integrity") !== "tool" in analysis) {
+    throw new Error("Evaluator result does not match assessment dimension");
+  }
+
+  return analysis;
 }
 
-export function recordAssessment(
+export function recordAssessment<Input extends AssessmentInput>(
   root: string,
   state: string,
-  input: AssessmentInput,
-  evaluate?: (input: SeamAssessmentInput) => SeamAnalysis
+  input: Input,
+  evaluate?: (input: Input) => AssessmentAnalysis
 ): ArchitectureAssessment {
   if (!existsSync(join(state, "config.json"))) {
     throw new Error("Run keepup init before recording architecture evidence");
@@ -448,9 +502,7 @@ export function recordAssessment(
   archive(root, state, before);
   archive(ASSET_DIRECTORY, state, capturedAssets);
 
-  if (analysis?.tool) {
-    archive(analysis.tool.directory, state, analysis.tool.assets);
-  }
+  archiveAnalysis(state, analysis);
 
   if (
     JSON.stringify(before) !== JSON.stringify(manifest(root)) ||
@@ -474,7 +526,10 @@ export function recordAssessment(
     id: input.id,
     input,
     inputDigest,
-    limitations: [...limitationsFor(input), ...(analysis?.limitations ?? [])],
+    limitations: [
+      ...limitationsFor(input, analysis),
+      ...(analysis && "tool" in analysis ? analysis.limitations : []),
+    ],
     measurements: measurements(input, analysis),
     method: input.dimension === "seam-integrity" ? "automated" : "reviewed",
     observation: {
@@ -546,10 +601,21 @@ export function inspectAssessment(
   }
 
   if (
-    assessment.analysis?.tool &&
+    assessment.analysis &&
+    "tool" in assessment.analysis &&
+    assessment.analysis.tool &&
     analyserToolChanged(assessment.analysis.tool)
   ) {
     changed.add("analyser assets or version");
+  }
+
+  if (
+    assessment.analysis &&
+    "kind" in assessment.analysis &&
+    (assessment.analysis.environment.node !== process.version ||
+      assessment.analysis.environment.platform !== process.platform)
+  ) {
+    changed.add("test execution environment");
   }
 
   return {
@@ -570,4 +636,13 @@ export function listAssessments(state: string): string[] {
         .map((file) => file.slice(0, -5))
         .toSorted()
     : [];
+}
+
+function archiveAnalysis(
+  state: string,
+  analysis: AssessmentAnalysis | undefined
+): void {
+  if (analysis && "tool" in analysis && analysis.tool) {
+    archive(analysis.tool.directory, state, analysis.tool.assets);
+  }
 }

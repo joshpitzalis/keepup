@@ -55,3 +55,7 @@ Keep reviewed architecture judgements separate from file scores and learner unde
 For reviewed change locality, use the same workflow's Change locality section. Confirm
 semantic equivalence before accepting rules; preserve required validation at each trust
 boundary. Affected owners and Git co-change never substitute for independent-site evidence.
+For behavioural testability, execute existing selected tests with `architecture testability
+<json>` and inspect stored results. Review outcome assertions through the intended interface;
+retain dependency compatibility checks and fixed scenario inventories. Missing tests are
+separate preparation work: never author tests to make a learner exercise pass.

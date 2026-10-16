@@ -11,6 +11,7 @@ import {
   listAssessments,
   recordAssessment,
 } from "./storage.ts";
+import { executeTestability } from "./testability-run.ts";
 
 export function architectureCommand(
   root: string,
@@ -19,18 +20,8 @@ export function architectureCommand(
 ): string {
   const [command, value] = args;
 
-  if (command === "analyse") {
-    const input = parseAssessment(JSON.parse(value ?? ""));
-
-    if (input.dimension !== "seam-integrity") {
-      throw new Error("analyse requires seam-integrity definition");
-    }
-
-    return JSON.stringify(
-      recordAssessment(root, state, input, (definition) =>
-        analyseSeams(root, definition, process.env.KEEPUP_ANALYSER_DIRECTORY)
-      )
-    );
+  if (command === "testability" || command === "analyse") {
+    return evaluateCommand(root, state, command, value);
   }
 
   if (command === "record") {
@@ -86,6 +77,43 @@ export function architectureCommand(
   }
 
   throw new Error(
-    "Usage: keepup architecture record <json> | analyse <json> | list | inspect <id> [--json] | report <id> [--no-open] | compare <before> <after> [--json] | compare-report <before> <after> [--no-open]"
+    "Usage: keepup architecture record <json> | analyse <json> | testability <json> | list | inspect <id> [--json] | report <id> [--no-open] | compare <before> <after> [--json] | compare-report <before> <after> [--no-open]"
   );
+}
+
+function evaluateCommand(
+  root: string,
+  state: string,
+  command: string,
+  value: string | undefined
+): string {
+  if (command === "testability") {
+    const input = parseAssessment(JSON.parse(value ?? ""));
+
+    if (input.dimension !== "behavioural-testability") {
+      throw new Error("Expected behavioural-testability input");
+    }
+
+    return JSON.stringify(
+      recordAssessment(root, state, input, (candidate) =>
+        executeTestability(root, candidate)
+      )
+    );
+  }
+
+  if (command === "analyse") {
+    const input = parseAssessment(JSON.parse(value ?? ""));
+
+    if (input.dimension !== "seam-integrity") {
+      throw new Error("analyse requires seam-integrity definition");
+    }
+
+    return JSON.stringify(
+      recordAssessment(root, state, input, (definition) =>
+        analyseSeams(root, definition, process.env.KEEPUP_ANALYSER_DIRECTORY)
+      )
+    );
+  }
+
+  throw new Error("Unknown evaluation command");
 }

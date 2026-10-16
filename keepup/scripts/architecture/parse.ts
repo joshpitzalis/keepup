@@ -19,6 +19,11 @@ import {
   parseModule,
 } from "./parse-common.ts";
 import { parseSeamAssessment } from "./seam-parse.ts";
+import type {
+  ExistingTest,
+  TestabilityAssessmentInput,
+  TestabilityScenario,
+} from "./testability.ts";
 
 export { parseArchitectureId, parseModule } from "./parse-common.ts";
 
@@ -96,6 +101,10 @@ function parseScenario(value: unknown): InterfaceScenario {
 
 export function parseAssessment(value: unknown): AssessmentInput {
   const source = object(value);
+
+  if (source.dimension === "behavioural-testability") {
+    return parseTestabilityAssessment(source);
+  }
 
   if (source.dimension === "change-locality") {
     return parseLocalityAssessment(source);
@@ -294,5 +303,141 @@ function parseLocalityAssessment(
     module: parseModule(source.module),
     review: parseReview(source.review),
     rules,
+  };
+}
+
+function parseExistingTest(value: unknown): ExistingTest {
+  const source = object(value);
+  const file = text(source.file);
+  const name = text(source.name);
+
+  if (
+    file.startsWith("-") ||
+    file.startsWith("/") ||
+    file.split(/[\\/]/u).includes("..") ||
+    /[\r\n#]/u.test(name)
+  ) {
+    throw new Error(
+      "Existing tests require relative source paths and a single-line top-level case name without #"
+    );
+  }
+
+  return { file, name };
+}
+
+function parseTestabilityScenario(value: unknown): TestabilityScenario {
+  const source = object(value);
+  const assertion = object(source.assertion);
+  const dependency = object(source.dependency);
+  const { kind } = dependency;
+
+  if (
+    kind !== "pure" &&
+    kind !== "local-substitute" &&
+    kind !== "owned-remote" &&
+    kind !== "true-external"
+  ) {
+    throw new Error("Unknown test dependency strategy");
+  }
+
+  if (assertion.status !== "reviewed" && assertion.status !== "provisional") {
+    throw new Error("Assertion review status required");
+  }
+
+  if (
+    assertion.kind !== "observable-outcome" &&
+    assertion.kind !== "interaction-only"
+  ) {
+    throw new Error("Assertion outcome classification required");
+  }
+
+  if (
+    typeof assertion.throughInterface !== "boolean" ||
+    typeof dependency.compatibilityRequired !== "boolean"
+  ) {
+    throw new TypeError(
+      "Explicit interface and compatibility decisions required"
+    );
+  }
+
+  if (!Array.isArray(source.tests) || !Array.isArray(source.compatibility)) {
+    throw new TypeError("Existing tests and compatibility inventory required");
+  }
+
+  return {
+    assertion: {
+      evidence: strings(assertion.evidence),
+      explanation: text(assertion.explanation),
+      kind: assertion.kind,
+      status: assertion.status,
+      throughInterface: assertion.throughInterface,
+    },
+    behaviour: text(source.behaviour),
+    compatibility: source.compatibility.map(parseExistingTest),
+    dependency: {
+      compatibilityRequired: dependency.compatibilityRequired,
+      justification: text(dependency.justification),
+      kind,
+    },
+    failureInvariant: text(source.failureInvariant),
+    id: parseArchitectureId(source.id),
+    intendedInterface: text(source.intendedInterface),
+    tests: source.tests.map(parseExistingTest),
+  };
+}
+
+function parseTestabilityAssessment(
+  source: Record<string, unknown>
+): TestabilityAssessmentInput {
+  const allowed = new Set([
+    "id",
+    "dimension",
+    "module",
+    "scenarios",
+    "discovery",
+    "environmentRequirements",
+    "review",
+    "evidence",
+    "exclusions",
+    "limitations",
+  ]);
+
+  if (Object.keys(source).some((key) => !allowed.has(key))) {
+    throw new Error(
+      "Unknown testability field; execution metadata is CLI-owned"
+    );
+  }
+
+  if (source.discovery !== "complete" && source.discovery !== "incomplete") {
+    throw new Error("Explicit testability discovery status required");
+  }
+
+  if (!Array.isArray(source.scenarios)) {
+    throw new TypeError("Fixed testability scenario inventory required");
+  }
+
+  const scenarios = source.scenarios.map(parseTestabilityScenario);
+  uniqueIds(scenarios);
+  const module = parseModule(source.module);
+
+  if (
+    scenarios.some(
+      (scenario) => !module.interface.includes(scenario.intendedInterface)
+    )
+  ) {
+    throw new Error("Scenarios must name a declared intended module interface");
+  }
+
+  return {
+    dimension: "behavioural-testability",
+    discovery: source.discovery,
+    environmentRequirements: strings(source.environmentRequirements),
+    evidence: strings(source.evidence),
+    exclusions: strings(source.exclusions),
+    id: parseArchitectureId(source.id),
+    limitations: strings(source.limitations),
+    module,
+    review: parseReview(source.review),
+    scenarios,
   };
 }
