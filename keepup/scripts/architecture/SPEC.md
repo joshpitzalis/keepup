@@ -1,13 +1,11 @@
 # Architecture assessments and exercises
 ## Problem and boundary
-
 File health cannot describe architectural friction or prove learner understanding.
 Keep five independent dimensions, condition/readiness/priority and learning evidence
 separate in the evidence records. The optional parent `code-health.ts` combines current
 dimension values for the approved init summary; raw records and exercise gates stay independent.
 No automatic refactoring, rewritten history or hosted service.
 The resolved existing learning-state directory includes legacy `.cogdebt` installations.
-
 ## Shared evidence and presentation
 - `commands.ts` connects explicit local CLI operations; reads never rerun evaluators/tests.
 - `domain.ts` names records and measurements; `parse.ts`/`parse-common.ts` reconstruct inputs.
@@ -20,9 +18,7 @@ The resolved existing learning-state directory includes legacy `.cogdebt` instal
   escaping captured source/rubric bytes. Reports are derived, never learning targets.
 - Empty/unassessable inventories are unavailable/not-applicable, never perfect scores.
   Reviewed judgements retain provenance, disagreements, coverage and limitations.
-
 ## Dimensions
-
 - Interface leverage: reviewed fixed scenario ratings plus raw domain/avoidable caller
   obligations. `interface-leverage-rubric.md` fixes the experimental judgement rules;
   no line-count proxy or catch-all API automatically proves depth.
@@ -99,3 +95,7 @@ The resolved existing learning-state directory includes legacy `.cogdebt` instal
 - `exercise-reshape-candidate.ts` inventories declared new/missing source before staging;
   final credit requires tracking, full attribution and unchanged tests. Cross-role
   single-file collapse stays unsupported. `exercise-comparison.ts` exposes mapped evidence.
+
+- `exercise-capabilities.ts` owns installed completion support; status/health expose
+  it independently of measurement counts. Opportunity inspection reports current
+  practice readiness without rewriting captured recommendations or granting credit.

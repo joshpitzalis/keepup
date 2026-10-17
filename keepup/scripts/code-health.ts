@@ -9,6 +9,7 @@ import {
 import { join, resolve } from "node:path";
 
 import type { ArchitectureInspection } from "./architecture/domain.ts";
+import { exerciseCapabilities } from "./architecture/exercise-capabilities.ts";
 import { strings } from "./architecture/parse-common.ts";
 import { inspectAssessment, manifest } from "./architecture/storage.ts";
 import type { Status } from "./keepup.ts";
@@ -187,6 +188,11 @@ export function codeHealth(
 
   const report = {
     assessedDimensions: available.length,
+    attemptScope:
+      "File-health measurement and selected saved architecture observations; blocked attempts without saved observations remain in the assessment scope document",
+    attemptedDimensions:
+      1 +
+      dimensions.filter((dimension) => dimension.assessments.length > 0).length,
     codeHealth: available.length
       ? available.reduce((sum, score) => sum + score, 0) / available.length
       : null,
@@ -208,6 +214,7 @@ export function codeHealth(
       },
       ...dimensions,
     ],
+    exerciseCapabilities,
     fileCoverage: status.summary.scoredLineCoverage,
     fileMetrics: status.metrics,
     files: status.files.map(({ file, lines, metrics, codeScore }) => ({
@@ -217,6 +224,7 @@ export function codeHealth(
       metrics,
     })),
     formula: "equal-dimension-mean-v1",
+    measuredDimensions: available.length,
     source: before,
     time: new Date().toISOString(),
     totalDimensions: 6,

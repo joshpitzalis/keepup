@@ -2,21 +2,79 @@
 
 Use for `/up kata`, a hint request during a kata, or abandonment. Read the evidence discipline in the parent skill. The CLI path below is the installed skill's `scripts/keepup.mjs`; `<CLI>` is a placeholder, not a shell executable. Use the main checkout returned by `init` for inspection and all kata commands.
 
-Before selecting a file metric, consider current architectural findings and the
-learner's mission. A useful confirmed duplicated policy can use the supported
-[change-locality exercise](architecture-exercise.md#reviewed-change-locality-target),
-with frozen source, representative behaviour, reviewed consolidation and unchanged
-regression checks. It does not require improved complexity. Missing confirmed
-policy evidence means preparation or deferral, never invented practice credit.
+## Recommend one useful problem
 
-## Choose one safe exercise
+1. Run `status --json`, `architecture exercise list` and `architecture capabilities`.
+   Read `<state>/MISSION.md` and `<state>/config.json`. Inspect listed architecture
+   contexts; handle an active ordinary kata or started architecture exercise first:
+   resume its frozen contract or record the learner's explicit abandonment. Never
+   retarget it. A draft/preparation is not delivered teaching or an active exercise.
+2. Read the current health report/selected assessment IDs, `architecture list` and
+   relevant `architecture inspect <id> --json` results. Consider all six dimensions:
+   file health (available condition metrics), interface leverage (concrete caller
+   obligation), seam integrity including cycles (actual graph findings), change
+   locality (confirmed equivalent independent policy sites), navigability (the same
+   exact comprehension question and necessary readable trail), and behavioural
+   testability (a missing observable scenario through its intended interface).
+   Missing/unavailable/stale evidence is a limitation, never zero findings or health.
+3. Inspect the source, callers, imports, behavioural tests, actual learning evidence
+   and previous ordinary/architecture exercises. Let the mission or actual next
+   change justify the problem. Prefer one small useful improvement that fits one
+   sitting. Top debt files are leads, not a mandatory destination. Between similarly
+   suitable problems avoid repeating the previous module/technique; if only a repeat
+   is useful, explain the limit and defer unless the learner requests a repeat.
+   Never manufacture a target to rotate dimensions. Follow a dark dependency when
+   it offers the safer useful exercise; otherwise orient the learner and explain
+   the deferral. Keep target files closed for the learner until recall is complete.
+4. Recommend **one** bounded problem: name its dimension, behaviour or exact question,
+   logical subject, concrete source findings, mission relevance, intended improvement,
+   allowed source/test scope, verification approach, invariants, selected guardrails,
+   tradeoffs and stop condition. A smaller rating/count alone is not improvement.
+   Keep necessary trust-boundary validation and intrinsic domain choices visible.
+5. Route using this installation's capability result, not its assessment support.
+   A supported family still needs target preparation: clean scoped files, an existing
+   full behavioural command, sufficient current accepted evidence and the selected
+   evaluator's prerequisites. Require complete supported graph evidence for seam or
+   cycle work and every graph guardrail. An unrelated unavailable graph does not
+   block a reviewed target that does not use it; explicitly retain unmeasured seam
+   safety. Use `architecture opportunity inspect` for current applicability rather
+   than treating captured historical readiness as current. Never downgrade a useful
+   architectural problem into complexity merely because its evidence is missing.
+6. If evidence/support is unavailable, offer one concrete assessment or preparation
+   activity, explicit deferral, or no useful exercise with the actual reason. Do not
+   log a start, exposure, quiz, practice or explain-back for a recommendation alone.
+   Check installed capabilities again after workflow updates; existing contexts keep
+   their original frozen contracts. Assessment attempts, measured dimensions, supported
+   families and target readiness are four separate facts. Health's legacy
+   `assessedDimensions` is the measured count; `attemptedDimensions` counts selected
+   saved observations plus file-health measurement, with blocked unsaved attempts
+   retained in the scope document. No dimension count proves this target ready.
 
-1. Run `status --json`; read `<state>/MISSION.md` and `<state>/config.json`. If a kata is active in `status.katas`, offer to resume it or record the learner's explicit abandonment before starting another. If the existing test command is unset, ask for it and wait. Preserve unrelated edits.
-2. Inspect the top ten debt files, their callers, imports and metrics. The agent may inspect code privately to prepare; ask the learner to keep target files closed until the pre-quiz is complete. Prefer small functions, few callers and one sitting of work. Follow a target's dark dependency first when it offers a safe measured exercise; otherwise orient the learner about that dependency and explain why the candidate was deferred. Among similarly sized/debt-ranked candidates prefer mission relevance. Exclude the last kata's module and technique. If that leaves no safe target, explain the constraint and offer no exercise unless the learner explicitly requests a repeat.
-3. Restrict to level 1 rename/extract or level 2 control-flow simplification. Choose an available metric with a current score **strictly below** a plausible numeric goal in `(0, 1]`. Measure the actual goal, not a proxy: rename alone and guard clauses often leave complexity unchanged. Use extraction only where it can improve the worst-function score without moving complexity into another function. If no exercise meets the constraints, explain that no safe measured target exists; record no start.
-4. Inspect both staged and unstaged changes with `git status --porcelain -- <files>`. All proposed kata files must be clean. Review callers and existing tests; choose the minimum complete file set the learner may need to edit. Suggest `git switch -c keepup/kata-<short-topic>`; leave branch creation to the learner unless requested. Capture the chosen paths, current commit and content hashes for collision checks.
+For a supported architectural recommendation, follow
+[the architecture exercise lifecycle](architecture-exercise.md) from preparation
+through pre-quiz, start, learner edits, assess, post-quiz, explain-back and completion.
+Do not use the ordinary start/submit payloads below. The installed locality contract
+requires actual reviewed consolidation and preserved validation; unchanged complexity
+can pass. Unsupported families remain assessment/preparation work until the installed
+completion workflow supports them. The learner writes all target edits and any tests
+explicitly permitted by that workflow; the teaching agent never supplies them.
 
-Do not choose a target by debt alone. Complete this step only when the scope, callers, test command, target metric and achievable goal are known.
+## Prepare an ordinary file-health exercise
+
+Use this route only when file health is the useful selected problem. Restrict to
+level 1 rename/extract or level 2 control-flow simplification. Choose an available
+metric with a current score **strictly below** an achievable numeric goal in `(0, 1]`.
+Measure the goal itself: rename and guard clauses often leave complexity unchanged;
+extraction must improve the worst-function score without moving the same problem.
+If no useful measured target meets the constraints, explain that and record no start.
+
+Check the existing test command, callers and minimum complete edit scope. If the
+command is unset, ask for it and wait. Inspect both staged and unstaged changes with
+`git status --porcelain -- <files>`; all proposed ordinary kata files must be clean.
+Preserve unrelated edits. Suggest `git switch -c keepup/kata-<short-topic>`; leave
+branch creation to the learner unless requested. Capture chosen paths, current commit
+and content hashes for collision checks. Continue only when scope, callers, tests,
+target metric and achievable goal are known.
 
 ## Recall before opening
 

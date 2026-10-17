@@ -8,6 +8,7 @@ import type {
   AssessmentMeasurements,
   ManifestEntry,
 } from "./domain.ts";
+import { exerciseCapabilities } from "./exercise-capabilities.ts";
 import { parseOpportunity } from "./opportunity-parse.ts";
 import { parseArchitectureId } from "./parse.ts";
 import { writeArchitectureReport } from "./report.ts";
@@ -297,6 +298,26 @@ function verifyOpportunityReferences(
   }
 }
 
+function opportunityCapability(
+  input: OpportunityInput,
+  assessments: readonly ArchitectureInspection[]
+) {
+  const selected = input.rawTarget
+    ? assessments.filter(
+        (inspection) =>
+          inspection.assessment.id === input.rawTarget?.assessmentId
+      )
+    : assessments;
+
+  const dimensions = [
+    ...new Set(selected.map((inspection) => inspection.assessment.dimension)),
+  ];
+
+  const dimension = dimensions.length === 1 ? dimensions[0] : null;
+
+  return exerciseCapabilities.find((entry) => entry.dimension === dimension);
+}
+
 function opportunityTarget(
   input: OpportunityInput,
   assessments: readonly ArchitectureInspection[]
@@ -503,7 +524,8 @@ export function recordOpportunity(
         : []
     ),
     decision,
-    exerciseAvailable: true,
+    exerciseAvailable:
+      opportunityCapability(input, assessments)?.supported ?? false,
     id: input.id,
     input,
     inputDigest,
@@ -556,6 +578,12 @@ export function recordOpportunity(
 /* oxlint-enable anti-slop/no-runtime-typeof */
 
 export interface OpportunityInspection {
+  readonly practice: {
+    readonly dimension: string | null;
+    readonly supported: boolean;
+    readonly readiness: "unsupported" | "blocked" | "requires-preparation";
+    readonly reasons: readonly string[];
+  };
   readonly opportunity: ArchitectureOpportunity;
   readonly freshness: {
     readonly status: "current" | "stale";
@@ -589,18 +617,51 @@ export function inspectOpportunity(
     opportunity.observation.configHash !==
       architectureDigest(readFileSync(join(state, "config.json")));
 
+  const capability = opportunityCapability(
+    opportunity.input,
+    opportunity.assessments
+  );
+
+  const supported = capability?.supported ?? false;
+
+  let readiness: OpportunityInspection["practice"]["readiness"] = supported
+    ? "requires-preparation"
+    : "unsupported";
+
+  if (supported && (changed || opportunity.decision !== "refactor")) {
+    readiness = "blocked";
+  }
+
+  const reasons = [
+    ...opportunity.reasons,
+    ...(changed ? ["Refresh supporting evidence before acting."] : []),
+    ...(supported
+      ? []
+      : [
+          "Selected family has no installed completion workflow; assess, prepare, defer or choose no exercise.",
+        ]),
+  ];
+
   return {
     applicability: {
       decision:
-        changed && opportunity.decision === "refactor"
+        (changed || !supported) && opportunity.decision === "refactor"
           ? "preparation"
           : opportunity.decision,
-      reasons: changed
-        ? [...opportunity.reasons, "Refresh supporting evidence before acting."]
-        : opportunity.reasons,
+      reasons,
     },
     freshness: { staleAssessments, status: changed ? "stale" : "current" },
     opportunity,
+    practice: {
+      dimension: capability?.dimension ?? null,
+      readiness,
+      reasons: [
+        ...reasons,
+        ...(capability?.requirements ?? []),
+        "A recommendation does not establish executable readiness. The selected target must pass preparation; tests have not run here.",
+      ],
+      supported,
+    },
   };
 }
 
@@ -614,6 +675,7 @@ function opportunityText(
     `Captured recommendation: ${record.decision} (${record.strength}; proposed qualitative judgement)`,
     `Current applicability: ${result.applicability.decision}`,
     `Freshness: ${result.freshness.status}`,
+    `Installed practice: ${result.practice.dimension ?? "no selected family"}; supported ${result.practice.supported}; target ${result.practice.readiness}`,
     ...(result.freshness.status === "stale"
       ? [
           "Historical recommendation; refresh supporting evidence before acting.",

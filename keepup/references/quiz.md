@@ -27,3 +27,10 @@
 If no safe code question can be established, explain why and record no quiz. An
 interrupted quiz may record only questions actually answered and graded, never
 invent missing responses or grant practice credit.
+
+When the learner requests an invitation or next-step options, preserve these alternatives:
+“Would you like to take your first quiz to see how well you understand your codebase?
+Run `/up quiz`.” Then: “Or skip this introductory quiz and start `/up kata`.” On its
+own line: “You can also use `/up on` next time you have an agent working.” Use `$up`
+in Codex and the installed skill name when different. These invitations do not append
+to the compact init summary and never make a quiz a prerequisite for kata/on.
