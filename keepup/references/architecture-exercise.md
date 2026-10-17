@@ -1,15 +1,15 @@
 # Complete a learner-owned architecture exercise
 
-Use this opt-in workflow for a deterministic seam repair on existing files.
+Use this opt-in workflow for a deterministic seam repair or reviewed change-locality consolidation on existing files.
 Ordinary small katas keep their existing rules. Work in the main checkout returned
 by `init`; linked worktrees share that source and its resolved `.keepup` or legacy
 `.cogdebt` directory. Never change an existing active kata or its scoring setup.
 
 ## Choose and freeze before asking questions
 
-Inspect a **current, complete automated seam assessment** and its actual callers,
+For seam repairs, inspect a **current, complete automated seam assessment** and its actual callers,
 implementation and tests. A reviewed rating, opportunity or partial graph cannot
-start an exercise. Opportunity selection is optional: start directly from a useful
+start a seam repair. Opportunity selection is optional: start directly from a useful
 private import, forbidden direction, interface re-export or prohibited cycle.
 Choose a bounded repair whose complete raw target can plausibly reach zero while
 preserving behaviour. If that cannot be justified, offer preparation or no exercise.
@@ -59,6 +59,41 @@ Without an explicit transformation, exercises cannot add, delete or move members
 Use the reviewed reshaping contract below for planned changes. Preserve unrelated
 edits. Keep the returned preparation
 and its CLI-owned `quizPrefix`; retries never replace this original baseline.
+
+## Reviewed change-locality target
+
+A named confirmed policy can instead use `target:{kind:"change-locality",ruleId,goal:1}`.
+Prepare against its current reviewed `change-locality` assessment, with confirmed
+semantic equivalence, at least two independent implementation sites, representative
+change scenarios and explicit trust-boundary sites. Freeze all original site IDs,
+files, policy meaning, module and scenarios. Include every site in `files` or
+`callers`; supply existing positive and negative tests for necessary validation.
+Calls reference a surviving policy site's ID through `implementation`; they do not
+count as independent policy implementations. Complexity may remain unchanged.
+An unrelated partial graph does not block this target or establish seam safety.
+Graph guardrails and source reshaping remain unavailable for this reviewed family;
+choose a supported target or defer those requirements explicitly before preparation.
+
+After learner edits, inspect the actual original archived source, candidate source,
+callers and diff. Record a new current reviewed locality assessment through
+`architecture record`; retain all original sites (converted calls stay inventoried),
+policy meaning and representative scenarios. Provisional or disputed evidence is
+incomplete. On `exercise assess`, add `reviewedAssessmentId` and:
+
+```json
+{"semanticReview":{"status":"reviewed","reviewer":"Actual reviewer","rationale":"Actual semantic consolidation rationale","changes":[{"file":"policy.ts","before":"Exact original implementation excerpt","after":"Exact candidate implementation excerpt","rationale":"Why the equivalent policy now delegates"}],"callers":[{"file":"caller.ts","excerpt":"Exact candidate caller excerpt","rationale":"Preserved observable contract"}],"trustBoundaries":[{"siteId":"original-boundary-site","preserved":true,"evidence":"Actual review of retained or delegated validation and positive/negative checks"}]}}
+```
+
+Every changed file and frozen caller needs source evidence; every original trust
+boundary needs explicit preservation review (use an empty array only when none
+exist). Excerpts must match captured source bytes. A supplied count, omitted site,
+file merge, identical text or better rating cannot establish semantic consolidation.
+The reviewer must judge the actual change; automated source/test checks cannot
+infer semantic equivalence. The full unchanged suite and selected named witnesses
+run against this same candidate. Failed attempts keep the original baseline.
+After acceptance, use the same actual post questions, explain-back, invariant review
+and internal completion path below. Neither the review nor the assessment alone
+grants practice; delayed verification remains separate.
 
 ## Retrieve actual pre-quiz answers
 

@@ -374,7 +374,7 @@ JSON `freshness.staleAssessments` identifies stale supporting records; separate
 The nested opportunity, its decision and supporting freshness remain historical.
 
 Recommendations do not start exercises. The [opt-in prepare/start workflow](architecture-exercise.md)
-supports a frozen existing-file seam repair, fresh objective checks and actual
+supports a frozen existing-file seam repair or reviewed change-locality consolidation, fresh exact-source checks and actual
 post-quiz/explain-back before internally recorded practice. A recommendation grants no exposure, practice,
 understanding or delayed retention evidence. The learner owns all code and test edits.
 
