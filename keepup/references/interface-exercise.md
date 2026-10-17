@@ -29,8 +29,9 @@ Capture actual pre-quiz answers and start on unchanged clean source as described
 the lifecycle. Explain the obligation and intended outcome without writing the
 refactor or answers. The learner authors every change. Complexity need not improve.
 An unrelated unavailable graph does not establish seam safety or block this target.
-Graph guardrails and reshaping need separately supported preparation; defer those
+Source reshaping needs separately supported preparation; defer those
 requirements explicitly rather than ignoring them.
+Selected graph guards use the lifecycle's complete supporting-evidence contract.
 
 After submission, inspect the original source, candidate source, all callers and
 the actual diff. Record a new reviewed interface assessment against the exact

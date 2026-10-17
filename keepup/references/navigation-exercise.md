@@ -57,8 +57,9 @@ retaining an old rounding helper for other consumers. That fixture increases raw
 policy implementation sites 1→2; it claims navigability improvement only, with no
 locality guardrail selected. If that duplication violates a selected guardrail,
 defer or choose a different exercise. Unchanged complexity can qualify. An unrelated
-unavailable graph neither blocks this target nor establishes seam safety. Graph
-based guardrails and source reshaping need separately supported preparation.
+unavailable graph neither blocks this target nor establishes seam safety. Selected
+graph guards use the shared complete supporting-evidence contract. Source reshaping
+requires separately supported preparation.
 
 After successful assessment, ask different actual post questions on the original
 concepts and retrieve the learner's own explain-back. Review each frozen invariant,

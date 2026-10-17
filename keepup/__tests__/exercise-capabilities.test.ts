@@ -60,7 +60,14 @@ test("copied installation reports supported practice separately from target prep
     capabilities
       .filter((entry: { supported: boolean }) => entry.supported)
       .map((entry: { dimension: string }) => entry.dimension),
-    ["file-health", "seam-integrity", "change-locality"]
+    [
+      "file-health",
+      "interface-leverage",
+      "seam-integrity",
+      "change-locality",
+      "navigability",
+      "behavioural-testability",
+    ]
   );
   assert.ok(
     capabilities.every(

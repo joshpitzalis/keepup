@@ -156,7 +156,7 @@ test("mission-relevant bounded opportunities retain evidence and qualitative rea
   assert.equal(result.strength, "strong");
   assert.equal(result.target.baseline, 1);
   assert.equal(result.target.goal, 0);
-  assert.equal(result.exerciseAvailable, false);
+  assert.equal(result.exerciseAvailable, true);
 
   const inspected = run(
     root,
@@ -171,9 +171,9 @@ test("mission-relevant bounded opportunities retain evidence and qualitative rea
   assert.deepEqual(inspected.opportunity, result);
   assert.equal(inspected.freshness.status, "current");
   assert.equal(inspected.practice.dimension, "interface-leverage");
-  assert.equal(inspected.practice.supported, false);
-  assert.equal(inspected.practice.readiness, "unsupported");
-  assert.equal(inspected.applicability.decision, "preparation");
+  assert.equal(inspected.practice.supported, true);
+  assert.equal(inspected.practice.readiness, "requires-preparation");
+  assert.equal(inspected.applicability.decision, "refactor");
 
   const report = run(
     root,
@@ -257,7 +257,7 @@ test("opportunity rehearsals defer speculative and conflicting work, prepare tes
 
     assert.equal(result.decision, example.decision);
     assert.match(result.reasons.join(" "), example.reason);
-    assert.equal(result.exerciseAvailable, false);
+    assert.equal(result.exerciseAvailable, example.input.findings.length > 0);
 
     if (example.input.id === "speculative") {
       assert.equal(result.strength, "speculative");
@@ -925,6 +925,22 @@ test("semantic opportunities identify one finding family without a numeric targe
   cpSync(dirname(dirname(CLI)), installed, { recursive: true });
   const cli = join(installed, "scripts/keepup.mjs");
 
+  const registry = join(
+    installed,
+    "scripts/architecture/exercise-capabilities.ts"
+  );
+
+  const currentInstallation = readFileSync(registry, "utf-8");
+
+  // Controlled older-installation capability; completion is exercised separately.
+  writeFileSync(
+    registry,
+    currentInstallation.replace(
+      /dimension: "behavioural-testability",[\s\S]*?supported: true/u,
+      'dimension: "behavioural-testability", readiness: "unsupported", requirements: ["Completion unavailable in this installation"], route: null, supported: false'
+    )
+  );
+
   const recorded = run(
     root,
     cli,
@@ -1022,19 +1038,8 @@ test("semantic opportunities identify one finding family without a numeric targe
   );
   assert.equal(inspect(mixed.id).practice.dimension, null);
 
-  const registry = join(
-    installed,
-    "scripts/architecture/exercise-capabilities.ts"
-  );
+  writeFileSync(registry, currentInstallation);
 
-  const original = readFileSync(registry, "utf-8");
-  writeFileSync(
-    registry,
-    original.replace(
-      /dimension: "behavioural-testability",[\s\S]*?supported: false/u,
-      'dimension: "behavioural-testability", readiness: "requires-preparation", requirements: ["Exact scenario preparation"], route: "architecture-exercise", supported: true'
-    )
-  );
   const current = inspect(input.id);
   assert.equal(current.practice.supported, true);
   assert.equal(current.practice.readiness, "blocked");

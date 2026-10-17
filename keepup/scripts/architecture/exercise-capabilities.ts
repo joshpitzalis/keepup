@@ -10,12 +10,12 @@ export const exerciseCapabilities = [
   },
   {
     dimension: "interface-leverage",
-    readiness: "unsupported",
+    readiness: "requires-preparation",
     requirements: [
-      "Assess the concrete caller obligation; installed completion is unavailable",
+      "Reviewed concrete caller obligation, frozen representative scenarios, source/caller ownership improvement and unchanged behavioural tests; existing-file scope",
     ],
-    route: null,
-    supported: false,
+    route: "architecture-exercise",
+    supported: true,
   },
   {
     dimension: "seam-integrity",
@@ -30,27 +30,27 @@ export const exerciseCapabilities = [
     dimension: "change-locality",
     readiness: "requires-preparation",
     requirements: [
-      "Reviewed equivalent policy sites, preserved trust boundaries, source improvement and behavioural tests; existing-file scope without graph guardrails",
+      "Reviewed equivalent policy sites, preserved trust boundaries, source improvement and behavioural tests; existing-file scope",
     ],
     route: "architecture-exercise",
     supported: true,
   },
   {
     dimension: "navigability",
-    readiness: "unsupported",
+    readiness: "requires-preparation",
     requirements: [
-      "Assess the fixed comprehension question and readable trail; installed completion is unavailable",
+      "Same exact question, owner and original trail, reviewed shorter coherent implementation trail and unchanged callers/regressions; existing-file scope",
     ],
-    route: null,
-    supported: false,
+    route: "architecture-exercise",
+    supported: true,
   },
   {
     dimension: "behavioural-testability",
-    readiness: "unsupported",
+    readiness: "requires-preparation",
     requirements: [
-      "Assess the missing outcome scenario and compatibility checks; installed completion is unavailable",
+      "Reviewed unsupported scenario, prepared learner-authored positive/negative tests and required compatibility checks, separate additional execution and immutable original regressions; new paths require frozen learning mappings",
     ],
-    route: null,
-    supported: false,
+    route: "architecture-exercise",
+    supported: true,
   },
 ] as const;
