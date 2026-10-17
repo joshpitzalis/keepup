@@ -41,7 +41,7 @@ npx skills@latest add joshpitzalis/keepup --skill keepup -g -a codex -y
 
 Requires Git, Node.js **24.8 or newer**, and Claude Code or Codex. The bundled complexity scorer also needs [uv](https://docs.astral.sh/uv/getting-started/installation/); it runs lizard through `uvx` on demand. The installer copies the skill bundle; install these prerequisites separately. The skill has no Node runtime dependencies.
 
-Open your project in Claude Code and invoke `/keepup init`, or in Codex and invoke `$keepup init`. Restart your agent if the newly installed skill does not appear. The skill interviews you about why the code matters, success, constraints and exclusions, then records that mission. Keep the mission within one screen. It requests your existing test command when inference cannot find one.
+Open your project in Claude Code and invoke `/keepup init`, or in Codex and invoke `$keepup init`. Restart your agent if the newly installed skill does not appear. Init starts with a mission about understanding consequential changes, making informed product decisions and guiding agents through hands-on learning. It preserves personalised missions and upgrades only the old untouched blank template. After seven days, an occasional learning session offers to tailor the starter mission; declining continues normal use. You can request refinement at any time. An unknown test command can wait until an exercise needs it.
 
 Codex skill discovery and `$` invocation follow the [official OpenAI documentation](https://developers.openai.com/codex/skills). The shared CLI and GitHub installation have been tested; the full teaching workflow in Codex has not yet been verified.
 

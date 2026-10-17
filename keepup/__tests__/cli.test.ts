@@ -123,6 +123,52 @@ function scoringFixture(t: TestContext) {
   return root;
 }
 
+test("init adopts a dated starter mission, upgrades only the untouched template and preserves the trial on rerun", (t) => {
+  const root = fixture(t);
+  const state = join(root, ".keepup");
+
+  const initializeAt = (time: string) => {
+    const result = spawnSync(process.execPath, [cli, "init"], {
+      cwd: root,
+      encoding: "utf-8",
+      env: { ...process.env, KEEPUP_NOW: time },
+    });
+
+    assert.equal(result.status, 0, result.stderr);
+  };
+
+  initializeAt("2026-10-17T12:00:00Z");
+  const mission = readFileSync(join(state, "MISSION.md"), "utf-8");
+  assert.match(mission, /make informed product decisions/u);
+  assert.match(mission, /hands-on code exploration and refactoring/u);
+  assert.match(
+    mission,
+    /keepup-starter-review-after: 2026-10-24T12:00:00.000Z/u
+  );
+  assert.equal(readFileSync(join(state, "events.jsonl"), "utf-8"), "");
+  initializeAt("2026-11-01T12:00:00Z");
+  assert.equal(readFileSync(join(state, "MISSION.md"), "utf-8"), mission);
+
+  writeFileSync(
+    join(state, "MISSION.md"),
+    "# Mission\n\n## Why\n\n## Success\n\n## Constraints\n\n## Exclusions\n"
+  );
+  initializeAt("2026-11-01T12:00:00Z");
+  assert.match(
+    readFileSync(join(state, "MISSION.md"), "utf-8"),
+    /keepup-starter-review-after: 2026-11-08T12:00:00.000Z/u
+  );
+  writeFileSync(
+    join(state, "MISSION.md"),
+    "# Mission\n\n## Why\nMy own reason.\n"
+  );
+  initializeAt("2026-12-01T12:00:00Z");
+  assert.equal(
+    readFileSync(join(state, "MISSION.md"), "utf-8"),
+    "# Mission\n\n## Why\nMy own reason.\n"
+  );
+});
+
 function scorer(root: string, name: string, body: string) {
   const path = join(root, ".keepup/scorers", name);
   writeFileSync(path, `#!/usr/bin/env node\n${body}`);

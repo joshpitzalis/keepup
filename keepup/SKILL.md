@@ -15,10 +15,13 @@ The learner owns target-code edits. Teach, inspect and run the existing tests; n
 
 ## init
 
-1. Run `node <skill>/scripts/keepup.mjs init`. Inspect the returned configuration and scope. If `testCommand` is null, ask which existing test command to use; leave it unset until answered. Explain where the learner can correct include/exclude globs.
-2. Read `MISSION.md` in the returned main-checkout state directory. If substantive answers already exist, preserve them. Otherwise interview for **why**, **success**, **constraints** and **out of scope**. Ask one useful question at a time. Challenge vague goals such as “understand everything” with a concrete prompt: “Which product conversation or code change do you want to handle without opening the code?”
-3. Summarise the learner's answers in those four sections, within one screen. Write only what they supplied or confirmed. An unanswered template is not a completed mission.
-4. Report setup and missing inputs clearly. Recommend committing learning state; the generated map alone is ignored. Rerunning init preserves prior state.
+1. Run `node <skill>/scripts/keepup.mjs init`. Inspect the returned configuration and scope. Leave an unknown test command unset until an exercise needs it, then ask for the existing command.
+2. Read `MISSION.md` in the returned main-checkout state directory. Init supplies a starter mission or preserves an existing personalised mission. Use it immediately. Say setup is ready and the starter mission can be tailored after a week; offer `status` or `on` as the next step. An existing personalised mission needs no interview.
+3. Explain that scope can be edited in `config.json` and recommend committing learning state. Init requires no mission questions. Refine it immediately only when the learner asks.
+
+## Mission refinement
+
+On the first `status` or `on` invocation in a conversation, read [mission refinement](references/mission.md). This is an optional invitation after the starter's first week; continue normal learning when it is not selected or the learner declines.
 
 ## status and map
 

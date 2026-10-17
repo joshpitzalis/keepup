@@ -258,10 +258,42 @@ function initialize() {
       2
     )}\n`
   );
-  createIfMissing(
-    join(state, "MISSION.md"),
-    "# Mission\n\n## Why\n\n## Success\n\n## Constraints\n\n## Exclusions\n"
-  );
+  const missionPath = join(state, "MISSION.md");
+
+  const emptyMission =
+    "# Mission\n\n## Why\n\n## Success\n\n## Constraints\n\n## Exclusions\n";
+
+  if (
+    !existsSync(missionPath) ||
+    readFileSync(missionPath, "utf-8") === emptyMission
+  ) {
+    const reviewAfter = new Date(
+      Date.parse(now()) + 7 * 86_400_000
+    ).toISOString();
+
+    writeFileSync(
+      missionPath,
+      `# Mission
+
+## Why
+Understand this codebase well enough to make informed product decisions, give useful feedback on agents' work, and keep that work aligned with my goals.
+
+## Success
+- Have a clear mental model of consequential changes.
+- Recognise which decisions deserve my attention.
+- Spot gaps between intended and actual behaviour before they become surprises.
+
+## How I'll learn
+Learn alongside ongoing work, without a fixed time commitment. Combine explanations and recall with hands-on code exploration and refactoring.
+
+## Out of scope
+Nothing excluded yet.
+
+<!-- keepup-starter-review-after: ${reviewAfter} -->
+`
+    );
+  }
+
   createIfMissing(join(state, "events.jsonl"), "");
   createIfMissing(join(state, "history.jsonl"), "");
   const bundledScorers = fileURLToPath(new URL("../scorers/", import.meta.url));
@@ -1484,7 +1516,8 @@ try {
   const command = process.argv.at(2);
 
   if (command === "init") {
-    console.log(JSON.stringify(initialize()));
+    mkdirSync(state, { recursive: true });
+    console.log(JSON.stringify(withLock(initialize)));
   } else if (command === "architecture") {
     console.log(
       architectureCommand(root, state, process.argv.slice(3), {
