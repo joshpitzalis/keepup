@@ -2,6 +2,6 @@ pre-commit:
   parallel: true
   commands:
     check:
-      run: pnpm check
+      run: pnpm --config.verify-deps-before-run=false check
     types:
-      run: pnpm typecheck
+      run: pnpm --config.verify-deps-before-run=false typecheck

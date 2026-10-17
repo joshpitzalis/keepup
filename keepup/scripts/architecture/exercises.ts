@@ -24,6 +24,7 @@ import {
   runExerciseTests,
 } from "./exercise-evidence.ts";
 import { validateInterfacePreparation } from "./exercise-interface.ts";
+import { validateNavigationPreparation } from "./exercise-navigation.ts";
 import {
   parseExerciseLifecycle,
   parseExercisePreparation,
@@ -78,6 +79,12 @@ interface CheckedPreparation extends Pick<
   readonly command: string;
 }
 
+const reviewedPreparationValidators = new Map([
+  ["change-locality", validateLocalityPreparation],
+  ["interface-leverage", validateInterfacePreparation],
+  ["navigability", validateNavigationPreparation],
+]);
+
 function validatePreparation(
   root: string,
   state: string,
@@ -88,18 +95,18 @@ function validatePreparation(
   const { assessment } = inspection;
   const declaration = assessment.input;
 
-  if (
-    inspection.freshness.status === "current" &&
-    input.target.kind === "interface-leverage"
-  ) {
-    return validateInterfacePreparation(root, state, input, assessment, host);
-  }
+  const reviewedValidator = reviewedPreparationValidators.get(
+    input.target.kind
+  );
 
-  if (
-    inspection.freshness.status === "current" &&
-    input.target.kind === "change-locality"
-  ) {
-    return validateLocalityPreparation(root, state, input, assessment, host);
+  if (reviewedValidator) {
+    if (inspection.freshness.status !== "current") {
+      throw new Error(
+        "Reviewed exercise requires current exact-source assessment evidence"
+      );
+    }
+
+    return reviewedValidator(root, state, input, assessment, host);
   }
 
   if (
@@ -113,9 +120,12 @@ function validatePreparation(
 
   if (
     input.target.kind === "change-locality" ||
-    input.target.kind === "interface-leverage"
+    input.target.kind === "interface-leverage" ||
+    input.target.kind === "navigability"
   ) {
-    throw new Error("Locality requires current reviewed evidence");
+    throw new Error(
+      "Reviewed exercise requires a supported current target contract"
+    );
   }
 
   const analysis = exerciseSeamAnalysis(assessment);
@@ -407,6 +417,11 @@ export function exerciseText(context: ArchitectureExercise): string {
     ...(preparation.input.target.kind === "interface-leverage"
       ? [
           "Interface-leverage acceptance separates exact-source regression checks from reviewed removal of the frozen caller obligation. Intrinsic domain choices stay fixed; complexity improvement is not required.",
+        ]
+      : []),
+    ...(preparation.input.target.kind === "navigability"
+      ? [
+          "Navigability acceptance separates executed source/behaviour checks from reviewed shorter sufficient logical-module trail for the same exact question, coherent readability and preserved caller obligations.",
         ]
       : []),
     `Behaviour: ${preparation.input.behaviour}`,

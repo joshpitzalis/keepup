@@ -14,7 +14,8 @@ export function exerciseComparison(
 
   const complete =
     after?.input.dimension === "change-locality" ||
-    after?.input.dimension === "interface-leverage"
+    after?.input.dimension === "interface-leverage" ||
+    after?.input.dimension === "navigability"
       ? attempt.status === "awaiting-learning"
       : after?.analysis &&
         "status" in after.analysis &&

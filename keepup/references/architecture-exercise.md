@@ -2,7 +2,8 @@
 
 Use this opt-in workflow for a deterministic seam repair or reviewed change-locality consolidation on existing files.
 For a concrete avoidable caller obligation, use the same lifecycle with the
-[interface-leverage contract](interface-exercise.md).
+[interface-leverage contract](interface-exercise.md). For the same exact comprehension
+question and a shorter sufficient trail, use the [navigability contract](navigation-exercise.md).
 Ordinary small katas keep their existing rules. Work in the main checkout returned
 by `init`; linked worktrees share that source and its resolved `.keepup` or legacy
 `.cogdebt` directory. Never change an existing active kata or its scoring setup.

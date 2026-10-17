@@ -2,7 +2,7 @@
 
 Use for `/up submit`. Follow the parent skill's evidence discipline and work in the main checkout. The learner owns every refactor. The skill assesses tests, scorer guardrails and learning evidence; `log` records that assessment without independently executing tests.
 
-For an active architecture context, use [architecture exercise submission](architecture-exercise.md), including the [interface-leverage contract](interface-exercise.md) for caller obligation removal.
+For an active architecture context, use [architecture exercise submission](architecture-exercise.md), including the [interface-leverage contract](interface-exercise.md) for caller obligation removal or the [navigability contract](navigation-exercise.md) for the same exact question and a shorter sufficient implementation trail.
 Change-locality completion requires reviewed actual source/caller consolidation,
 necessary validation, unchanged full regression checks and linked learner evidence;
 do not apply ordinary file-metric improvement rules or log an ordinary kata pass.

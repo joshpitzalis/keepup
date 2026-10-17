@@ -10,6 +10,7 @@ import type {
   ExercisePreparation,
   ExerciseTarget,
 } from "./exercise-domain.ts";
+import { navigabilityMeasurements } from "./navigability.ts";
 import type { SeamAnalysis } from "./seam-domain.ts";
 import { architectureDigest, assets, manifest, revision } from "./storage.ts";
 
@@ -154,6 +155,24 @@ export function exerciseTargetCount(
   assessment: ArchitectureAssessment,
   target: ExerciseTarget
 ): number {
+  if (target.kind === "navigability") {
+    if (assessment.input.dimension !== "navigability") {
+      throw new Error("Navigation target requires navigability evidence");
+    }
+
+    const selected = navigabilityMeasurements(assessment.input).questions.find(
+      (question) => question.id === target.questionId
+    );
+
+    if (!selected || selected.transitions === null) {
+      throw new Error(
+        "Navigation target needs a complete sufficient trail, unambiguous owner and coherent readability"
+      );
+    }
+
+    return selected.transitions;
+  }
+
   if (target.kind === "interface-leverage") {
     if (assessment.input.dimension !== "interface-leverage") {
       throw new Error("Interface target requires interface evidence");
