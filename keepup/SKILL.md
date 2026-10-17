@@ -78,10 +78,14 @@ Only actual linked pre-quiz answers can start a frozen architecture exercise. On
 For reviewed change locality, use the same workflow's Change locality section. Confirm
 semantic equivalence before accepting rules; preserve required validation at each trust
 boundary. Affected owners and Git co-change never substitute for independent-site evidence.
+Interface leverage and navigability have [caller-obligation](references/interface-exercise.md)
+and [fixed-question](references/navigation-exercise.md) completion contracts in that lifecycle.
 For behavioural testability, execute existing selected tests with `architecture testability
 <json>` and inspect stored results. Review outcome assertions through the intended interface;
-retain dependency compatibility checks and fixed scenario inventories. Missing tests are
-separate preparation work: never author tests to make a learner exercise pass.
+retain dependency compatibility checks and fixed scenario inventories. A testability exercise
+can explicitly prepare learner-authored tests and mapped new paths, preserving the original
+regression suite and capturing additional execution separately. The learner writes those
+tests; never author tests or refactors to make their exercise pass.
 For navigability, record fixed exact questions and reviewed sufficient implementation
 trails via `architecture record`. Count necessary module transitions, never browsing
 history. Incomplete/ambiguous trails and giant-file concealment stay unavailable; hidden

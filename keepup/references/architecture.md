@@ -328,9 +328,9 @@ and copied-install workflow as seam analysis.
 
 Run `architecture capabilities` or inspect `status --json`'s `exerciseCapabilities`
 for the installed completion families and preparation limits. Assessment support
-never implies practice support. The current release supports ordinary file health,
-deterministic seams/cycles and reviewed existing-file locality; the remaining
-reviewed dimensions supply assessment/preparation until their evaluators ship.
+never implies practice support. This installation supports all six families: ordinary
+file health, deterministic seams/cycles and reviewed interface leverage, locality,
+navigability and behavioural testability. Each retains its dimension-specific contract.
 A supported family is not a ready target. Freeze and prepare the actual target in
 [the exercise workflow](architecture-exercise.md); missing prerequisites stay blocked.
 `health` reports measured and recorded-attempt counts separately and includes the
@@ -390,7 +390,7 @@ separately; an unsupported captured refactor becomes preparation in current appl
 An opportunity never establishes executable readiness or runs the tests.
 
 Recommendations do not start exercises. The [opt-in prepare/start workflow](architecture-exercise.md)
-supports a frozen existing-file seam repair or reviewed change-locality consolidation, fresh exact-source checks and actual
+supports frozen seam repairs and each reviewed dimension's completion contract, fresh exact-source checks and actual
 post-quiz/explain-back before internally recorded practice. A recommendation grants no exposure, practice,
 understanding or delayed retention evidence. The learner owns all code and test edits.
 

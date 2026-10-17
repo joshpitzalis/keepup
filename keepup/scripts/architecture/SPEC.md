@@ -1,102 +1,80 @@
 # Architecture assessments and exercises
-## Problem and boundary
+
+## Problem
+
 File health cannot describe architectural friction or prove learner understanding.
-Keep five independent dimensions, condition/readiness/priority and learning evidence
-separate in the evidence records. The optional parent `code-health.ts` combines current
-dimension values for the approved init summary; raw records and exercise gates stay independent.
-No automatic refactoring, rewritten history or hosted service.
-The resolved existing learning-state directory includes legacy `.cogdebt` installations.
-## Shared evidence and presentation
-- `commands.ts` connects explicit local CLI operations; reads never rerun evaluators/tests.
-- `domain.ts` names records and measurements; `parse.ts`/`parse-common.ts` reconstruct inputs.
-- `storage.ts` captures declared tracked/working-tree source and evaluator/tool assets as exact
-  snapshots, publishes immutable versioned observations and checks integrity/freshness.
-- Conservative source coverage makes supporting changes/additions/deletions stale;
-  old observations remain historical. Atomic hard-link publication converges identical
-  retries, rejects conflicts, and leaves unpublished temporary files harmless.
-- `report.ts` provides matching text/JSON and script-free keyboard-accessible HTML,
-  escaping captured source/rubric bytes. Reports are derived, never learning targets.
-- Empty/unassessable inventories are unavailable/not-applicable, never perfect scores.
-  Reviewed judgements retain provenance, disagreements, coverage and limitations.
-## Dimensions
-- Interface leverage: reviewed fixed scenario ratings plus raw domain/avoidable caller
-  obligations. `interface-leverage-rubric.md` fixes the experimental judgement rules;
-  no line-count proxy or catch-all API automatically proves depth.
-- `locality.ts`: confirmed domain-rule sites counted independently, including multiple
-  sites in one file; calls to shared implementations do not inflate counts. Owner
-  scenarios stay separate. `change-locality-rubric.md` preserves necessary repeated
-  trust-boundary validation; proposed/unclear equivalence and missing evidence stay visible.
-- `seam-domain.ts`/`seam-parse.ts`: declared modules, interfaces and dependency policies.
-  `analyser.ts` owns pinned dependency-cruiser/compiler coverage; JSON config fixes
-  resolution. `seams.ts` evaluates acquired graph edges. Tool/resolver bytes are
-  archived and checked without executing during reads. Opaque/unresolved/dynamic
-  paths produce visible partial coverage; raw violations remain separate from edge counts.
-- `cycles.ts`: one prohibited SCC per selected runtime/type policy; deterministic closed
-  evidence walk covers each member. Exact exceptions remain visible. Optional fields
-  preserve old canonical bytes. Partial graphs never prove freedom; repeated reachability
-  intentionally serves small local module inventories.
-- `testability.ts`/`testability-run.ts`: reviewed fixed scenarios and existing exact
-  top-level Node case execution, protected inside capture. Retain observable assertions,
-  justified dependency strategies and necessary production compatibility checks. Gaps,
-  failures, skips and unavailable discovery stay distinct; rubric grants no learning.
-- `navigability.ts`/`navigability-parse.ts`: fixed comprehension questions and necessary
-  implementation-module transitions. Hidden helpers/accidental browsing add none;
-  incomplete/ambiguous trails or obscured readability remain unavailable. Rubric,
-  naming issues and reviewer disagreement stay inspectable.
+Learners need bounded practice across five architectural dimensions, with source-backed
+judgments distinguished from automated measurements and actual learning evidence.
 
-## Comparison and opportunities
+## Solution
 
-- `comparison.ts` reads captured observations; freezes logical subjects/membership,
-  inventories, rules/exceptions, questions and evaluator versions. Changed definitions
-  are incomparable; missing values/dimensions remain unavailable, never zero. Raw
-  counts/per-item evidence prevent aggregate or denominator dilution from hiding findings.
-- `opportunities.ts`/`opportunity-parse.ts` record bounded qualitative recommendations,
-  supplied mission/change context, source evidence, raw targets, risks and stop conditions.
-  Stale/incomplete/unsafe proposals become assessment/preparation/defer; no useful work
-  is valid. Live applicability rechecks linked assets without changing captured decisions or granting learning credit.
+Versioned local observations preserve raw inventories, source/tool snapshots, coverage,
+reviewer judgments and unavailable values. Historical evidence never changes meaning.
+The parent `code-health.ts` combines current dimensions only for its advisory summary;
+exercise completion uses the selected dimension's frozen contract, never an aggregate.
+State resolves through the existing `.keepup` or legacy `.cogdebt` directory.
 
-## Exercises
+### How the files fit
 
-- `exercise-domain.ts`/`exercise-parse.ts` define strict existing-file contracts.
-  `exercises.ts` orchestrates prepare → actual linked pre-quiz → start, explicit
-  abandonment, objective assessment and accepted completion. Learner owns every edit.
-- `exercise-evidence.ts` freezes complete source/untracked inventories, definitions,
-  runtime/environment hashes and exact installed host/handler/package/reference bytes.
-  Recheck HEAD, bytes, command and environment after quiz and test execution.
-- `exercise-tests.ts` runs the unchanged existing explicit Node TAP suite: positive
-  completed checks, all passing, no skipped/cancelled/todo. Additional reused exact
-  file/name witnesses prevent decoy cases; they never replace the full suite.
-  Wrappers/globs/filters/other runners are unavailable; full runs bound120s/10MB,
-  witnesses30s. No trivial passing command can stand in for behavioural validation.
-- Targets count the entire frozen edge rule, or prohibited SCCs intersecting original
-  subjects. Endpoint rerouting/re-exports and expanded/split cycles cannot erase targets.
-  Selected structural guardrails retain independent raw baselines; reviewed grades advise.
-- `exercise-storage.ts` publishes immutable preparation/start/lifecycle records under
-  the existing shared writer lock. One open ordinary kata or architecture context
-  globally per shared source tree prevents cross-learner collisions without altering history.
-- Actual pre-quiz IDs use a preparation-specific prefix through supported `log` only;
-  snapshots/learner/concepts/commit must match. No new event schema or fabricated answers.
-  Start/report/pending grant no practice. Pass requires actual different post questions,
-  explain-back and explicit frozen invariant/validation review; later checks stay separate.
-  Optional reviewed reshaping preserves original logical roles through new paths.
-- `exercise-reviewed.ts` freezes locality policies/sites and reviewed source/validation; `exercise-interface.ts` freezes caller obligations and domain choices. Counts alone never grant practice.
-- `exercise-navigation.ts` freezes exact questions, owners, original trails and coherent readability.
-- `exercise-testability.ts` freezes unsupported scenario/dependency contracts and separate learner-authored positive/negative/compatibility execution; original regressions stay immutable and reviewed source assertions remain explicit.
-- `exercise-candidate.ts` checks every changed path, frozen test bytes, linear learner
-  commits, actual file attribution, source/index modes and stability; additions require mapping.
-- `exercise-submit.ts`/`exercise-submit-parse.ts` preserve failed/objective/accepted
-  attempts, require complete unchanged suite/witnesses and fresh frozen-rule analysis.
-  Every selected guardrail gates independently. `exercise-advisory.ts` reports captured
-  compatible reviewed movement or unassessed dimensions without automatic re-rating.
-- Per-completion acceptance precedes the existing internal supported event writer;
-  one deterministic `architecture_pass` is authoritative closure/practice for changed files. Public pass logging is rejected. Interrupted acceptance
-  stays active for retry/new work; shared lock converges completion.
-- `exercise-transformation-parse.ts`/`exercise-transformation.ts` freeze finite file,
-  physical module and concept mappings; original logical policies/public roles persist.
-- `exercise-reshape-candidate.ts` inventories declared new/missing source before staging;
-  final credit requires tracking, full attribution and unchanged tests. Cross-role
-  single-file collapse stays unsupported. `exercise-comparison.ts` exposes mapped evidence.
+- `commands.ts` routes explicit CLI operations; inspection does not rerun evaluators.
+- `domain.ts`, `parse.ts` and focused parsers reconstruct trusted domain records from JSON.
+- `storage.ts` captures exact source/evaluator/tool bytes, publishes immutable observations,
+  validates archives and reports conservative freshness without rewriting history.
+- `report.ts` renders matching text/JSON and offline, escaped, keyboard-accessible HTML.
+- `seam-domain.ts`, `seam-parse.ts` and `seams.ts` evaluate declared module/interface policies.
+- `analyser.ts` and its config own pinned dependency-cruiser/compiler acquisition and limits.
+- `cycles.ts` counts prohibited SCCs under frozen runtime/type policies and exceptions.
+- `locality.ts` distinguishes independent equivalent policy sites, shared calls and owners;
+  repeated necessary trust-boundary validation is never a count-reduction shortcut.
+- `testability.ts` and `testability-run.ts` retain fixed scenarios, actual selected Node
+  execution, reviewed observable assertions and required dependency compatibility.
+- `navigability.ts` measures sufficient implementation trails for exact questions, with
+  explicit ownership, coherent readability and unresolved/disputed evidence.
+- Versioned rubric files explain reviewed calibration; ratings alone grant no learning.
+- `comparison.ts` freezes subjects, inventories, rules and methods; changed definitions
+  become incomparable and missing evidence never becomes zero improvement.
+- `opportunities.ts` and its parser capture mission-relevant bounded recommendations;
+  current applicability rechecks source, definitions and supporting tools independently.
+- `exercise-capabilities.ts` owns installed support for six families, separately from
+  assessment attempts, measured dimensions and the preparation of a particular target.
 
-- `exercise-capabilities.ts` owns installed completion support; status/health expose
-  it independently of measurement counts. Opportunity inspection reports current
-  practice readiness without rewriting captured recommendations or granting credit.
+### Frozen exercise lifecycle
+
+- `exercise-domain.ts` and `exercise-parse.ts` define additive target/preparation contracts.
+- `exercises.ts` coordinates preparation, actual linked pre-quiz, unchanged-source start,
+  assessment, explicit abandonment and completion under the existing shared writer lock.
+- `exercise-evidence.ts` captures source/untracked paths, index modes, HEAD, host assets,
+  environment and definitions; changes during tests or learning invalidate the attempt.
+- `exercise-tests.ts` runs the entire unchanged explicit Node TAP suite plus exact named
+  witnesses; empty, failed, skipped, cancelled or pending execution never qualifies.
+- `exercise-reviewed.ts` binds locality policy/site/validation review to real source and
+  callers; `exercise-interface.ts` freezes avoidable caller obligations and domain choices.
+- `exercise-navigation.ts` freezes questions, owners and original trail evidence; fewer
+  necessary transitions require reviewed readability and unchanged external callers.
+- `exercise-testability.ts` freezes an unsupported scenario and separate learner-authored
+  positive/negative/compatibility execution while preserving original regression bytes.
+- `exercise-graph-guardrails.ts` captures complete source-matched supporting graph policies,
+  reruns their raw guards on the candidate and checks analyser assets through final credit.
+- `exercise-candidate.ts` checks scope, unchanged tests, modes, linear learner commits and
+  attribution. `exercise-reshape-candidate.ts` permits only explicitly mapped new/moved paths.
+- `exercise-transformation.ts` and its parser preserve original logical/public roles and
+  actual concept mappings; new paths require tracking and their own mapped learning.
+- `exercise-submit.ts` and its parser preserve immutable failed/accepted attempts, require
+  actual different post questions, explain-back and invariant review, then call the
+  existing internal writer once for eligible changed files with actual learning evidence.
+- `exercise-storage.ts` checks immutable context/attempt/acceptance records; retry identity
+  and owner checks preserve abandoned work and recover interrupted acceptance safely.
+- `exercise-comparison.ts` exposes captured target/guard evidence; `exercise-advisory.ts`
+  reports other dimensions without automatic semantic re-rating.
+
+## Limits and invariants
+
+Partial graphs never prove seam safety. Seam targets repair whole frozen rules or cycles
+intersecting original subjects, so rerouting, re-exports and SCC expansion cannot erase them.
+Reviewed locality/interface/navigation scope uses existing files; testability supports
+explicitly mapped learner test work. Reviewed transformations plus graph guards require
+separate preparation and remain unsupported. Cross-role single-file collapse is unsupported.
+The current behavioural runner accepts explicit tracked Node TAP files, with bounded runs.
+Source excerpts bind review to bytes but cannot prove honest semantic judgment. Agents never
+write learner refactors, tests, quiz answers or explain-backs. Recommendations, reports and
+preparation grant no practice. Immediate practice never grants delayed retention verification.

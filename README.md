@@ -249,10 +249,15 @@ once, then `pnpm test:browser`. Playwright is a development dependency; copied s
 only their documented Node/runtime prerequisites, with no npm dependencies for reviewed assessments.
 
 `architecture capabilities` and `status --json` expose this installation's supported
-practice families separately from assessment measurements. File health, deterministic
-seams/cycles and reviewed existing-file change locality currently have completion
-workflows; other dimensions can inform bounded assessment/preparation. Every target
+practice families separately from assessment measurements. All six families have
+completion workflows: file health, interface leverage, seams/cycles, change locality,
+navigability and behavioural testability. Automated checks and reviewed judgments remain
+separate. Every target
 still needs current source evidence, appropriate tests and its frozen preparation.
+Reviewed locality, interface and navigation work use existing files; testability can
+prepare explicitly mapped learner-written test paths while preserving original regressions.
+Selected graph guardrails require complete frozen graph evidence. Combining reviewed
+source transformations with graph guardrails needs separate preparation and is unavailable.
 `$up kata` selects one mission-relevant problem across all six dimensions before
 choosing an evaluator; missing architecture evidence does not imply complexity work.
 

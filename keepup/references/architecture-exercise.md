@@ -63,6 +63,28 @@ Use the reviewed reshaping contract below for planned changes. Preserve unrelate
 edits. Keep the returned preparation
 and its CLI-owned `quizPrefix`; retries never replace this original baseline.
 
+## Graph guardrails for reviewed targets
+
+A locality, interface, navigation or testability target can select structural guards
+from a separate **current, complete automated seam assessment** captured against the
+same source. Declare each guard before questions or edits:
+
+```json
+{"guardrails":[{"assessmentId":"graph-baseline","ruleId":"no-other","kind":"forbidden-direction"}]}
+```
+
+Use an applicable finding kind and existing frozen rule/cycle policy. Preparation
+captures the supporting definitions, analyser assets and individual raw baselines;
+assessment reruns those same policies on the exact candidate and rejects regressions.
+Supporting graph results stay separate from the reviewed target. Changed analyser
+assets also block final practice. Missing, partial or stale selected graph evidence
+requires preparation, never a healthy default. An unrelated partial graph does not
+block a target with no graph guard and does not establish seam safety.
+
+Original seam targets keep guards from their own assessment and omit `assessmentId`.
+Reviewed source transformations combined with graph guards remain unavailable at
+preparation; split the work into supported exercises or defer that combination.
+
 ## Reviewed change-locality target
 
 A named confirmed policy can instead use `target:{kind:"change-locality",ruleId,goal:1}`.
@@ -74,8 +96,8 @@ files, policy meaning, module and scenarios. Include every site in `files` or
 Calls reference a surviving policy site's ID through `implementation`; they do not
 count as independent policy implementations. Complexity may remain unchanged.
 An unrelated partial graph does not block this target or establish seam safety.
-Graph guardrails and source reshaping remain unavailable for this reviewed family;
-choose a supported target or defer those requirements explicitly before preparation.
+Source reshaping remains unavailable for this family. Selected graph guardrails use
+the shared supporting-evidence contract; unrelated graph limits stay visible.
 
 After learner edits, inspect the actual original archived source, candidate source,
 callers and diff. Record a new current reviewed locality assessment through
