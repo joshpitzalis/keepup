@@ -12,6 +12,7 @@ import type {
 } from "./exercise-domain.ts";
 import type { SeamAnalysis } from "./seam-domain.ts";
 import { architectureDigest, assets, manifest, revision } from "./storage.ts";
+import { testabilityMeasurements } from "./testability.ts";
 
 export function exerciseGit(root: string, ...args: string[]): string {
   const result = spawnSync("git", args, { cwd: root, encoding: "utf-8" });
@@ -167,6 +168,30 @@ export function exerciseTargetCount(
           obligation.kind === target.obligationKind &&
           obligation.description === target.obligation
       ).length;
+  }
+
+  if (target.kind === "behavioural-testability") {
+    if (
+      assessment.input.dimension !== "behavioural-testability" ||
+      !assessment.analysis ||
+      !("kind" in assessment.analysis) ||
+      assessment.analysis.kind !== "testability"
+    ) {
+      throw new Error(
+        "Testability target requires CLI-owned scenario execution"
+      );
+    }
+
+    const result = testabilityMeasurements(
+      assessment.input,
+      assessment.analysis
+    ).scenarios.find((scenario) => scenario.id === target.scenarioId);
+
+    if (!result || result.status === "unavailable") {
+      throw new Error("Selected scenario evidence unavailable");
+    }
+
+    return result.status === "qualifying" ? 0 : 1;
   }
 
   if (target.kind === "change-locality") {

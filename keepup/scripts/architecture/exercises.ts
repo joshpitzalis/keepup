@@ -44,6 +44,7 @@ import {
   parseExerciseCompletion,
 } from "./exercise-submit-parse.ts";
 import { assessExercise, completeExercise } from "./exercise-submit.ts";
+import { validateTestabilityPreparation } from "./exercise-testability.ts";
 import { validateTransformationPreparation } from "./exercise-transformation.ts";
 import { writeArchitectureReport } from "./report.ts";
 import { architectureDigest, archive, inspectAssessment } from "./storage.ts";
@@ -88,34 +89,28 @@ function validatePreparation(
   const { assessment } = inspection;
   const declaration = assessment.input;
 
-  if (
-    inspection.freshness.status === "current" &&
-    input.target.kind === "interface-leverage"
-  ) {
-    return validateInterfacePreparation(root, state, input, assessment, host);
-  }
-
-  if (
-    inspection.freshness.status === "current" &&
-    input.target.kind === "change-locality"
-  ) {
-    return validateLocalityPreparation(root, state, input, assessment, host);
-  }
-
-  if (
-    inspection.freshness.status !== "current" ||
-    declaration.dimension !== "seam-integrity"
-  ) {
+  if (inspection.freshness.status !== "current") {
     throw new Error(
-      "Exercise requires a current complete deterministic seam finding, not a stale, partial or reviewed score"
+      "Exercise requires current source-bound assessment evidence"
     );
   }
 
-  if (
-    input.target.kind === "change-locality" ||
-    input.target.kind === "interface-leverage"
-  ) {
-    throw new Error("Locality requires current reviewed evidence");
+  if (input.target.kind === "interface-leverage") {
+    return validateInterfacePreparation(root, state, input, assessment, host);
+  }
+
+  if (input.target.kind === "behavioural-testability") {
+    return validateTestabilityPreparation(root, state, input, assessment, host);
+  }
+
+  if (input.target.kind === "change-locality") {
+    return validateLocalityPreparation(root, state, input, assessment, host);
+  }
+
+  if (declaration.dimension !== "seam-integrity") {
+    throw new Error(
+      "Exercise requires a current complete deterministic seam finding, not a stale, partial or reviewed score"
+    );
   }
 
   const analysis = exerciseSeamAnalysis(assessment);

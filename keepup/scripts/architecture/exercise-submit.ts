@@ -35,6 +35,7 @@ import {
   readExerciseAcceptance,
   readExerciseAttempt,
 } from "./exercise-storage.ts";
+import { assessTestabilityExercise } from "./exercise-testability.ts";
 import {
   mappedConcepts,
   preparationProjection,
@@ -163,6 +164,7 @@ export function assessExercise(
     let tracking = false;
     let commits: readonly string[] = [];
     let tests: ExerciseAttempt["tests"] = null;
+    let additionalTests: ExerciseAttempt["additionalTests"];
     let assessment: ExerciseAttempt["assessment"] = null;
     let current: number | null = null;
     let guardrails: ExerciseAttempt["guardrails"] = [];
@@ -181,7 +183,19 @@ export function assessExercise(
       );
       assertCandidateStable(root, state, inventory, indexHash);
 
-      if (
+      if (preparation.input.target.kind === "behavioural-testability") {
+        const result = assessTestabilityExercise(
+          root,
+          state,
+          preparation,
+          input,
+          changedFiles
+        );
+
+        ({ assessment } = result);
+        additionalTests = result.tests;
+        current = exerciseTargetCount(assessment, preparation.input.target);
+      } else if (
         ["interface-leverage", "change-locality"].includes(
           preparation.input.target.kind
         )
@@ -246,7 +260,7 @@ export function assessExercise(
 
       assertCandidateStable(root, state, inventory, indexHash);
     } catch (error) {
-      errors.push(error instanceof Error ? error.message : String(error));
+      errors.push(exerciseError(error));
     }
 
     let result: ExerciseAttempt = {
@@ -272,6 +286,8 @@ export function assessExercise(
       tests,
       time: host.now(),
     };
+
+    result = withAdditionalTests(result, additionalTests);
 
     if (preparation.input.transformation) {
       result = {
@@ -659,4 +675,16 @@ function assertReviewedLearningCoverage(
       "Every changed practice file requires its own frozen/mapped concept and actual linked pre/post learning evidence"
     );
   }
+}
+
+function withAdditionalTests(
+  attempt: ExerciseAttempt,
+  tests: ExerciseAttempt["additionalTests"]
+): ExerciseAttempt {
+  return tests ? { ...attempt, additionalTests: tests } : attempt;
+}
+
+/* oxlint-disable-next-line anti-slop/no-unknown-parameters -- An arbitrary caught error crosses the assessment boundary. */
+function exerciseError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }

@@ -1,8 +1,8 @@
 # Complete a learner-owned architecture exercise
 
-Use this opt-in workflow for a deterministic seam repair or reviewed change-locality consolidation on existing files.
-For a concrete avoidable caller obligation, use the same lifecycle with the
-[interface-leverage contract](interface-exercise.md).
+Use this opt-in workflow for deterministic seam repairs or reviewed locality, interface
+leverage and behavioural-testability exercises. For concrete caller obligations, read
+[the interface-leverage contract](interface-exercise.md).
 Ordinary small katas keep their existing rules. Work in the main checkout returned
 by `init`; linked worktrees share that source and its resolved `.keepup` or legacy
 `.cogdebt` directory. Never change an existing active kata or its scoring setup.
@@ -96,6 +96,43 @@ run against this same candidate. Failed attempts keep the original baseline.
 After acceptance, use the same actual post questions, explain-back, invariant review
 and internal completion path below. Neither the review nor the assessment alone
 grants practice; delayed verification remains separate.
+
+## Learner-authored behavioural-testability target
+
+Use `target:{kind:"behavioural-testability",scenarioId,goal:0,command,positive:{file,name},negative:{file,name},compatibility:[{file,name}]}`
+against a current reviewed testability assessment with complete discovery and an unsupported
+selected scenario. Freeze its identity, behaviour, failure invariant, intended public interface,
+dependency strategy, environment needs and compatibility requirements. Prepare the exact
+positive, negative and compatibility case names and a separate explicit Node TAP command.
+The original configured regression command and every original regression file stay byte-identical;
+the additional command cannot replace them. Required production compatibility checks must be
+named before edits. Selected graph guardrails require separately supported complete graph evidence;
+never drop a required guardrail to manufacture readiness.
+
+Explicitly include existing test scaffolds and minimum supporting implementation in `files`.
+New/moved test paths require the reviewed file/module/concept transformation above; retain the
+intended public interface and map each credited new path to actual learning concepts. New files
+must be learner-staged before the selected Node runner can execute them. Preparation and pre-quiz
+run only the original regressions, since the learner has not written the new tests yet. No agent
+may author the learner's tests, supporting implementation, answers or explain-back. Agent-authored
+product fixtures in disposable repositories verify this workflow and grant the operator no practice.
+
+After learner edits, inspect every actual test assertion and relevant implementation/caller diff.
+Reject helper-only, interaction-only, empty or trivial passing assertions; the selected positive
+outcome and failure invariant must be asserted through the intended interface. Review dependency
+substitutes and every required production compatibility check. Record the current reviewed
+assessment using the exact prepared positive/negative/compatibility case identities. Preserve all
+other scenarios and the selected semantic/dependency contract. A supplied higher fraction alone
+cannot qualify. Add the same `semanticReview` source/caller evidence as locality; a declared new
+path uses `before:null` and an actual candidate implementation excerpt. Existing paths require
+archived original excerpts. Semantic truth remains an explicit accountable reviewer judgment.
+
+Assessment runs the full unchanged regressions and the separate additional suite against the
+same stable source, recording `tests` and `additionalTests` independently. Each positive, negative
+and compatibility case also needs its own exact named execution witness. Zero cases, missing
+selected cases, skips, pending/cancelled cases, incomplete discovery, stale source and unresolved
+or agent attribution cannot grant practice. Then collect different linked post questions,
+learner-authored explain-back and frozen invariant review through the existing completion path.
 
 ## Retrieve actual pre-quiz answers
 

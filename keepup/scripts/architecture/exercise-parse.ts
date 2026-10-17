@@ -85,6 +85,40 @@ function target(value: unknown): ExerciseTarget {
     };
   }
 
+  if (input.kind === "behavioural-testability") {
+    fields(input, [
+      "kind",
+      "scenarioId",
+      "goal",
+      "command",
+      "positive",
+      "negative",
+      "compatibility",
+    ]);
+
+    if (input.goal !== 0 || !Array.isArray(input.compatibility)) {
+      throw new Error(
+        "Testability requires zero remaining scenario gaps and explicit compatibility checks"
+      );
+    }
+
+    const parseTest = (raw: unknown) => {
+      const test = fields(raw, ["file", "name"]);
+
+      return { file: text(test.file), name: text(test.name) };
+    };
+
+    return {
+      command: text(input.command),
+      compatibility: input.compatibility.map(parseTest),
+      goal: 0,
+      kind: "behavioural-testability",
+      negative: parseTest(input.negative),
+      positive: parseTest(input.positive),
+      scenarioId: parseArchitectureId(input.scenarioId),
+    };
+  }
+
   if (input.kind === "change-locality") {
     fields(input, ["kind", "ruleId", "goal"]);
 

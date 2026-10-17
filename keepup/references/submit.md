@@ -68,3 +68,12 @@ Run final `status --json`. Report:
 - Pre/post quiz results, corrected misconceptions, remaining weaknesses and the recorded explain-back.
 - Code health and cognitive debt **relative to the kata's stored baseline.summary**, using current minus baseline in percentage points; print unavailable when either value is null. The latest `status.delta` compares adjacent status calls and is not the kata delta.
 - Resulting state and whether the kata remains active. Practice is immediate evidence; delayed verification still requires a qualifying later check.
+
+For an explicitly prepared behavioural-testability exercise, the learner may author the frozen
+additional tests and minimum supporting source changes. Preserve the original regression bytes
+and command. Run the separately agreed additional suite, exact positive/negative witnesses and
+required dependency compatibility checks against the same candidate. Review actual observable
+assertions through the intended interface; helper-only, interaction-only or trivial passing tests
+supply no behavioural evidence. Agents author product fixtures only in disposable repositories,
+never the learner's exercise tests. New/moved test paths require frozen mappings and their own
+actual linked learning before eligible practice. See [architecture exercises](architecture-exercise.md).
