@@ -34,6 +34,7 @@ import {
   readExerciseAcceptance,
   readExerciseAttempt,
 } from "./exercise-storage.ts";
+import { assessTestabilityExercise } from "./exercise-testability.ts";
 import {
   mappedConcepts,
   preparationProjection,
@@ -147,6 +148,7 @@ export function assessExercise(
     let tracking = false;
     let commits: readonly string[] = [];
     let tests: ExerciseAttempt["tests"] = null;
+    let additionalTests: ExerciseAttempt["additionalTests"];
     let assessment: ExerciseAttempt["assessment"] = null;
     let current: number | null = null;
     let guardrails: ExerciseAttempt["guardrails"] = [];
@@ -165,7 +167,19 @@ export function assessExercise(
       );
       assertCandidateStable(root, state, inventory, indexHash);
 
-      if (preparation.input.target.kind === "change-locality") {
+      if (preparation.input.target.kind === "behavioural-testability") {
+        const result = assessTestabilityExercise(
+          root,
+          state,
+          preparation,
+          input,
+          changedFiles
+        );
+
+        ({ assessment } = result);
+        additionalTests = result.tests;
+        current = exerciseTargetCount(assessment, preparation.input.target);
+      } else if (preparation.input.target.kind === "change-locality") {
         assessment = reviewedExerciseAssessment(
           root,
           state,
@@ -226,7 +240,7 @@ export function assessExercise(
 
       assertCandidateStable(root, state, inventory, indexHash);
     } catch (error) {
-      errors.push(error instanceof Error ? error.message : String(error));
+      errors.push(exerciseError(error));
     }
 
     let result: ExerciseAttempt = {
@@ -252,6 +266,8 @@ export function assessExercise(
       tests,
       time: host.now(),
     };
+
+    result = withAdditionalTests(result, additionalTests);
 
     if (preparation.input.transformation) {
       result = {
@@ -616,4 +632,16 @@ function assertTracking(
       "Reshaping completion requires learner-staged surviving/new source and staged removals, followed by a fresh assessment and actual mapped post evidence; the frozen mapping cannot change"
     );
   }
+}
+
+function withAdditionalTests(
+  attempt: ExerciseAttempt,
+  tests: ExerciseAttempt["additionalTests"]
+): ExerciseAttempt {
+  return tests ? { ...attempt, additionalTests: tests } : attempt;
+}
+
+/* oxlint-disable-next-line anti-slop/no-unknown-parameters -- An arbitrary caught error crosses the assessment boundary. */
+function exerciseError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }

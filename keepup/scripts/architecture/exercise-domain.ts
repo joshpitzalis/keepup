@@ -23,6 +23,15 @@ export interface ExerciseHost {
 
 export type ExerciseTarget =
   | {
+      readonly kind: "behavioural-testability";
+      readonly scenarioId: string;
+      readonly goal: 0;
+      readonly command: string;
+      readonly positive: ExistingTest;
+      readonly negative: ExistingTest;
+      readonly compatibility: readonly ExistingTest[];
+    }
+  | {
       readonly kind: "change-locality";
       readonly ruleId: string;
       readonly goal: 1;
@@ -186,7 +195,7 @@ export interface ExerciseSemanticReview {
   readonly rationale: string;
   readonly changes: readonly {
     readonly file: string;
-    readonly before: string;
+    readonly before: string | null;
     readonly after: string;
     readonly rationale: string;
   }[];
@@ -228,6 +237,7 @@ export interface ExerciseCompletionInput {
 }
 
 export interface ExerciseAttempt {
+  readonly additionalTests?: ExerciseTestRun;
   readonly touchedFiles?: readonly string[];
   readonly tracking?: boolean;
   readonly mapping?: {

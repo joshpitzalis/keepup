@@ -14,6 +14,7 @@ import {
   exerciseInventory,
   exerciseTargetCount,
 } from "./exercise-evidence.ts";
+import { preparationProjection } from "./exercise-transformation.ts";
 import type { LocalityAssessmentInput } from "./locality.ts";
 import { inspectAssessment } from "./storage.ts";
 
@@ -36,9 +37,9 @@ export function validateLocalityPreparation(
     throw new Error("Locality target requires a current locality assessment");
   }
 
-  const rule = declaration.rules.find(
-    (entry) => entry.id === input.target.ruleId
-  );
+  const { target } = input;
+
+  const rule = declaration.rules.find((entry) => entry.id === target.ruleId);
 
   if (
     !rule ||
@@ -271,6 +272,11 @@ export function assertReviewedSource(
       (entry) => entry.path === change.file
     )?.hash;
 
+    if (change.before === null) {
+      assertNewSource(root, preparation, change, changedFiles, hash, candidate);
+      continue;
+    }
+
     if (
       !hash ||
       !candidate ||
@@ -293,6 +299,14 @@ export function assertReviewedSource(
     }
   }
 
+  assertCallers(root, preparation, review);
+}
+
+function assertCallers(
+  root: string,
+  preparation: ExercisePreparation,
+  review: ExerciseSemanticReview
+): void {
   for (const caller of review.callers) {
     if (
       !preparation.input.callers.includes(caller.file) ||
@@ -326,6 +340,31 @@ function assertTrustBoundaries(
   ) {
     throw new Error(
       "Every original necessary trust-boundary validation requires explicit preserved review"
+    );
+  }
+}
+
+function assertNewSource(
+  root: string,
+  preparation: ExercisePreparation,
+  change: ExerciseSemanticReview["changes"][number],
+  changedFiles: readonly string[],
+  hash: string | null | undefined,
+  candidate: string | null | undefined
+): void {
+  if (
+    hash ||
+    !candidate ||
+    preparation.input.target.kind !== "behavioural-testability" ||
+    !preparation.input.transformation ||
+    !preparationProjection(preparation).workingTree.additions.includes(
+      change.file
+    ) ||
+    !changedFiles.includes(change.file) ||
+    !readFileSync(join(root, change.file), "utf-8").includes(change.after)
+  ) {
+    throw new Error(
+      "New test source review must name a declared addition with null original excerpt and actual candidate bytes"
     );
   }
 }

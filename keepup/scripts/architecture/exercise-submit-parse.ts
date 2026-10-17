@@ -57,7 +57,7 @@ function semanticReview(raw: unknown): ExerciseSemanticReview {
 
       return {
         after: text(entry.after),
-        before: text(entry.before),
+        before: entry.before === null ? null : text(entry.before),
         file: text(entry.file),
         rationale: text(entry.rationale),
       };

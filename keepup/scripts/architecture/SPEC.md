@@ -83,6 +83,7 @@ The resolved existing learning-state directory includes legacy `.cogdebt` instal
   Start/report/pending grant no practice. Pass requires actual different post questions,
   explain-back and explicit frozen invariant/validation review; later checks stay separate.
   Optional reviewed reshaping preserves original logical roles through new paths.
+- `exercise-testability.ts` freezes unsupported scenario/dependency contracts and separate learner-authored positive/negative/compatibility execution; original regressions stay immutable and reviewed source assertions remain explicit.
 - `exercise-reviewed.ts` freezes confirmed locality policies/sites and checks reviewed actual source/callers and necessary validation; counts alone never grant practice.
 - `exercise-candidate.ts` checks every changed path, frozen test bytes, linear learner
   commits, actual file attribution, source/index modes and stability; additions require mapping.

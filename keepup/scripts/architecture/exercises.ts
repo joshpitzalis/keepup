@@ -43,6 +43,7 @@ import {
   parseExerciseCompletion,
 } from "./exercise-submit-parse.ts";
 import { assessExercise, completeExercise } from "./exercise-submit.ts";
+import { validateTestabilityPreparation } from "./exercise-testability.ts";
 import { validateTransformationPreparation } from "./exercise-transformation.ts";
 import { writeArchitectureReport } from "./report.ts";
 import { architectureDigest, archive, inspectAssessment } from "./storage.ts";
@@ -89,6 +90,13 @@ function validatePreparation(
 
   if (
     inspection.freshness.status === "current" &&
+    input.target.kind === "behavioural-testability"
+  ) {
+    return validateTestabilityPreparation(root, state, input, assessment, host);
+  }
+
+  if (
+    inspection.freshness.status === "current" &&
     input.target.kind === "change-locality"
   ) {
     return validateLocalityPreparation(root, state, input, assessment, host);
@@ -103,7 +111,10 @@ function validatePreparation(
     );
   }
 
-  if (input.target.kind === "change-locality") {
+  if (
+    input.target.kind === "change-locality" ||
+    input.target.kind === "behavioural-testability"
+  ) {
     throw new Error("Locality requires current reviewed evidence");
   }
 

@@ -13,7 +13,8 @@ export function exerciseComparison(
   const after = attempt.assessment;
 
   const complete =
-    after?.input.dimension === "change-locality"
+    after?.input.dimension === "change-locality" ||
+    after?.input.dimension === "behavioural-testability"
       ? attempt.status === "awaiting-learning"
       : after?.analysis &&
         "status" in after.analysis &&
