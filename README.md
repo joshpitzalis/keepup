@@ -5,26 +5,26 @@ A skill for Claude Code and Codex for understanding and practising refactors in 
 In Claude Code:
 
 ```text
-/keepup status   — see debt, code health and due checks
-/keepup quiz     — take a short comprehension quiz
-/keepup kata     — start a short refactoring exercise
-/keepup on       — learn one item at a time until you say stop
-/keepup map      — open your learning map
+/up status   — see debt, code health and due checks
+/up quiz     — take a short comprehension quiz
+/up kata     — start a short refactoring exercise
+/up on       — learn one item at a time until you say stop
+/up map      — open your learning map
 ```
 
-Run `/keepup init` once per repository first. Finish exercises with `/keepup submit`; use `/keepup check` for delayed recall.
+Run `/up init` once per repository first. Finish exercises with `/up submit`; use `/up check` for delayed recall.
 
-In Codex, use `$keepup`:
+In Codex, use `$up`:
 
 ```text
-$keepup init
-$keepup status
-$keepup quiz
-$keepup kata
-$keepup on
-$keepup map
-$keepup submit
-$keepup check
+$up init
+$up status
+$up quiz
+$up kata
+$up on
+$up map
+$up submit
+$up check
 ```
 
 ## Install
@@ -32,22 +32,22 @@ $keepup check
 Install for Claude Code across your projects:
 
 ```sh
-npx skills@latest add joshpitzalis/keepup --skill keepup -g -a claude-code -y
+npx skills@latest add joshpitzalis/keepup --skill up -g -a claude-code -y
 ```
 
 Or install for Codex across your projects:
 
 ```sh
-npx skills@latest add joshpitzalis/keepup --skill keepup -g -a codex -y
+npx skills@latest add joshpitzalis/keepup --skill up -g -a codex -y
 ```
 
 Requires Git, Node.js **24.8 or newer**, and Claude Code or Codex. The bundled complexity scorer also needs [uv](https://docs.astral.sh/uv/getting-started/installation/); it runs lizard through `uvx` on demand. The installer copies the skill bundle; install these prerequisites separately. The skill has no Node runtime dependencies.
 
-Open your project in Claude Code and invoke `/keepup init`, or in Codex and invoke `$keepup init`. Restart your agent if the newly installed skill does not appear. Init uses a starter mission, preserves personalised missions and upgrades only the exact old blank template. It runs [the full initial assessment](keepup/references/initial-assessment.md): file health, interface leverage, boundaries/cycles, change locality, navigability and behavioural testability. The agent reviews actual source, proposes explicit assessment definitions and executes the existing tools; provisional judgments and missing tools/tests remain visible. All six dimensions are attempted before setup is reported ready.
+Open your project in Claude Code and invoke `/up init`, or in Codex and invoke `$up init`. Restart your agent if the newly installed skill does not appear. The skill is now named `up`; existing `keepup` installs remain available until removed. Both names use the same `.keepup` history when run in the same repository. Init uses a starter mission, preserves personalised missions and upgrades only the exact old blank template. It runs [the full initial assessment](keepup/references/initial-assessment.md): file health, interface leverage, boundaries/cycles, change locality, navigability and behavioural testability. The agent reviews actual source, proposes explicit assessment definitions and executes the existing tools; provisional judgments and missing tools/tests remain visible. All six dimensions are attempted before setup is reported ready.
 
 The CLI's `health` command combines current dimension scores equally, averaging modules within each dimension first. It retains raw values, source freshness, coverage and provisional labels in `.keepup/health/`; an incomplete run is labelled partial rather than presenting complexity alone as full health. Existing architecture evidence and exercise pass gates stay independent. The aggregate is an advisory design indicator, not proof of correctness. Bare CLI `init` remains state setup; the agent skill orchestrates the full assessment.
 
-Init finishes with **Code health** and **Comprehension debt**. A fresh learner sees `100% · unassessed`, followed immediately by an invitation to `/keepup quiz` (Codex: `$keepup quiz`). That short quiz uses actual recall answers, not refactoring or invented learning credit. Continue with `kata` for hands-on work now or `on` while agents build next time. After seven days, an occasional session offers to refine the starter mission; declining continues normal use. You can request refinement at any time. The local staging alias uses `ku` in place of `keepup`.
+Init finishes with **Code health** and **Comprehension debt**. A fresh learner sees `100% · unassessed`, followed immediately by an invitation to `/up quiz` (Codex: `$up quiz`). That short quiz uses actual recall answers, not refactoring or invented learning credit. Continue with `kata` for hands-on work now or `on` while agents build next time. After seven days, an occasional session offers to refine the starter mission; declining continues normal use. You can request refinement at any time.
 
 Codex skill discovery and `$` invocation follow the [official OpenAI documentation](https://developers.openai.com/codex/skills). The shared CLI and GitHub installation have been tested; the full teaching workflow in Codex has not yet been verified.
 
@@ -62,10 +62,10 @@ Restart your agent after updating. Existing project learning state stays in the 
 For deterministic setup without the interview:
 
 ```sh
-node ~/.claude/skills/keepup/scripts/keepup.mjs init
+node ~/.claude/skills/up/scripts/keepup.mjs init
 ```
 
-CLI examples below use the Claude Code installation path. For Codex, replace `~/.claude/skills/keepup` with `~/.agents/skills/keepup`. In Codex prompts, replace `/keepup` with `$keepup`.
+CLI examples below use the Claude Code installation path. For Codex, replace `~/.claude/skills/up` with `~/.agents/skills/up`. In Codex prompts, replace `/up` with `$up`.
 
 Run checks in this source checkout with:
 
@@ -130,8 +130,8 @@ Commit `.keepup/` so learning evidence travels with the project. Setup adds only
 ## Status and scorers
 
 ```sh
-node ~/.claude/skills/keepup/scripts/keepup.mjs status
-node ~/.claude/skills/keepup/scripts/keepup.mjs status --json
+node ~/.claude/skills/up/scripts/keepup.mjs status
+node ~/.claude/skills/up/scripts/keepup.mjs status --json
 ```
 
 Status shows line-weighted code health, cognitive debt, learner state coverage, due checks and the ten highest-debt files. JSON includes every scoped file and every available metric. The first status has no baseline; later deltas compare with the preceding status for the same Git email. Status appends summaries to derived `.keepup/history.jsonl`; history is not learning evidence.
@@ -153,7 +153,7 @@ A file's code score averages its reported metrics. Code health averages known sc
 Only `log` writes learning events. For example, after actually showing a card:
 
 ```sh
-node ~/.claude/skills/keepup/scripts/keepup.mjs log '{"id":"card-unique-attempt","type":"shown","files":["src/example.ts"],"depth":"walkthrough"}'
+node ~/.claude/skills/up/scripts/keepup.mjs log '{"id":"card-unique-attempt","type":"shown","files":["src/example.ts"],"depth":"walkthrough"}'
 ```
 
 Every input needs a nonempty `id`, a `type` and a nonempty array of unique scoped `files`. Reuse the same id when retrying an operation: the CLI returns its original event and snapshots, even after files change. An id reused with different input fails. A genuinely new attempt needs a new id. Retry identity is per Git email; kata numbers are repository-wide.
@@ -180,16 +180,16 @@ Event and history writers share an exclusive state lock. A busy writer causes a 
 
 ## Delayed checks
 
-`/keepup check` follows the bundled one-question workflow. Status marks a file due after a full 24 hours and a later UTC date since its latest pre/post quiz not consumed by a delayed check. A new pre/post quiz restarts the initial-quiz interval but never postpones an already-due seven-day weak-verification check. The CLI rejects early checks and requires exactly one answer about one file, preserving the log on rejection.
+`/up check` follows the bundled one-question workflow. Status marks a file due after a full 24 hours and a later UTC date since its latest pre/post quiz not consumed by a delayed check. A new pre/post quiz restarts the initial-quiz interval but never postpones an already-due seven-day weak-verification check. The CLI rejects early checks and requires exactly one answer about one file, preserving the log on rejection.
 
 A correct due answer grants verified state and removes the 0.6 quiz cap. An incorrect answer affects accuracy and consumes that occurrence, without granting verification or erasing prior successful verification. Previously verified files below 70% accuracy become due again seven days after their latest qualifying check; exactly 70% does not trigger recurrence. This rule includes practised files with successful delayed-check evidence. Practice alone does not count as verification. Heavy drift above 0.5 displays verified/practised files as exposed while retaining their evidence; mind still uses accuracy multiplied by `1 − drift`.
 
 ## Repository map
 
-Invoke `/keepup map`, or run:
+Invoke `/up map`, or run:
 
 ```sh
-node ~/.claude/skills/keepup/scripts/keepup.mjs map
+node ~/.claude/skills/up/scripts/keepup.mjs map
 ```
 
 The CLI computes status once, appends one derived history entry and writes `.keepup/map.html`. It attempts to open the map in your system browser and returns JSON containing `path`, `opened` and scorer/opening `warnings`. If automatic opening fails, open that path manually.
@@ -200,10 +200,10 @@ The generated HTML includes its status data and loads pinned d3 **7.9.0** from c
 
 ## Learn while agents work
 
-Run `/keepup on` in another Claude Code terminal for an interactive learning session about files currently in play. The skill offers one walkthrough, paragraph, due delayed check or one-line change summary according to your evidence, then waits. Reply “got it”, “skip” or “next” for another item, “kata” to switch to an exercise, or “stop” to end the session. The session does not install a hook or run a background watcher. Only delivered cards and actual quizzes grant exposure; acknowledgements do not grant accuracy. A kata handoff rechecks cleanliness and cannot start on an agent's uncommitted target.
+Run `/up on` in another Claude Code terminal for an interactive learning session about files currently in play. The skill offers one walkthrough, paragraph, due delayed check or one-line change summary according to your evidence, then waits. Reply “got it”, “skip” or “next” for another item, “kata” to switch to an exercise, or “stop” to end the session. The session does not install a hook or run a background watcher. Only delivered cards and actual quizzes grant exposure; acknowledgements do not grant accuracy. A kata handoff rechecks cleanliness and cannot start on an agent's uncommitted target.
 
 ```sh
-node ~/.claude/skills/keepup/scripts/keepup.mjs in-play
+node ~/.claude/skills/up/scripts/keepup.mjs in-play
 ```
 
 `in-play` returns JSON `{files, warnings}` without writing learning events or status history. It combines scoped tracked files with unstaged/staged changes and paths changed in **every commit since the current learner's latest event commit**, including intervening changes later reverted. Renames use current scoped paths; deleted and excluded files are omitted. Another learner's events do not move the boundary.

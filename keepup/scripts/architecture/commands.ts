@@ -94,7 +94,7 @@ export function architectureCommand(
   }
 
   throw new Error(
-    "Usage: keepup architecture record <json> | analyse <json> | testability <json> | list | inspect <id> [--json] | report <id> [--no-open] | compare <before> <after> [--json] | compare-report <before> <after> [--no-open]"
+    "Usage: up architecture record <json> | analyse <json> | testability <json> | list | inspect <id> [--json] | report <id> [--no-open] | compare <before> <after> [--json] | compare-report <before> <after> [--no-open]"
   );
 }
 

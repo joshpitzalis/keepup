@@ -521,6 +521,6 @@ export function exerciseCommand(
   }
 
   throw new Error(
-    "Usage: keepup architecture exercise prepare <json> | start <json> | inspect <id> [--json] | report <id> [--no-open] | compare <id> <attemptId> | list | abandon <json> | submit <json> | assess <json> | complete <json>"
+    "Usage: up architecture exercise prepare <json> | start <json> | inspect <id> [--json] | report <id> [--no-open] | compare <id> <attemptId> | list | abandon <json> | submit <json> | assess <json> | complete <json>"
   );
 }

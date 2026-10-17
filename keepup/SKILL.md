@@ -1,5 +1,5 @@
 ---
-name: keepup
+name: up
 description: Keep up with your own codebase through full initial assessments, recall quizzes, learner-written refactoring katas, delayed checks and a cognitive-debt map.
 argument-hint: "init | status | quiz | kata | on | map | submit | check"
 disable-model-invocation: true
@@ -18,7 +18,7 @@ The learner owns target-code edits. Teach, inspect and run the existing tests; n
 1. Run `node <skill>/scripts/keepup.mjs init`. Inspect the returned configuration and scope. Leave an unknown test command unset until an exercise needs it, then ask for the existing command.
 2. Read `MISSION.md` in the returned main-checkout state directory. Init supplies a starter mission or preserves an existing personalised mission. Use it immediately; a starter mission can be tailored after a week. Init requires no mission questions. Refine it immediately only when the learner asks.
 3. Run [the full initial assessment](references/initial-assessment.md). Complete all six assessment attempts before reporting setup ready; return explicit blockers for unavailable evidence. Use the CLI's `health` result for **Code health** (×100, out of 100) and **Comprehension debt** (×100, a percentage). Keep details in the saved report and show a short coverage/provisional note when warranted. Null means unavailable. Setup and assessment grant no quiz or practice credit.
-4. For a fresh learner, follow “Comprehension debt: 100% · unassessed” immediately with “Would you like to take your first quiz to see how well you understand your codebase? Run `/ku quiz`.” Then say “Or skip this introductory quiz and start `/ku kata`.” On its own separate line, say “You can also use `/ku on` next time you have an agent working.” In Codex use `$ku`; substitute the installed name (`keepup` or its staging alias) when needed. Preserve existing learning evidence; an existing learner can take another quiz. These are alternatives: the standalone quiz never blocks kata/on. Keep the summary short and wait for their choice.
+4. For a fresh learner, follow “Comprehension debt: 100% · unassessed” immediately with “Would you like to take your first quiz to see how well you understand your codebase? Run `/up quiz`.” Then say “Or skip this introductory quiz and start `/up kata`.” On its own separate line, say “You can also use `/up on` next time you have an agent working.” In Codex use `$up`; substitute the installed name (`up` or its staging alias) when needed. Preserve existing learning evidence; an existing learner can take another quiz. These are alternatives: the standalone quiz never blocks kata/on. Keep the summary short and wait for their choice.
 
 ## quiz
 
@@ -40,7 +40,7 @@ The CLI's `log` command is the only event writer. Use a fresh retry ID for each 
 
 ## kata
 
-For `/keepup kata`, hint requests or abandonment, read [the kata workflow](references/kata.md) before selecting a target or logging an event.
+For `/up kata`, hint requests or abandonment, read [the kata workflow](references/kata.md) before selecting a target or logging an event.
 
 ## check
 
@@ -48,11 +48,11 @@ Follow [the delayed-check workflow](references/check.md). Ask one due question, 
 
 ## submit
 
-For `/keepup submit`, read [the submit workflow](references/submit.md). Assess the stored kata baseline, existing tests and all touched-file metrics before recording practice.
+For `/up submit`, read [the submit workflow](references/submit.md). Assess the stored kata baseline, existing tests and all touched-file metrics before recording practice.
 
 ## on
 
-For `/keepup on`, read [the interactive learning workflow](references/on.md). Offer one item, wait for the learner's response, then continue until they say “stop”. This runs in the current conversation, including a second terminal; it installs no hook or background watcher. Record only actual presentation and the learner's response.
+For `/up on`, read [the interactive learning workflow](references/on.md). Offer one item, wait for the learner's response, then continue until they say “stop”. This runs in the current conversation, including a second terminal; it installs no hook or background watcher. Record only actual presentation and the learner's response.
 
 ## architecture
 

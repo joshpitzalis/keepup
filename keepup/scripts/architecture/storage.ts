@@ -546,7 +546,7 @@ export function recordAssessment<Input extends AssessmentInput>(
   workingTree?: WorkingTreePaths
 ): ArchitectureAssessment {
   if (!existsSync(join(state, "config.json"))) {
-    throw new Error("Run keepup init before recording architecture evidence");
+    throw new Error("Run up init before recording architecture evidence");
   }
 
   const inputDigest = architectureDigest(JSON.stringify(input));

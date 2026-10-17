@@ -1510,7 +1510,7 @@ try {
 
   if (existsSync(join(root, ".keepup")) && existsSync(join(root, ".cogdebt"))) {
     throw new Error(
-      "Both .keepup and .cogdebt exist; choose one state directory before running keepup. No state was changed"
+      "Both .keepup and .cogdebt exist; choose one state directory before running up. No state was changed"
     );
   }
 
@@ -1565,12 +1565,12 @@ try {
     console.log(JSON.stringify(withLock(inPlay)));
   } else {
     throw new Error(
-      "Usage: keepup init | health [<assessment-ids-json>] | log <json> | status [--json] | map | in-play | architecture"
+      "Usage: up init | health [<assessment-ids-json>] | log <json> | status [--json] | map | in-play | architecture"
     );
   }
 } catch (error) {
   console.error(
-    `keepup: ${error instanceof Error ? error.message : String(error)}`
+    `up: ${error instanceof Error ? error.message : String(error)}`
   );
   process.exitCode = 1;
 }

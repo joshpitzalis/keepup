@@ -1,6 +1,6 @@
 # Keep up while agents work
 
-Use for `/keepup on`, including from a second terminal. Run the installed skill's `scripts/keepup.mjs` from the learner's repository. This is an interactive conversation: present one item, wait for a response, and continue until the learner says “stop”. Stopping ends the session without inventing a learning event. Inspect code privately; never write a target's refactor.
+Use for `/up on`, including from a second terminal. Run the installed skill's `scripts/keepup.mjs` from the learner's repository. This is an interactive conversation: present one item, wait for a response, and continue until the learner says “stop”. Stopping ends the session without inventing a learning event. Inspect code privately; never write a target's refactor.
 
 1. Run `in-play`, then `status --json`; surface their warnings. Match the returned paths against current status files. If none remain, use the debt ranking. Choose **one** file, preferring high debt with a useful change to explain; use path order for ties. Avoid repeating an unchanged file already offered in this conversation. If no fresh item remains, say so and wait for another request; do not poll or manufacture activity. Empty scope means report that no scoped file is available and stop without logging anything. Reading or selecting a file grants no evidence.
 2. Read that file and its relevant diff/callers. Use its current learning state to offer one item:

@@ -668,6 +668,6 @@ export function opportunityCommand(
   }
 
   throw new Error(
-    "Usage: keepup architecture opportunity record <json> | inspect <id> [--json] | report <id> [--no-open]"
+    "Usage: up architecture opportunity record <json> | inspect <id> [--json] | report <id> [--no-open]"
   );
 }

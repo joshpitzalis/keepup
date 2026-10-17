@@ -1,6 +1,6 @@
 # Submit a kata
 
-Use for `/keepup submit`. Follow the parent skill's evidence discipline and work in the main checkout. The learner owns every refactor. The skill assesses tests, scorer guardrails and learning evidence; `log` records that assessment without independently executing tests.
+Use for `/up submit`. Follow the parent skill's evidence discipline and work in the main checkout. The learner owns every refactor. The skill assesses tests, scorer guardrails and learning evidence; `log` records that assessment without independently executing tests.
 
 ## Recover context and freeze the assessment
 
