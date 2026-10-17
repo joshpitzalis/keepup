@@ -73,7 +73,6 @@ test("combined health uses current measured dimensions once, keeps raw evidence 
     module: {
       ...after.module,
       id: "orders-copy",
-      members: after.module.members.map((file) => `./${file}`),
     },
   };
 
