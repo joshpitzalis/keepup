@@ -28,6 +28,7 @@ import {
   assertSupportingGraphTools,
 } from "./exercise-graph-guardrails.ts";
 import { validateInterfacePreparation } from "./exercise-interface.ts";
+import { validateNavigationPreparation } from "./exercise-navigation.ts";
 import {
   parseExerciseLifecycle,
   parseExercisePreparation,
@@ -83,6 +84,13 @@ interface CheckedPreparation extends Pick<
   readonly command: string;
 }
 
+const reviewedPreparationValidators = new Map([
+  ["change-locality", validateLocalityPreparation],
+  ["interface-leverage", validateInterfacePreparation],
+  ["navigability", validateNavigationPreparation],
+  ["behavioural-testability", validateTestabilityPreparation],
+]);
+
 function validatePreparation(
   root: string,
   state: string,
@@ -99,21 +107,23 @@ function validatePreparation(
     );
   }
 
-  if (input.target.kind === "interface-leverage") {
-    return validateInterfacePreparation(root, state, input, assessment, host);
+  const reviewedValidator = reviewedPreparationValidators.get(
+    input.target.kind
+  );
+
+  if (reviewedValidator) {
+    return reviewedValidator(root, state, input, assessment, host);
   }
 
-  if (input.target.kind === "behavioural-testability") {
-    return validateTestabilityPreparation(root, state, input, assessment, host);
-  }
-
-  if (input.target.kind === "change-locality") {
-    return validateLocalityPreparation(root, state, input, assessment, host);
-  }
-
-  if (declaration.dimension !== "seam-integrity") {
+  if (
+    input.target.kind === "change-locality" ||
+    input.target.kind === "interface-leverage" ||
+    input.target.kind === "navigability" ||
+    input.target.kind === "behavioural-testability" ||
+    declaration.dimension !== "seam-integrity"
+  ) {
     throw new Error(
-      "Exercise requires a current complete deterministic seam finding, not a stale, partial or reviewed score"
+      "Exercise requires a supported complete deterministic seam target"
     );
   }
 
@@ -426,6 +436,11 @@ export function exerciseText(context: ArchitectureExercise): string {
     ...(preparation.input.target.kind === "interface-leverage"
       ? [
           "Interface-leverage acceptance separates exact-source regression checks from reviewed removal of the frozen caller obligation. Intrinsic domain choices stay fixed; complexity improvement is not required.",
+        ]
+      : []),
+    ...(preparation.input.target.kind === "navigability"
+      ? [
+          "Navigability acceptance separates executed source/behaviour checks from reviewed shorter sufficient logical-module trail for the same exact question, coherent readability and preserved caller obligations.",
         ]
       : []),
     `Behaviour: ${preparation.input.behaviour}`,

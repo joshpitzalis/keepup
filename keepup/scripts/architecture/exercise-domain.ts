@@ -24,6 +24,11 @@ export interface ExerciseHost {
 
 export type ExerciseTarget =
   | {
+      readonly kind: "navigability";
+      readonly questionId: string;
+      readonly goal: number;
+    }
+  | {
       readonly kind: "interface-leverage";
       readonly scenarioId: string;
       readonly obligationKind: CallerObligation["kind"];
