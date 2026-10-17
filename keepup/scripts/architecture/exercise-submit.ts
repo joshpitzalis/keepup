@@ -27,6 +27,7 @@ import {
   runExerciseTests,
 } from "./exercise-evidence.ts";
 import { assessInterfaceExercise } from "./exercise-interface.ts";
+import { assessNavigationExercise } from "./exercise-navigation.ts";
 import { reviewedExerciseAssessment } from "./exercise-reviewed.ts";
 import {
   exerciseDirectory,
@@ -116,6 +117,16 @@ function evaluateReviewedExercise(
   input: ExerciseAssessmentInput,
   changedFiles: readonly string[]
 ): NonNullable<ExerciseAttempt["assessment"]> {
+  if (preparation.input.target.kind === "navigability") {
+    return assessNavigationExercise(
+      root,
+      state,
+      preparation,
+      input,
+      changedFiles
+    );
+  }
+
   const evaluator =
     preparation.input.target.kind === "interface-leverage"
       ? assessInterfaceExercise
@@ -196,7 +207,7 @@ export function assessExercise(
         additionalTests = result.tests;
         current = exerciseTargetCount(assessment, preparation.input.target);
       } else if (
-        ["interface-leverage", "change-locality"].includes(
+        ["interface-leverage", "change-locality", "navigability"].includes(
           preparation.input.target.kind
         )
       ) {

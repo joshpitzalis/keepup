@@ -1,8 +1,9 @@
 # Complete a learner-owned architecture exercise
 
 Use this opt-in workflow for deterministic seam repairs or reviewed locality, interface
-leverage and behavioural-testability exercises. For concrete caller obligations, read
-[the interface-leverage contract](interface-exercise.md).
+leverage, navigability and behavioural-testability exercises. For concrete caller obligations, read
+[the interface-leverage contract](interface-exercise.md). For a fixed comprehension
+question and shorter sufficient trail, read [the navigability contract](navigation-exercise.md).
 Ordinary small katas keep their existing rules. Work in the main checkout returned
 by `init`; linked worktrees share that source and its resolved `.keepup` or legacy
 `.cogdebt` directory. Never change an existing active kata or its scoring setup.

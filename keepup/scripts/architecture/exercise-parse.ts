@@ -8,7 +8,7 @@ import type {
 import { parseExerciseTransformation } from "./exercise-transformation-parse.ts";
 import { object, parseArchitectureId, strings, text } from "./parse-common.ts";
 
-/* oxlint-disable anti-slop/no-unknown-parameters, anti-slop/no-unsafe-dictionary-type -- Exercise command JSON is reconstructed at this boundary. */
+/* oxlint-disable anti-slop/no-unknown-parameters, anti-slop/no-unsafe-dictionary-type, anti-slop/no-runtime-typeof -- Exercise command JSON is reconstructed at this boundary. */
 function fields(
   value: unknown,
   allowed: readonly string[]
@@ -50,8 +50,32 @@ function guardrail(value: unknown): ExerciseGuardrail {
   return { kind, ruleId: parseArchitectureId(input.ruleId) };
 }
 
+function navigationTarget(input: Record<string, unknown>): ExerciseTarget {
+  fields(input, ["kind", "questionId", "goal"]);
+
+  if (
+    typeof input.goal !== "number" ||
+    !Number.isSafeInteger(input.goal) ||
+    input.goal < 0
+  ) {
+    throw new Error(
+      "Navigation goal must be a nonnegative integer necessary logical-module transition count"
+    );
+  }
+
+  return {
+    goal: input.goal,
+    kind: "navigability",
+    questionId: parseArchitectureId(input.questionId),
+  };
+}
+
 function target(value: unknown): ExerciseTarget {
   const input = object(value);
+
+  if (input.kind === "navigability") {
+    return navigationTarget(input);
+  }
 
   if (input.kind === "interface-leverage") {
     fields(input, [

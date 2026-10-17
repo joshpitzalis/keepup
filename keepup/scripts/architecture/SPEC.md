@@ -80,6 +80,7 @@ The resolved existing learning-state directory includes legacy `.cogdebt` instal
   explain-back and explicit frozen invariant/validation review; later checks stay separate.
   Optional reviewed reshaping preserves original logical roles through new paths.
 - `exercise-reviewed.ts` freezes locality policies/sites and reviewed source/validation; `exercise-interface.ts` freezes caller obligations and domain choices. Counts alone never grant practice.
+- `exercise-navigation.ts` freezes exact questions, owners, original trails and coherent readability.
 - `exercise-testability.ts` freezes unsupported scenario/dependency contracts and separate learner-authored positive/negative/compatibility execution; original regressions stay immutable and reviewed source assertions remain explicit.
 - `exercise-candidate.ts` checks every changed path, frozen test bytes, linear learner
   commits, actual file attribution, source/index modes and stability; additions require mapping.
