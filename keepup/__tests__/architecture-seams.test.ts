@@ -340,7 +340,7 @@ test(
       partial.exerciseCapabilities.find(
         (entry: { dimension: string }) => entry.dimension === "navigability"
       ).supported,
-      false
+      true
     );
     assert.equal(
       JSON.parse(readFileSync(result.path, "utf-8")).measuredDimensions,
