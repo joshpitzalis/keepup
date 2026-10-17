@@ -13,9 +13,11 @@ export function exerciseComparison(
   const after = attempt.assessment;
 
   const complete =
-    after?.analysis &&
-    "status" in after.analysis &&
-    after.analysis.status === "complete";
+    after?.input.dimension === "change-locality"
+      ? attempt.status === "awaiting-learning"
+      : after?.analysis &&
+        "status" in after.analysis &&
+        after.analysis.status === "complete";
 
   const comparable = Boolean(
     complete && (!expected || attempt.mapping?.digest === expected.digest)

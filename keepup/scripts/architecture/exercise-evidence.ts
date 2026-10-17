@@ -154,6 +154,22 @@ export function exerciseTargetCount(
   assessment: ArchitectureAssessment,
   target: ExerciseTarget
 ): number {
+  if (target.kind === "change-locality") {
+    if (assessment.input.dimension !== "change-locality") {
+      throw new Error("Locality target requires locality evidence");
+    }
+
+    const rule = assessment.input.rules.find(
+      (entry) => entry.id === target.ruleId
+    );
+
+    if (!rule || rule.status !== "confirmed") {
+      throw new Error("Locality target requires a confirmed policy");
+    }
+
+    return rule.sites.filter((site) => site.role === "policy").length;
+  }
+
   const analysis = exerciseSeamAnalysis(assessment);
 
   if (target.kind === "prohibited-cycle") {

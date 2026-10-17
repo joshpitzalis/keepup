@@ -2,6 +2,13 @@
 
 Use for `/up kata`, a hint request during a kata, or abandonment. Read the evidence discipline in the parent skill. The CLI path below is the installed skill's `scripts/keepup.mjs`; `<CLI>` is a placeholder, not a shell executable. Use the main checkout returned by `init` for inspection and all kata commands.
 
+Before selecting a file metric, consider current architectural findings and the
+learner's mission. A useful confirmed duplicated policy can use the supported
+[change-locality exercise](architecture-exercise.md#reviewed-change-locality-target),
+with frozen source, representative behaviour, reviewed consolidation and unchanged
+regression checks. It does not require improved complexity. Missing confirmed
+policy evidence means preparation or deferral, never invented practice credit.
+
 ## Choose one safe exercise
 
 1. Run `status --json`; read `<state>/MISSION.md` and `<state>/config.json`. If a kata is active in `status.katas`, offer to resume it or record the learner's explicit abandonment before starting another. If the existing test command is unset, ask for it and wait. Preserve unrelated edits.

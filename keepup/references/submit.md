@@ -2,6 +2,11 @@
 
 Use for `/up submit`. Follow the parent skill's evidence discipline and work in the main checkout. The learner owns every refactor. The skill assesses tests, scorer guardrails and learning evidence; `log` records that assessment without independently executing tests.
 
+For an active architecture context, use [architecture exercise submission](architecture-exercise.md).
+Change-locality completion requires reviewed actual source/caller consolidation,
+necessary validation, unchanged full regression checks and linked learner evidence;
+do not apply ordinary file-metric improvement rules or log an ordinary kata pass.
+
 ## Recover context and freeze the assessment
 
 1. Run `status --json` and select the learner's active kata from `status.katas`. If none is active, report that and stop. If several exist, ask which one. Retain its number, files, target, starting `sha`, complete `baseline.files`, `baseline.contentHashes`, `baseline.definitionHashes`, summaries, metrics, warnings and linked pre-quiz answers. Missing baseline or pre-quiz concepts is incomplete context; explain the gap and do not fabricate it.

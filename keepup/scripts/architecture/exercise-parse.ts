@@ -53,6 +53,22 @@ function guardrail(value: unknown): ExerciseGuardrail {
 function target(value: unknown): ExerciseTarget {
   const input = object(value);
 
+  if (input.kind === "change-locality") {
+    fields(input, ["kind", "ruleId", "goal"]);
+
+    if (input.goal !== 1) {
+      throw new Error(
+        "Locality target must consolidate to one authoritative policy site"
+      );
+    }
+
+    return {
+      goal: 1,
+      kind: "change-locality",
+      ruleId: parseArchitectureId(input.ruleId),
+    };
+  }
+
   if (input.goal !== 0) {
     throw new Error(
       "Initial architecture targets repair the selected finding completely: goal must be zero"

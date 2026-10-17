@@ -23,6 +23,11 @@ export interface ExerciseHost {
 
 export type ExerciseTarget =
   | {
+      readonly kind: "change-locality";
+      readonly ruleId: string;
+      readonly goal: 1;
+    }
+  | {
       readonly kind: Exclude<SeamFinding["kind"], "prohibited-cycle">;
       readonly ruleId: string;
       readonly source: string;
@@ -175,7 +180,31 @@ export interface ArchitectureExercise {
     | "passed";
 }
 
+export interface ExerciseSemanticReview {
+  readonly status: "reviewed" | "provisional";
+  readonly reviewer: string;
+  readonly rationale: string;
+  readonly changes: readonly {
+    readonly file: string;
+    readonly before: string;
+    readonly after: string;
+    readonly rationale: string;
+  }[];
+  readonly callers: readonly {
+    readonly file: string;
+    readonly excerpt: string;
+    readonly rationale: string;
+  }[];
+  readonly trustBoundaries: readonly {
+    readonly siteId: string;
+    readonly preserved: boolean;
+    readonly evidence: string;
+  }[];
+}
+
 export interface ExerciseAssessmentInput {
+  readonly reviewedAssessmentId?: string;
+  readonly semanticReview?: ExerciseSemanticReview;
   readonly id: string;
   readonly exerciseId: string;
   readonly reason: string;

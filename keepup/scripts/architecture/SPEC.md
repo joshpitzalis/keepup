@@ -83,6 +83,7 @@ The resolved existing learning-state directory includes legacy `.cogdebt` instal
   Start/report/pending grant no practice. Pass requires actual different post questions,
   explain-back and explicit frozen invariant/validation review; later checks stay separate.
   Optional reviewed reshaping preserves original logical roles through new paths.
+- `exercise-reviewed.ts` freezes confirmed locality policies/sites and checks reviewed actual source/callers and necessary validation; counts alone never grant practice.
 - `exercise-candidate.ts` checks every changed path, frozen test bytes, linear learner
   commits, actual file attribution, source/index modes and stability; additions require mapping.
 - `exercise-submit.ts`/`exercise-submit-parse.ts` preserve failed/objective/accepted
@@ -90,9 +91,8 @@ The resolved existing learning-state directory includes legacy `.cogdebt` instal
   Every selected guardrail gates independently. `exercise-advisory.ts` reports captured
   compatible reviewed movement or unassessed dimensions without automatic re-rating.
 - Per-completion acceptance precedes the existing internal supported event writer;
-  one deterministic `architecture_pass` is authoritative closure/practice only for
-  attributable changed files. Public pass logging is rejected. Interrupted acceptance
-  stays active for retry/new work; shared lock converges concurrent completion.
+  one deterministic `architecture_pass` is authoritative closure/practice for changed files. Public pass logging is rejected. Interrupted acceptance
+  stays active for retry/new work; shared lock converges completion.
 - `exercise-transformation-parse.ts`/`exercise-transformation.ts` freeze finite file,
   physical module and concept mappings; original logical policies/public roles persist.
 - `exercise-reshape-candidate.ts` inventories declared new/missing source before staging;

@@ -28,6 +28,7 @@ import {
   parseExercisePreparation,
   parseExerciseStart,
 } from "./exercise-parse.ts";
+import { validateLocalityPreparation } from "./exercise-reviewed.ts";
 import {
   exerciseDirectory,
   exerciseIds,
@@ -87,12 +88,23 @@ function validatePreparation(
   const declaration = assessment.input;
 
   if (
+    inspection.freshness.status === "current" &&
+    input.target.kind === "change-locality"
+  ) {
+    return validateLocalityPreparation(root, state, input, assessment, host);
+  }
+
+  if (
     inspection.freshness.status !== "current" ||
     declaration.dimension !== "seam-integrity"
   ) {
     throw new Error(
       "Exercise requires a current complete deterministic seam finding, not a stale, partial or reviewed score"
     );
+  }
+
+  if (input.target.kind === "change-locality") {
+    throw new Error("Locality requires current reviewed evidence");
   }
 
   const analysis = exerciseSeamAnalysis(assessment);
@@ -376,6 +388,11 @@ export function exerciseText(context: ArchitectureExercise): string {
   return [
     `Architecture exercise ${preparation.id}: ${context.state}`,
     `Technique: ${preparation.input.technique}`,
+    ...(preparation.input.target.kind === "change-locality"
+      ? [
+          "Change-locality acceptance combines automated exact-source/regression checks with explicit reviewed semantic consolidation. Complexity improvement is not required; seam safety remains unmeasured.",
+        ]
+      : []),
     `Behaviour: ${preparation.input.behaviour}`,
     `Files: ${preparation.input.files.join(", ")}`,
     `Callers: ${preparation.input.callers.join(", ")}`,

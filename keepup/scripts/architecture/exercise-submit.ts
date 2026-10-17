@@ -26,6 +26,7 @@ import {
   exerciseTargetCount,
   runExerciseTests,
 } from "./exercise-evidence.ts";
+import { reviewedExerciseAssessment } from "./exercise-reviewed.ts";
 import {
   exerciseDirectory,
   publishExerciseRecord,
@@ -164,26 +165,55 @@ export function assessExercise(
       );
       assertCandidateStable(root, state, inventory, indexHash);
 
-      assessment = evaluateExercise(
-        root,
-        state,
-        preparation,
-        `exercise-${architectureDigest(JSON.stringify({ indexHash, input, inventory })).slice(0, 40)}`
-      );
-      const before = exerciseSeamAnalysis(preparation.assessment);
-      const after = exerciseSeamAnalysis(assessment);
-
-      if (
-        !before.tool ||
-        !after.tool ||
-        before.tool.fingerprint !== after.tool.fingerprint
-      ) {
-        throw new Error(
-          "Frozen analyser definitions changed; fresh preparation is required"
+      if (preparation.input.target.kind === "change-locality") {
+        assessment = reviewedExerciseAssessment(
+          root,
+          state,
+          preparation,
+          input,
+          changedFiles
         );
-      }
+        current = exerciseTargetCount(assessment, preparation.input.target);
+      } else {
+        assessment = evaluateExercise(
+          root,
+          state,
+          preparation,
+          `exercise-${architectureDigest(JSON.stringify({ indexHash, input, inventory })).slice(0, 40)}`
+        );
+        const before = exerciseSeamAnalysis(preparation.assessment);
+        const after = exerciseSeamAnalysis(assessment);
 
-      current = exerciseTargetCount(assessment, preparation.input.target);
+        if (
+          !before.tool ||
+          !after.tool ||
+          before.tool.fingerprint !== after.tool.fingerprint
+        ) {
+          throw new Error(
+            "Frozen analyser definitions changed; fresh preparation is required"
+          );
+        }
+
+        current = exerciseTargetCount(assessment, preparation.input.target);
+
+        const currentAssessment = assessment;
+        guardrails = preparation.guardrails.map((guardrail) => ({
+          ...guardrail,
+          current: exerciseGuardrailCount(currentAssessment, guardrail),
+        }));
+
+        for (const guardrail of guardrails) {
+          if (guardrail.current > guardrail.baseline) {
+            errors.push(
+              `Selected structural guardrail ${guardrail.ruleId}/${guardrail.kind} regressed`
+            );
+          }
+        }
+
+        if (after.tool && analyserToolChanged(after.tool)) {
+          throw new Error("Analyser assets changed after objective evaluation");
+        }
+      }
 
       if (
         current >= preparation.targetBaseline ||
@@ -192,24 +222,6 @@ export function assessExercise(
         errors.push(
           "The same frozen raw target did not improve and reach its goal"
         );
-      }
-
-      const currentAssessment = assessment;
-      guardrails = preparation.guardrails.map((guardrail) => ({
-        ...guardrail,
-        current: exerciseGuardrailCount(currentAssessment, guardrail),
-      }));
-
-      for (const guardrail of guardrails) {
-        if (guardrail.current > guardrail.baseline) {
-          errors.push(
-            `Selected structural guardrail ${guardrail.ruleId}/${guardrail.kind} regressed`
-          );
-        }
-      }
-
-      if (after.tool && analyserToolChanged(after.tool)) {
-        throw new Error("Analyser assets changed after objective evaluation");
       }
 
       assertCandidateStable(root, state, inventory, indexHash);
@@ -496,11 +508,15 @@ export function assertAttemptStable(
   state: string,
   attempt: ExerciseAttempt
 ): void {
-  const tool = attempt.assessment
-    ? exerciseSeamAnalysis(attempt.assessment).tool
-    : null;
+  const tool =
+    attempt.assessment?.input.dimension === "seam-integrity"
+      ? exerciseSeamAnalysis(attempt.assessment).tool
+      : null;
 
-  if (!tool || analyserToolChanged(tool)) {
+  if (
+    attempt.assessment?.input.dimension === "seam-integrity" &&
+    (!tool || analyserToolChanged(tool))
+  ) {
     throw new Error(
       "Accepted attempt's analyser assets are unavailable or changed; no practice can be issued"
     );
