@@ -12,6 +12,7 @@ import {
   renameSync,
   cpSync,
   lstatSync,
+  symlinkSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve as resolvePath } from "node:path";
@@ -167,6 +168,17 @@ test("init adopts a dated starter mission, upgrades only the untouched template 
     readFileSync(join(state, "MISSION.md"), "utf-8"),
     "# Mission\n\n## Why\nMy own reason.\n"
   );
+
+  const linkedMission = join(root, "linked-mission.md");
+
+  const blank =
+    "# Mission\n\n## Why\n\n## Success\n\n## Constraints\n\n## Exclusions\n";
+
+  writeFileSync(linkedMission, blank);
+  rmSync(join(state, "MISSION.md"));
+  symlinkSync(linkedMission, join(state, "MISSION.md"));
+  initializeAt("2026-12-01T12:00:00Z");
+  assert.equal(readFileSync(linkedMission, "utf-8"), blank);
 });
 
 function scorer(root: string, name: string, body: string) {

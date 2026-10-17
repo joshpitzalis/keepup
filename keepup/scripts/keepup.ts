@@ -263,9 +263,12 @@ function initialize() {
   const emptyMission =
     "# Mission\n\n## Why\n\n## Success\n\n## Constraints\n\n## Exclusions\n";
 
+  const missionExists = existsSync(missionPath);
+
   if (
-    !existsSync(missionPath) ||
-    readFileSync(missionPath, "utf-8") === emptyMission
+    !missionExists ||
+    (lstatSync(missionPath).isFile() &&
+      readFileSync(missionPath, "utf-8") === emptyMission)
   ) {
     const reviewAfter = new Date(
       Date.parse(now()) + 7 * 86_400_000
@@ -290,7 +293,8 @@ Learn alongside ongoing work, without a fixed time commitment. Combine explanati
 Nothing excluded yet.
 
 <!-- keepup-starter-review-after: ${reviewAfter} -->
-`
+`,
+      { flag: missionExists ? "w" : "wx" }
     );
   }
 
