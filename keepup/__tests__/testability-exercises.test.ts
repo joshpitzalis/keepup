@@ -13,6 +13,7 @@ import test from "node:test";
 import type { TestContext } from "node:test";
 import { fileURLToPath } from "node:url";
 
+import type { ExerciseGuardrail } from "../scripts/architecture/exercise-domain.ts";
 import type {
   ExistingTest,
   TestabilityAssessmentInput,
@@ -39,6 +40,10 @@ function command(root: string, cli: string, ...args: string[]) {
   return spawnSync(process.execPath, [cli, ...args], {
     cwd: root,
     encoding: "utf-8",
+    env: {
+      ...process.env,
+      KEEPUP_ANALYSER_DIRECTORY: process.env.KEEPUP_TEST_ANALYSER_DIRECTORY,
+    },
   });
 }
 
@@ -147,7 +152,8 @@ function prepare(
   cli: string,
   added = false,
   baseline = definition("baseline"),
-  compatibility: readonly ExistingTest[] = []
+  compatibility: readonly ExistingTest[] = [],
+  guardrails: readonly ExerciseGuardrail[] = []
 ) {
   run(root, cli, "architecture", "testability", JSON.stringify(baseline));
 
@@ -157,7 +163,7 @@ function prepare(
     callers: ["regression.test.ts"],
     concepts,
     files: ["module.ts", "scenario.test.ts"],
-    guardrails: [],
+    guardrails,
     id: "testability",
     invariants: ["Zero remains zero"],
     requiredTests: [{ file: "regression.test.ts", name: "zero retained" }],
@@ -724,3 +730,95 @@ test("prepared dependency compatibility executes separately and cannot disappear
   assert.equal(rejected.status, "failed");
   assert.match(rejected.errors.join(" "), /prepared test identities/u);
 });
+
+test(
+  "testability supports selected graph guards and defers transformation combinations before learner edits",
+  { skip: !process.env.KEEPUP_TEST_ANALYSER_DIRECTORY },
+  (t) => {
+    const { root, cli } = fixture(t);
+
+    const graph = run(
+      root,
+      cli,
+      "architecture",
+      "analyse",
+      JSON.stringify({
+        dimension: "seam-integrity",
+        evidence: ["module.ts", "scenario.test.ts", "regression.test.ts"],
+        exclusions: [],
+        id: "testability-graph",
+        limitations: [],
+        modules: [
+          {
+            id: "totals",
+            interface: ["module.ts"],
+            members: ["module.ts", "scenario.test.ts"],
+          },
+          {
+            id: "regressions",
+            interface: ["regression.test.ts"],
+            members: ["regression.test.ts"],
+          },
+        ],
+        rules: [
+          {
+            dependency: "all",
+            from: "totals",
+            id: "no-regressions",
+            kind: "forbidden",
+            to: "regressions",
+          },
+        ],
+      })
+    );
+
+    assert.equal(graph.analysis.status, "complete");
+
+    const guardrails: readonly ExerciseGuardrail[] = [
+      {
+        assessmentId: "testability-graph",
+        kind: "forbidden-direction",
+        ruleId: "no-regressions",
+      },
+    ];
+
+    assert.throws(
+      () => prepare(root, cli, true, definition("baseline"), [], guardrails),
+      /reviewed source transformations/u
+    );
+
+    const prepared = prepare(
+      root,
+      cli,
+      false,
+      definition("baseline"),
+      [],
+      guardrails
+    );
+
+    assert.equal(prepared.guardrails[0].baseline, 0);
+    assert.equal(prepared.supportingAssessments.length, 1);
+    writeFileSync(join(root, "scenario.test.ts"), authored);
+    run(
+      root,
+      cli,
+      "architecture",
+      "testability",
+      JSON.stringify(definition("candidate", true))
+    );
+
+    const attempt = exercise(
+      root,
+      cli,
+      "assess",
+      assessment("graph-supported")
+    );
+
+    assert.equal(
+      attempt.status,
+      "awaiting-learning",
+      JSON.stringify(attempt.errors)
+    );
+    assert.equal(attempt.guardrails[0].current, 0);
+  }
+);

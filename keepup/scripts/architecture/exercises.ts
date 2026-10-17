@@ -23,6 +23,10 @@ import {
   linkedPreQuizzes,
   runExerciseTests,
 } from "./exercise-evidence.ts";
+import {
+  prepareGraphGuardrails,
+  assertSupportingGraphTools,
+} from "./exercise-graph-guardrails.ts";
 import { validateInterfacePreparation } from "./exercise-interface.ts";
 import {
   parseExerciseLifecycle,
@@ -245,14 +249,24 @@ export function prepareExercise(
 
     assertAvailable(state, host);
     const checked = validatePreparation(root, state, input, host);
+
+    const graph = prepareGraphGuardrails(
+      root,
+      state,
+      input,
+      checked.inventory,
+      checked.assessment
+    );
+
     const tests = runExerciseTests(root, checked.command, input.requiredTests);
+    assertSupportingGraphTools(graph?.assessments);
     assertExerciseStable(root, state, checked.inventory);
     archive(root, state, checked.inventory.manifest);
     archive(import.meta.dirname, state, checked.inventory.assets);
     archive(EXERCISE_HOST_DIRECTORY, state, checked.inventory.hostAssets);
     assertExerciseStable(root, state, checked.inventory);
 
-    const result: ExercisePreparation = {
+    let result: ExercisePreparation = {
       assessment: checked.assessment,
       guardrails: checked.guardrails,
       id: input.id,
@@ -266,6 +280,14 @@ export function prepareExercise(
       tests,
       time: host.now(),
     };
+
+    if (graph) {
+      result = {
+        ...result,
+        guardrails: graph.guardrails,
+        supportingAssessments: graph.assessments,
+      };
+    }
 
     publishExerciseRecord(path, JSON.stringify(result));
 
@@ -303,6 +325,7 @@ export function startExercise(
 
     assertAvailable(state, host, input.exerciseId);
     assertExerciseStable(root, state, preparation.inventory);
+    assertSupportingGraphTools(preparation.supportingAssessments);
     assertExerciseClean(root, preparation.input.files);
 
     if (
@@ -328,6 +351,7 @@ export function startExercise(
     );
 
     assertExerciseStable(root, state, preparation.inventory);
+    assertSupportingGraphTools(preparation.supportingAssessments);
     publishExerciseRecord(
       join(exerciseDirectory(state, input.exerciseId), "start.json"),
       JSON.stringify({

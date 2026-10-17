@@ -61,12 +61,6 @@ export function validateTestabilityPreparation(
     );
   }
 
-  if (input.guardrails.length) {
-    throw new Error(
-      "Selected graph guardrails require complete separately supported seam evidence"
-    );
-  }
-
   const command = host.config().testCommand;
 
   if (!command) {
