@@ -1,6 +1,7 @@
 import type { StoredEvent } from "../keepup.ts";
 import type {
   ArchitectureAssessment,
+  CallerObligation,
   ArchitectureModule,
   ManifestEntry,
 } from "./domain.ts";
@@ -23,6 +24,32 @@ export interface ExerciseHost {
 
 export type ExerciseTarget =
   | {
+      readonly kind: "navigability";
+      readonly questionId: string;
+      readonly goal: number;
+    }
+  | {
+      readonly kind: "interface-leverage";
+      readonly scenarioId: string;
+      readonly obligationKind: CallerObligation["kind"];
+      readonly obligation: string;
+      readonly goal: 0;
+    }
+  | {
+      readonly kind: "behavioural-testability";
+      readonly scenarioId: string;
+      readonly goal: 0;
+      readonly command: string;
+      readonly positive: ExistingTest;
+      readonly negative: ExistingTest;
+      readonly compatibility: readonly ExistingTest[];
+    }
+  | {
+      readonly kind: "change-locality";
+      readonly ruleId: string;
+      readonly goal: 1;
+    }
+  | {
       readonly kind: Exclude<SeamFinding["kind"], "prohibited-cycle">;
       readonly ruleId: string;
       readonly source: string;
@@ -37,6 +64,7 @@ export type ExerciseTarget =
     };
 
 export interface ExerciseGuardrail {
+  readonly assessmentId?: string;
   readonly ruleId: string;
   readonly kind: SeamFinding["kind"];
 }
@@ -111,6 +139,7 @@ export interface ExerciseTestRun {
 }
 
 export interface ExercisePreparation {
+  readonly supportingAssessments?: readonly ArchitectureAssessment[];
   readonly schemaVersion: 1;
   readonly id: string;
   readonly input: ExercisePreparationInput;
@@ -122,6 +151,7 @@ export interface ExercisePreparation {
   readonly inventory: ExerciseInventory;
   readonly targetBaseline: number;
   readonly guardrails: readonly {
+    readonly assessmentId?: string;
     readonly ruleId: string;
     readonly kind: SeamFinding["kind"];
     readonly baseline: number;
@@ -175,7 +205,31 @@ export interface ArchitectureExercise {
     | "passed";
 }
 
+export interface ExerciseSemanticReview {
+  readonly status: "reviewed" | "provisional";
+  readonly reviewer: string;
+  readonly rationale: string;
+  readonly changes: readonly {
+    readonly file: string;
+    readonly before: string | null;
+    readonly after: string;
+    readonly rationale: string;
+  }[];
+  readonly callers: readonly {
+    readonly file: string;
+    readonly excerpt: string;
+    readonly rationale: string;
+  }[];
+  readonly trustBoundaries: readonly {
+    readonly siteId: string;
+    readonly preserved: boolean;
+    readonly evidence: string;
+  }[];
+}
+
 export interface ExerciseAssessmentInput {
+  readonly reviewedAssessmentId?: string;
+  readonly semanticReview?: ExerciseSemanticReview;
   readonly id: string;
   readonly exerciseId: string;
   readonly reason: string;
@@ -199,6 +253,8 @@ export interface ExerciseCompletionInput {
 }
 
 export interface ExerciseAttempt {
+  readonly supportingAssessments?: readonly ArchitectureAssessment[];
+  readonly additionalTests?: ExerciseTestRun;
   readonly touchedFiles?: readonly string[];
   readonly tracking?: boolean;
   readonly mapping?: {
@@ -225,6 +281,7 @@ export interface ExerciseAttempt {
     readonly goal: number;
   };
   readonly guardrails: readonly {
+    readonly assessmentId?: string;
     readonly ruleId: string;
     readonly kind: SeamFinding["kind"];
     readonly baseline: number;

@@ -1,15 +1,18 @@
 # Complete a learner-owned architecture exercise
 
-Use this opt-in workflow for a deterministic seam repair on existing files.
+Use this opt-in workflow for deterministic seam repairs or reviewed locality, interface
+leverage, navigability and behavioural-testability exercises. For concrete caller obligations, read
+[the interface-leverage contract](interface-exercise.md). For a fixed comprehension
+question and shorter sufficient trail, read [the navigability contract](navigation-exercise.md).
 Ordinary small katas keep their existing rules. Work in the main checkout returned
 by `init`; linked worktrees share that source and its resolved `.keepup` or legacy
 `.cogdebt` directory. Never change an existing active kata or its scoring setup.
 
 ## Choose and freeze before asking questions
 
-Inspect a **current, complete automated seam assessment** and its actual callers,
+For seam repairs, inspect a **current, complete automated seam assessment** and its actual callers,
 implementation and tests. A reviewed rating, opportunity or partial graph cannot
-start an exercise. Opportunity selection is optional: start directly from a useful
+start a seam repair. Opportunity selection is optional: start directly from a useful
 private import, forbidden direction, interface re-export or prohibited cycle.
 Choose a bounded repair whose complete raw target can plausibly reach zero while
 preserving behaviour. If that cannot be justified, offer preparation or no exercise.
@@ -59,6 +62,100 @@ Without an explicit transformation, exercises cannot add, delete or move members
 Use the reviewed reshaping contract below for planned changes. Preserve unrelated
 edits. Keep the returned preparation
 and its CLI-owned `quizPrefix`; retries never replace this original baseline.
+
+## Graph guardrails for reviewed targets
+
+A locality, interface, navigation or testability target can select structural guards
+from a separate **current, complete automated seam assessment** captured against the
+same source. Declare each guard before questions or edits:
+
+```json
+{"guardrails":[{"assessmentId":"graph-baseline","ruleId":"no-other","kind":"forbidden-direction"}]}
+```
+
+Use an applicable finding kind and existing frozen rule/cycle policy. Preparation
+captures the supporting definitions, analyser assets and individual raw baselines;
+assessment reruns those same policies on the exact candidate and rejects regressions.
+Supporting graph results stay separate from the reviewed target. Changed analyser
+assets also block final practice. Missing, partial or stale selected graph evidence
+requires preparation, never a healthy default. An unrelated partial graph does not
+block a target with no graph guard and does not establish seam safety.
+
+Original seam targets keep guards from their own assessment and omit `assessmentId`.
+Reviewed source transformations combined with graph guards remain unavailable at
+preparation; split the work into supported exercises or defer that combination.
+
+## Reviewed change-locality target
+
+A named confirmed policy can instead use `target:{kind:"change-locality",ruleId,goal:1}`.
+Prepare against its current reviewed `change-locality` assessment, with confirmed
+semantic equivalence, at least two independent implementation sites, representative
+change scenarios and explicit trust-boundary sites. Freeze all original site IDs,
+files, policy meaning, module and scenarios. Include every site in `files` or
+`callers`; supply existing positive and negative tests for necessary validation.
+Calls reference a surviving policy site's ID through `implementation`; they do not
+count as independent policy implementations. Complexity may remain unchanged.
+An unrelated partial graph does not block this target or establish seam safety.
+Source reshaping remains unavailable for this family. Selected graph guardrails use
+the shared supporting-evidence contract; unrelated graph limits stay visible.
+
+After learner edits, inspect the actual original archived source, candidate source,
+callers and diff. Record a new current reviewed locality assessment through
+`architecture record`; retain all original sites (converted calls stay inventoried),
+policy meaning and representative scenarios. Provisional or disputed evidence is
+incomplete. On `exercise assess`, add `reviewedAssessmentId` and:
+
+```json
+{"semanticReview":{"status":"reviewed","reviewer":"Actual reviewer","rationale":"Actual semantic consolidation rationale","changes":[{"file":"policy.ts","before":"Exact original implementation excerpt","after":"Exact candidate implementation excerpt","rationale":"Why the equivalent policy now delegates"}],"callers":[{"file":"caller.ts","excerpt":"Exact candidate caller excerpt","rationale":"Preserved observable contract"}],"trustBoundaries":[{"siteId":"original-boundary-site","preserved":true,"evidence":"Actual review of retained or delegated validation and positive/negative checks"}]}}
+```
+
+Every changed file and frozen caller needs source evidence; every original trust
+boundary needs explicit preservation review (use an empty array only when none
+exist). Excerpts must match captured source bytes. A supplied count, omitted site,
+file merge, identical text or better rating cannot establish semantic consolidation.
+The reviewer must judge the actual change; automated source/test checks cannot
+infer semantic equivalence. The full unchanged suite and selected named witnesses
+run against this same candidate. Failed attempts keep the original baseline.
+After acceptance, use the same actual post questions, explain-back, invariant review
+and internal completion path below. Neither the review nor the assessment alone
+grants practice; delayed verification remains separate.
+
+## Learner-authored behavioural-testability target
+
+Use `target:{kind:"behavioural-testability",scenarioId,goal:0,command,positive:{file,name},negative:{file,name},compatibility:[{file,name}]}`
+against a current reviewed testability assessment with complete discovery and an unsupported
+selected scenario. Freeze its identity, behaviour, failure invariant, intended public interface,
+dependency strategy, environment needs and compatibility requirements. Prepare the exact
+positive, negative and compatibility case names and a separate explicit Node TAP command.
+The original configured regression command and every original regression file stay byte-identical;
+the additional command cannot replace them. Required production compatibility checks must be
+named before edits. Selected graph guardrails require separately supported complete graph evidence;
+never drop a required guardrail to manufacture readiness.
+
+Explicitly include existing test scaffolds and minimum supporting implementation in `files`.
+New/moved test paths require the reviewed file/module/concept transformation above; retain the
+intended public interface and map each credited new path to actual learning concepts. New files
+must be learner-staged before the selected Node runner can execute them. Preparation and pre-quiz
+run only the original regressions, since the learner has not written the new tests yet. No agent
+may author the learner's tests, supporting implementation, answers or explain-back. Agent-authored
+product fixtures in disposable repositories verify this workflow and grant the operator no practice.
+
+After learner edits, inspect every actual test assertion and relevant implementation/caller diff.
+Reject helper-only, interaction-only, empty or trivial passing assertions; the selected positive
+outcome and failure invariant must be asserted through the intended interface. Review dependency
+substitutes and every required production compatibility check. Record the current reviewed
+assessment using the exact prepared positive/negative/compatibility case identities. Preserve all
+other scenarios and the selected semantic/dependency contract. A supplied higher fraction alone
+cannot qualify. Add the same `semanticReview` source/caller evidence as locality; a declared new
+path uses `before:null` and an actual candidate implementation excerpt. Existing paths require
+archived original excerpts. Semantic truth remains an explicit accountable reviewer judgment.
+
+Assessment runs the full unchanged regressions and the separate additional suite against the
+same stable source, recording `tests` and `additionalTests` independently. Each positive, negative
+and compatibility case also needs its own exact named execution witness. Zero cases, missing
+selected cases, skips, pending/cancelled cases, incomplete discovery, stale source and unresolved
+or agent attribution cannot grant practice. Then collect different linked post questions,
+learner-authored explain-back and frozen invariant review through the existing completion path.
 
 ## Retrieve actual pre-quiz answers
 

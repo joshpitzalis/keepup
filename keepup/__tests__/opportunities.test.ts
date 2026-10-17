@@ -170,6 +170,10 @@ test("mission-relevant bounded opportunities retain evidence and qualitative rea
 
   assert.deepEqual(inspected.opportunity, result);
   assert.equal(inspected.freshness.status, "current");
+  assert.equal(inspected.practice.dimension, "interface-leverage");
+  assert.equal(inspected.practice.supported, true);
+  assert.equal(inspected.practice.readiness, "requires-preparation");
+  assert.equal(inspected.applicability.decision, "refactor");
 
   const report = run(
     root,
@@ -253,7 +257,7 @@ test("opportunity rehearsals defer speculative and conflicting work, prepare tes
 
     assert.equal(result.decision, example.decision);
     assert.match(result.reasons.join(" "), example.reason);
-    assert.equal(result.exerciseAvailable, true);
+    assert.equal(result.exerciseAvailable, example.input.findings.length > 0);
 
     if (example.input.id === "speculative") {
       assert.equal(result.strength, "speculative");
@@ -790,3 +794,256 @@ test(
     }
   }
 );
+
+test("supported locality remains preparation-specific and unrelated graph absence is explicit", (t) => {
+  const root = fixture(t);
+  writeFileSync(
+    join(root, "policy.ts"),
+    "export const save = () => 1; export const delayed = () => 1;\n"
+  );
+  run(
+    root,
+    CLI,
+    "architecture",
+    "record",
+    JSON.stringify({
+      changes: [
+        {
+          affectedOwners: ["orders"],
+          description: "Change saved value",
+          evidence: ["policy.ts"],
+          id: "save-change",
+        },
+      ],
+      dimension: "change-locality",
+      disagreements: [],
+      evidence: ["policy.ts"],
+      exclusions: [],
+      id: "locality",
+      limitations: ["Graph unavailable; seam safety is unmeasured"],
+      module: {
+        id: "orders",
+        interface: ["policy.ts"],
+        members: ["policy.ts"],
+      },
+      review: {
+        confidence: "high",
+        notes: "Inspected both actual return implementations",
+        reviewer: "Fixture reviewer",
+        status: "reviewed",
+      },
+      rules: [
+        {
+          description: "Saved result",
+          equivalence: "Both outcomes return the same saved result",
+          evidence: ["policy.ts"],
+          id: "saved",
+          sites: ["save", "delayed"].map((id) => ({
+            evidence: ["policy.ts"],
+            file: "policy.ts",
+            id,
+            implementation: null,
+            location: id,
+            reason: "Independent return expression",
+            role: "policy",
+            trustBoundary: null,
+          })),
+          status: "confirmed",
+        },
+      ],
+    })
+  );
+
+  const candidate = {
+    ...opportunity("locality-candidate"),
+    findings: [
+      {
+        assessmentId: "locality",
+        description: "Saved result maintained twice",
+        evidence: ["policy.ts"],
+      },
+    ],
+    rawTarget: {
+      assessmentId: "locality",
+      goal: 1,
+      metric: "independentPolicySites",
+    },
+  };
+
+  const events = readFileSync(join(root, ".keepup/events.jsonl"));
+
+  const recorded = run(
+    root,
+    CLI,
+    "architecture",
+    "opportunity",
+    "record",
+    JSON.stringify(candidate)
+  );
+
+  assert.equal(recorded.exerciseAvailable, true);
+  assert.equal(recorded.decision, "refactor");
+
+  const inspect = (id: string) =>
+    run(root, CLI, "architecture", "opportunity", "inspect", id, "--json");
+
+  assert.equal(
+    inspect(candidate.id).practice.readiness,
+    "requires-preparation"
+  );
+  assert.equal(inspect(candidate.id).practice.supported, true);
+
+  const blocked = {
+    ...candidate,
+    id: "locality-blocked",
+    verification: { ...candidate.verification, readiness: "inadequate" },
+  };
+
+  const record = run(
+    root,
+    CLI,
+    "architecture",
+    "opportunity",
+    "record",
+    JSON.stringify(blocked)
+  );
+
+  assert.equal(record.exerciseAvailable, true);
+  assert.equal(inspect(blocked.id).practice.readiness, "blocked");
+  writeFileSync(
+    join(root, "policy.ts"),
+    "export const save = () => 2; export const delayed = () => 1;\n"
+  );
+  assert.equal(inspect(candidate.id).practice.readiness, "blocked");
+  assert.deepEqual(inspect(candidate.id).opportunity, recorded);
+  assert.deepEqual(readFileSync(join(root, ".keepup/events.jsonl")), events);
+});
+
+test("semantic opportunities identify one finding family without a numeric target and preserve history when support changes", (t) => {
+  const root = fixture(t);
+  const installed = join(root, "installed");
+  cpSync(dirname(dirname(CLI)), installed, { recursive: true });
+  const cli = join(installed, "scripts/keepup.mjs");
+
+  const registry = join(
+    installed,
+    "scripts/architecture/exercise-capabilities.ts"
+  );
+
+  const currentInstallation = readFileSync(registry, "utf-8");
+
+  // Controlled older-installation capability; completion is exercised separately.
+  writeFileSync(
+    registry,
+    currentInstallation.replace(
+      /dimension: "behavioural-testability",[\s\S]*?supported: true/u,
+      'dimension: "behavioural-testability", readiness: "unsupported", requirements: ["Completion unavailable in this installation"], route: null, supported: false'
+    )
+  );
+
+  const recorded = run(
+    root,
+    cli,
+    "architecture",
+    "testability",
+    JSON.stringify({
+      dimension: "behavioural-testability",
+      discovery: "complete",
+      environmentRequirements: ["Node"],
+      evidence: ["policy.ts"],
+      exclusions: [],
+      id: "unsupported-scenario",
+      limitations: [],
+      module: {
+        id: "orders",
+        interface: ["policy.ts"],
+        members: ["policy.ts"],
+      },
+      review: {
+        confidence: "high",
+        notes: "Read actual source and missing outcome coverage",
+        reviewer: "Fixture reviewer",
+        status: "reviewed",
+      },
+      scenarios: [
+        {
+          assertion: {
+            evidence: [],
+            explanation: "No existing assertion",
+            kind: "observable-outcome",
+            status: "provisional",
+            throughInterface: true,
+          },
+          behaviour: "Return saved order result",
+          compatibility: [],
+          dependency: {
+            compatibilityRequired: false,
+            justification: "Pure return",
+            kind: "pure",
+          },
+          failureInvariant: "Wrong result must fail",
+          id: "save-result",
+          intendedInterface: "policy.ts",
+          tests: [],
+        },
+      ],
+    })
+  );
+
+  assert.equal(recorded.measurements.status, "measured");
+
+  const input = {
+    ...opportunity("semantic"),
+    findings: [
+      {
+        assessmentId: "unsupported-scenario",
+        description: "No outcome test",
+        evidence: ["policy.ts"],
+      },
+    ],
+    rawTarget: null,
+  };
+
+  const events = readFileSync(join(root, ".keepup/events.jsonl"));
+
+  const captured = run(
+    root,
+    cli,
+    "architecture",
+    "opportunity",
+    "record",
+    JSON.stringify(input)
+  );
+
+  const inspect = (id: string) =>
+    run(root, cli, "architecture", "opportunity", "inspect", id, "--json");
+
+  assert.equal(captured.exerciseAvailable, false);
+  assert.equal(inspect(input.id).practice.dimension, "behavioural-testability");
+  assert.equal(inspect(input.id).practice.readiness, "unsupported");
+
+  const mixed = {
+    ...input,
+    findings: [...input.findings, ...opportunity("unused").findings],
+    id: "mixed-families",
+  };
+
+  run(
+    root,
+    cli,
+    "architecture",
+    "opportunity",
+    "record",
+    JSON.stringify(mixed)
+  );
+  assert.equal(inspect(mixed.id).practice.dimension, null);
+
+  writeFileSync(registry, currentInstallation);
+
+  const current = inspect(input.id);
+  assert.equal(current.practice.supported, true);
+  assert.equal(current.practice.readiness, "blocked");
+  assert.equal(current.freshness.status, "stale");
+  assert.deepEqual(current.opportunity, captured);
+  assert.deepEqual(readFileSync(join(root, ".keepup/events.jsonl")), events);
+});

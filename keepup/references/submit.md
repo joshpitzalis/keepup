@@ -2,6 +2,11 @@
 
 Use for `/up submit`. Follow the parent skill's evidence discipline and work in the main checkout. The learner owns every refactor. The skill assesses tests, scorer guardrails and learning evidence; `log` records that assessment without independently executing tests.
 
+For an active architecture context, use [architecture exercise submission](architecture-exercise.md), including the [interface-leverage contract](interface-exercise.md) for caller obligation removal or the [navigability contract](navigation-exercise.md) for the same exact question and a shorter sufficient implementation trail.
+Change-locality completion requires reviewed actual source/caller consolidation,
+necessary validation, unchanged full regression checks and linked learner evidence;
+do not apply ordinary file-metric improvement rules or log an ordinary kata pass.
+
 ## Recover context and freeze the assessment
 
 1. Run `status --json` and select the learner's active kata from `status.katas`. If none is active, report that and stop. If several exist, ask which one. Retain its number, files, target, starting `sha`, complete `baseline.files`, `baseline.contentHashes`, `baseline.definitionHashes`, summaries, metrics, warnings and linked pre-quiz answers. Missing baseline or pre-quiz concepts is incomplete context; explain the gap and do not fabricate it.
@@ -63,3 +68,12 @@ Run final `status --json`. Report:
 - Pre/post quiz results, corrected misconceptions, remaining weaknesses and the recorded explain-back.
 - Code health and cognitive debt **relative to the kata's stored baseline.summary**, using current minus baseline in percentage points; print unavailable when either value is null. The latest `status.delta` compares adjacent status calls and is not the kata delta.
 - Resulting state and whether the kata remains active. Practice is immediate evidence; delayed verification still requires a qualifying later check.
+
+For an explicitly prepared behavioural-testability exercise, the learner may author the frozen
+additional tests and minimum supporting source changes. Preserve the original regression bytes
+and command. Run the separately agreed additional suite, exact positive/negative witnesses and
+required dependency compatibility checks against the same candidate. Review actual observable
+assertions through the intended interface; helper-only, interaction-only or trivial passing tests
+supply no behavioural evidence. Agents author product fixtures only in disposable repositories,
+never the learner's exercise tests. New/moved test paths require frozen mappings and their own
+actual linked learning before eligible practice. See [architecture exercises](architecture-exercise.md).

@@ -1,6 +1,7 @@
 import type {
   ExerciseAssessmentInput,
   ExerciseCompletionInput,
+  ExerciseSemanticReview,
 } from "./exercise-domain.ts";
 import { object, parseArchitectureId, strings, text } from "./parse-common.ts";
 
@@ -20,10 +21,79 @@ function fields(
   return input;
 }
 
+function semanticReview(raw: unknown): ExerciseSemanticReview {
+  const input = fields(raw, [
+    "status",
+    "reviewer",
+    "rationale",
+    "changes",
+    "callers",
+    "trustBoundaries",
+  ]);
+
+  if (
+    (input.status !== "reviewed" && input.status !== "provisional") ||
+    !Array.isArray(input.changes) ||
+    !Array.isArray(input.callers) ||
+    !Array.isArray(input.trustBoundaries)
+  ) {
+    throw new Error(
+      "Semantic review requires explicit source, callers and trust-boundary inventories"
+    );
+  }
+
+  return {
+    callers: input.callers.map((value) => {
+      const entry = fields(value, ["file", "excerpt", "rationale"]);
+
+      return {
+        excerpt: text(entry.excerpt),
+        file: text(entry.file),
+        rationale: text(entry.rationale),
+      };
+    }),
+    changes: input.changes.map((value) => {
+      const entry = fields(value, ["file", "before", "after", "rationale"]);
+
+      return {
+        after: text(entry.after),
+        before: entry.before === null ? null : text(entry.before),
+        file: text(entry.file),
+        rationale: text(entry.rationale),
+      };
+    }),
+    rationale: text(input.rationale),
+    reviewer: text(input.reviewer),
+    status: input.status,
+    trustBoundaries: input.trustBoundaries.map((value) => {
+      const entry = fields(value, ["siteId", "preserved", "evidence"]);
+
+      if (typeof entry.preserved !== "boolean") {
+        throw new TypeError(
+          "Trust-boundary review requires explicit preservation"
+        );
+      }
+
+      return {
+        evidence: text(entry.evidence),
+        preserved: entry.preserved,
+        siteId: text(entry.siteId),
+      };
+    }),
+  };
+}
+
 export function parseExerciseAssessment(
   value: unknown
 ): ExerciseAssessmentInput {
-  const input = fields(value, ["id", "exerciseId", "reason", "attribution"]);
+  const input = fields(value, [
+    "id",
+    "exerciseId",
+    "reason",
+    "attribution",
+    "reviewedAssessmentId",
+    "semanticReview",
+  ]);
 
   if (!Array.isArray(input.attribution)) {
     throw new TypeError(
@@ -57,12 +127,28 @@ export function parseExerciseAssessment(
     throw new Error("Attribution requires unique changed files");
   }
 
-  return {
+  let result: ExerciseAssessmentInput = {
     attribution: attribution.toSorted((a, b) => a.file.localeCompare(b.file)),
     exerciseId: parseArchitectureId(input.exerciseId),
     id: parseArchitectureId(input.id),
     reason: text(input.reason),
   };
+
+  if (input.reviewedAssessmentId !== undefined) {
+    result = {
+      ...result,
+      reviewedAssessmentId: parseArchitectureId(input.reviewedAssessmentId),
+    };
+  }
+
+  if (input.semanticReview !== undefined) {
+    result = {
+      ...result,
+      semanticReview: semanticReview(input.semanticReview),
+    };
+  }
+
+  return result;
 }
 
 export function parseExerciseCompletion(

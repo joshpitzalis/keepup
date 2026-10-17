@@ -31,6 +31,7 @@ import {
 import { fileURLToPath } from "node:url";
 
 import { architectureCommand } from "./architecture/commands.ts";
+import { exerciseCapabilities } from "./architecture/exercise-capabilities.ts";
 import {
   hasOpenArchitectureExercise,
   readExerciseAcceptance,
@@ -92,6 +93,7 @@ type FileStatus = {
 } & ReturnType<typeof learningState>;
 
 export interface Status {
+  exerciseCapabilities: typeof exerciseCapabilities;
   who: string;
   files: FileStatus[];
   metrics: string[];
@@ -1252,6 +1254,7 @@ function computeStatus(allEvents = readEvents()): Status {
 
   return {
     delta: null,
+    exerciseCapabilities,
     files,
     katas: kataContexts(events),
     metrics: [

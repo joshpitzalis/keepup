@@ -24,10 +24,17 @@ import {
   runExerciseTests,
 } from "./exercise-evidence.ts";
 import {
+  prepareGraphGuardrails,
+  assertSupportingGraphTools,
+} from "./exercise-graph-guardrails.ts";
+import { validateInterfacePreparation } from "./exercise-interface.ts";
+import { validateNavigationPreparation } from "./exercise-navigation.ts";
+import {
   parseExerciseLifecycle,
   parseExercisePreparation,
   parseExerciseStart,
 } from "./exercise-parse.ts";
+import { validateLocalityPreparation } from "./exercise-reviewed.ts";
 import {
   exerciseDirectory,
   exerciseIds,
@@ -42,6 +49,7 @@ import {
   parseExerciseCompletion,
 } from "./exercise-submit-parse.ts";
 import { assessExercise, completeExercise } from "./exercise-submit.ts";
+import { validateTestabilityPreparation } from "./exercise-testability.ts";
 import { validateTransformationPreparation } from "./exercise-transformation.ts";
 import { writeArchitectureReport } from "./report.ts";
 import { architectureDigest, archive, inspectAssessment } from "./storage.ts";
@@ -76,6 +84,13 @@ interface CheckedPreparation extends Pick<
   readonly command: string;
 }
 
+const reviewedPreparationValidators = new Map([
+  ["change-locality", validateLocalityPreparation],
+  ["interface-leverage", validateInterfacePreparation],
+  ["navigability", validateNavigationPreparation],
+  ["behavioural-testability", validateTestabilityPreparation],
+]);
+
 function validatePreparation(
   root: string,
   state: string,
@@ -86,12 +101,29 @@ function validatePreparation(
   const { assessment } = inspection;
   const declaration = assessment.input;
 
+  if (inspection.freshness.status !== "current") {
+    throw new Error(
+      "Exercise requires current source-bound assessment evidence"
+    );
+  }
+
+  const reviewedValidator = reviewedPreparationValidators.get(
+    input.target.kind
+  );
+
+  if (reviewedValidator) {
+    return reviewedValidator(root, state, input, assessment, host);
+  }
+
   if (
-    inspection.freshness.status !== "current" ||
+    input.target.kind === "change-locality" ||
+    input.target.kind === "interface-leverage" ||
+    input.target.kind === "navigability" ||
+    input.target.kind === "behavioural-testability" ||
     declaration.dimension !== "seam-integrity"
   ) {
     throw new Error(
-      "Exercise requires a current complete deterministic seam finding, not a stale, partial or reviewed score"
+      "Exercise requires a supported complete deterministic seam target"
     );
   }
 
@@ -227,14 +259,24 @@ export function prepareExercise(
 
     assertAvailable(state, host);
     const checked = validatePreparation(root, state, input, host);
+
+    const graph = prepareGraphGuardrails(
+      root,
+      state,
+      input,
+      checked.inventory,
+      checked.assessment
+    );
+
     const tests = runExerciseTests(root, checked.command, input.requiredTests);
+    assertSupportingGraphTools(graph?.assessments);
     assertExerciseStable(root, state, checked.inventory);
     archive(root, state, checked.inventory.manifest);
     archive(import.meta.dirname, state, checked.inventory.assets);
     archive(EXERCISE_HOST_DIRECTORY, state, checked.inventory.hostAssets);
     assertExerciseStable(root, state, checked.inventory);
 
-    const result: ExercisePreparation = {
+    let result: ExercisePreparation = {
       assessment: checked.assessment,
       guardrails: checked.guardrails,
       id: input.id,
@@ -248,6 +290,14 @@ export function prepareExercise(
       tests,
       time: host.now(),
     };
+
+    if (graph) {
+      result = {
+        ...result,
+        guardrails: graph.guardrails,
+        supportingAssessments: graph.assessments,
+      };
+    }
 
     publishExerciseRecord(path, JSON.stringify(result));
 
@@ -285,6 +335,7 @@ export function startExercise(
 
     assertAvailable(state, host, input.exerciseId);
     assertExerciseStable(root, state, preparation.inventory);
+    assertSupportingGraphTools(preparation.supportingAssessments);
     assertExerciseClean(root, preparation.input.files);
 
     if (
@@ -310,6 +361,7 @@ export function startExercise(
     );
 
     assertExerciseStable(root, state, preparation.inventory);
+    assertSupportingGraphTools(preparation.supportingAssessments);
     publishExerciseRecord(
       join(exerciseDirectory(state, input.exerciseId), "start.json"),
       JSON.stringify({
@@ -376,6 +428,21 @@ export function exerciseText(context: ArchitectureExercise): string {
   return [
     `Architecture exercise ${preparation.id}: ${context.state}`,
     `Technique: ${preparation.input.technique}`,
+    ...(preparation.input.target.kind === "change-locality"
+      ? [
+          "Change-locality acceptance combines automated exact-source/regression checks with explicit reviewed semantic consolidation. Complexity improvement is not required; seam safety remains unmeasured.",
+        ]
+      : []),
+    ...(preparation.input.target.kind === "interface-leverage"
+      ? [
+          "Interface-leverage acceptance separates exact-source regression checks from reviewed removal of the frozen caller obligation. Intrinsic domain choices stay fixed; complexity improvement is not required.",
+        ]
+      : []),
+    ...(preparation.input.target.kind === "navigability"
+      ? [
+          "Navigability acceptance separates executed source/behaviour checks from reviewed shorter sufficient logical-module trail for the same exact question, coherent readability and preserved caller obligations.",
+        ]
+      : []),
     `Behaviour: ${preparation.input.behaviour}`,
     `Files: ${preparation.input.files.join(", ")}`,
     `Callers: ${preparation.input.callers.join(", ")}`,

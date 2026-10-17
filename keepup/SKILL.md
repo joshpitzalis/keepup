@@ -17,8 +17,17 @@ The learner owns target-code edits. Teach, inspect and run the existing tests; n
 
 1. Run `node <skill>/scripts/keepup.mjs init`. Inspect the returned configuration and scope. Leave an unknown test command unset until an exercise needs it, then ask for the existing command.
 2. Read `MISSION.md` in the returned main-checkout state directory. Init supplies a starter mission or preserves an existing personalised mission. Use it immediately; a starter mission can be tailored after a week. Init requires no mission questions. Refine it immediately only when the learner asks.
-3. Run [the full initial assessment](references/initial-assessment.md). Complete all six assessment attempts before reporting setup ready; return explicit blockers for unavailable evidence. Use the CLI's `health` result for **Code health** (×100, out of 100) and **Comprehension debt** (×100, a percentage). Keep details in the saved report and show a short coverage/provisional note when warranted. Null means unavailable. Setup and assessment grant no quiz or practice credit.
-4. For a fresh learner, follow “Comprehension debt: 100% · unassessed” immediately with “Would you like to take your first quiz to see how well you understand your codebase? Run `/up quiz`.” Then say “Or skip this introductory quiz and start `/up kata`.” On its own separate line, say “You can also use `/up on` next time you have an agent working.” In Codex use `$up`; substitute the installed name (`up` or its staging alias) when needed. Preserve existing learning evidence; an existing learner can take another quiz. These are alternatives: the standalone quiz never blocks kata/on. Keep the summary short and wait for their choice.
+3. Run [the full initial assessment](references/initial-assessment.md). Complete all six assessment attempts before reporting setup ready; save explicit blockers for unavailable evidence in the report. Use the CLI's `health` result for **Code health** (×100, out of 100) and **Comprehension debt** (×100, a percentage). Keep dimension breakdowns, coverage, blockers, warnings and provisional-review details in the saved report. Null means unavailable. Setup and assessment grant no quiz or practice credit.
+4. Finish with only this setup summary, using the actual CLI scores:
+
+   ```text
+   Set up complete.
+
+   Code health: <score>/100 (partial: <measured> of 6 dimensions)
+   Comprehension debt: <debt>% · unassessed
+   ```
+
+   Include the partial qualifier only when the assessment is incomplete. Use `unavailable` for null scores. Include `· unassessed` only when the learner has no quiz evidence; preserve existing learning evidence. Keep assessment details in the saved report and wait for the learner's next request.
 
 ## quiz
 
@@ -40,7 +49,7 @@ The CLI's `log` command is the only event writer. Use a fresh retry ID for each 
 
 ## kata
 
-For `/up kata`, hint requests or abandonment, read [the kata workflow](references/kata.md) before selecting a target or logging an event.
+For `/up kata`, hint requests or abandonment, read [the kata workflow](references/kata.md) before selecting a target or logging an event. Select one useful problem across all six dimensions before choosing its evaluator. Query `architecture capabilities` for this installation; supported families still require target-specific preparation.
 
 ## check
 
@@ -65,14 +74,18 @@ For a bounded improvement recommendation, read the opportunity section in that w
 readiness limits. Offer assessment, preparation, deferral or no work when warranted.
 For opt-in architecture prepare/start/assess/complete, read [the exercise workflow](references/architecture-exercise.md).
 For planned renames, additions, consolidation or physical module splits/merges, freeze the explicit reviewed transformation in that workflow before any questions. Never infer mappings from completed edits or transfer old verification to a new path.
-Only actual linked pre-quiz answers can start a frozen seam repair. Only accepted objective checks plus actual linked post answers, explain-back and invariant review grant practice; delayed verification remains separate.
+Only actual linked pre-quiz answers can start a frozen architecture exercise. Only accepted objective checks plus actual linked post answers, explain-back and invariant review grant practice; delayed verification remains separate.
 For reviewed change locality, use the same workflow's Change locality section. Confirm
 semantic equivalence before accepting rules; preserve required validation at each trust
 boundary. Affected owners and Git co-change never substitute for independent-site evidence.
+Interface leverage and navigability have [caller-obligation](references/interface-exercise.md)
+and [fixed-question](references/navigation-exercise.md) completion contracts in that lifecycle.
 For behavioural testability, execute existing selected tests with `architecture testability
 <json>` and inspect stored results. Review outcome assertions through the intended interface;
-retain dependency compatibility checks and fixed scenario inventories. Missing tests are
-separate preparation work: never author tests to make a learner exercise pass.
+retain dependency compatibility checks and fixed scenario inventories. A testability exercise
+can explicitly prepare learner-authored tests and mapped new paths, preserving the original
+regression suite and capturing additional execution separately. The learner writes those
+tests; never author tests or refactors to make their exercise pass.
 For navigability, record fixed exact questions and reviewed sufficient implementation
 trails via `architecture record`. Count necessary module transitions, never browsing
 history. Incomplete/ambiguous trails and giant-file concealment stay unavailable; hidden

@@ -2779,7 +2779,7 @@ test(
     );
 
     assert.equal(dirty.status, 1);
-    assert.match(dirty.stderr, /current complete|must be clean/u);
+    assert.match(dirty.stderr, /current source-bound|must be clean/u);
     writeFileSync(join(root, "caller.ts"), original);
 
     const invalidTarget = {

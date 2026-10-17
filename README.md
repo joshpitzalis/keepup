@@ -47,7 +47,7 @@ Open your project in Claude Code and invoke `/up init`, or in Codex and invoke `
 
 The CLI's `health` command combines current dimension scores equally, averaging modules within each dimension first. It retains raw values, source freshness, coverage and provisional labels in `.keepup/health/`; an incomplete run is labelled partial rather than presenting complexity alone as full health. Existing architecture evidence and exercise pass gates stay independent. The aggregate is an advisory design indicator, not proof of correctness. Bare CLI `init` remains state setup; the agent skill orchestrates the full assessment.
 
-Init finishes with **Code health** and **Comprehension debt**. A fresh learner sees `100% · unassessed`, followed immediately by an invitation to `/up quiz` (Codex: `$up quiz`). That short quiz uses actual recall answers, not refactoring or invented learning credit. Continue with `kata` for hands-on work now or `on` while agents build next time. After seven days, an occasional session offers to refine the starter mission; declining continues normal use. You can request refinement at any time.
+Init finishes with “Set up complete.” and the **Code health** and **Comprehension debt** scores. Partial code health includes the measured dimension count; a learner without quiz evidence sees `100% · unassessed`. Dimension breakdowns, blockers and provisional judgments stay in the saved assessment report. Use `/up quiz` (Codex: `$up quiz`) to sample understanding, `kata` for hands-on work or `on` while agents build. After seven days, an occasional session offers to refine the starter mission; declining continues normal use. You can request refinement at any time.
 
 Codex skill discovery and `$` invocation follow the [official OpenAI documentation](https://developers.openai.com/codex/skills). The shared CLI and GitHub installation have been tested; the full teaching workflow in Codex has not yet been verified.
 
@@ -247,6 +247,19 @@ it. Reviewers must preserve necessary validation at distinct trust boundaries.
 To verify generated reports during development, run `pnpm exec playwright install chromium`
 once, then `pnpm test:browser`. Playwright is a development dependency; copied skills need
 only their documented Node/runtime prerequisites, with no npm dependencies for reviewed assessments.
+
+`architecture capabilities` and `status --json` expose this installation's supported
+practice families separately from assessment measurements. All six families have
+completion workflows: file health, interface leverage, seams/cycles, change locality,
+navigability and behavioural testability. Automated checks and reviewed judgments remain
+separate. Every target
+still needs current source evidence, appropriate tests and its frozen preparation.
+Reviewed locality, interface and navigation work use existing files; testability can
+prepare explicitly mapped learner-written test paths while preserving original regressions.
+Selected graph guardrails require complete frozen graph evidence. Combining reviewed
+source transformations with graph guardrails needs separate preparation and is unavailable.
+`$up kata` selects one mission-relevant problem across all six dimensions before
+choosing an evaluator; missing architecture evidence does not imply complexity work.
 
 Bounded architecture recommendations use `architecture opportunity record`,
 `opportunity inspect` and `opportunity report`. They retain supplied mission/change

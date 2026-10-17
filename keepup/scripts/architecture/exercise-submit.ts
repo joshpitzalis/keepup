@@ -27,12 +27,20 @@ import {
   runExerciseTests,
 } from "./exercise-evidence.ts";
 import {
+  assessGraphGuardrails,
+  assertSupportingGraphTools,
+} from "./exercise-graph-guardrails.ts";
+import { assessInterfaceExercise } from "./exercise-interface.ts";
+import { assessNavigationExercise } from "./exercise-navigation.ts";
+import { reviewedExerciseAssessment } from "./exercise-reviewed.ts";
+import {
   exerciseDirectory,
   publishExerciseRecord,
   readExercise,
   readExerciseAcceptance,
   readExerciseAttempt,
 } from "./exercise-storage.ts";
+import { assessTestabilityExercise } from "./exercise-testability.ts";
 import {
   mappedConcepts,
   preparationProjection,
@@ -106,6 +114,31 @@ function evaluateExercise(
   );
 }
 
+function evaluateReviewedExercise(
+  root: string,
+  state: string,
+  preparation: ExercisePreparation,
+  input: ExerciseAssessmentInput,
+  changedFiles: readonly string[]
+): NonNullable<ExerciseAttempt["assessment"]> {
+  if (preparation.input.target.kind === "navigability") {
+    return assessNavigationExercise(
+      root,
+      state,
+      preparation,
+      input,
+      changedFiles
+    );
+  }
+
+  const evaluator =
+    preparation.input.target.kind === "interface-leverage"
+      ? assessInterfaceExercise
+      : reviewedExerciseAssessment;
+
+  return evaluator(root, state, preparation, input, changedFiles);
+}
+
 export function assessExercise(
   root: string,
   state: string,
@@ -146,6 +179,8 @@ export function assessExercise(
     let tracking = false;
     let commits: readonly string[] = [];
     let tests: ExerciseAttempt["tests"] = null;
+    let additionalTests: ExerciseAttempt["additionalTests"];
+    let supportingAssessments: ExerciseAttempt["supportingAssessments"];
     let assessment: ExerciseAttempt["assessment"] = null;
     let current: number | null = null;
     let guardrails: ExerciseAttempt["guardrails"] = [];
@@ -164,26 +199,83 @@ export function assessExercise(
       );
       assertCandidateStable(root, state, inventory, indexHash);
 
-      assessment = evaluateExercise(
+      if (preparation.input.target.kind === "behavioural-testability") {
+        const result = assessTestabilityExercise(
+          root,
+          state,
+          preparation,
+          input,
+          changedFiles
+        );
+
+        ({ assessment } = result);
+        additionalTests = result.tests;
+        current = exerciseTargetCount(assessment, preparation.input.target);
+      } else if (
+        ["interface-leverage", "change-locality", "navigability"].includes(
+          preparation.input.target.kind
+        )
+      ) {
+        assessment = evaluateReviewedExercise(
+          root,
+          state,
+          preparation,
+          input,
+          changedFiles
+        );
+        current = exerciseTargetCount(assessment, preparation.input.target);
+      } else {
+        assessment = evaluateExercise(
+          root,
+          state,
+          preparation,
+          `exercise-${architectureDigest(JSON.stringify({ indexHash, input, inventory })).slice(0, 40)}`
+        );
+        const before = exerciseSeamAnalysis(preparation.assessment);
+        const after = exerciseSeamAnalysis(assessment);
+
+        if (
+          !before.tool ||
+          !after.tool ||
+          before.tool.fingerprint !== after.tool.fingerprint
+        ) {
+          throw new Error(
+            "Frozen analyser definitions changed; fresh preparation is required"
+          );
+        }
+
+        current = exerciseTargetCount(assessment, preparation.input.target);
+
+        const currentAssessment = assessment;
+        guardrails = preparation.guardrails.map((guardrail) => ({
+          ...guardrail,
+          current: exerciseGuardrailCount(currentAssessment, guardrail),
+        }));
+
+        for (const guardrail of guardrails) {
+          if (guardrail.current > guardrail.baseline) {
+            errors.push(
+              `Selected structural guardrail ${guardrail.ruleId}/${guardrail.kind} regressed`
+            );
+          }
+        }
+
+        if (after.tool && analyserToolChanged(after.tool)) {
+          throw new Error("Analyser assets changed after objective evaluation");
+        }
+      }
+
+      const graph = assessGraphGuardrails(
         root,
         state,
         preparation,
-        `exercise-${architectureDigest(JSON.stringify({ indexHash, input, inventory })).slice(0, 40)}`
+        input.id,
+        guardrails
       );
-      const before = exerciseSeamAnalysis(preparation.assessment);
-      const after = exerciseSeamAnalysis(assessment);
 
-      if (
-        !before.tool ||
-        !after.tool ||
-        before.tool.fingerprint !== after.tool.fingerprint
-      ) {
-        throw new Error(
-          "Frozen analyser definitions changed; fresh preparation is required"
-        );
-      }
-
-      current = exerciseTargetCount(assessment, preparation.input.target);
+      ({ guardrails } = graph);
+      supportingAssessments = graph.assessments;
+      errors.push(...graph.errors);
 
       if (
         current >= preparation.targetBaseline ||
@@ -194,27 +286,9 @@ export function assessExercise(
         );
       }
 
-      const currentAssessment = assessment;
-      guardrails = preparation.guardrails.map((guardrail) => ({
-        ...guardrail,
-        current: exerciseGuardrailCount(currentAssessment, guardrail),
-      }));
-
-      for (const guardrail of guardrails) {
-        if (guardrail.current > guardrail.baseline) {
-          errors.push(
-            `Selected structural guardrail ${guardrail.ruleId}/${guardrail.kind} regressed`
-          );
-        }
-      }
-
-      if (after.tool && analyserToolChanged(after.tool)) {
-        throw new Error("Analyser assets changed after objective evaluation");
-      }
-
       assertCandidateStable(root, state, inventory, indexHash);
     } catch (error) {
-      errors.push(error instanceof Error ? error.message : String(error));
+      errors.push(exerciseError(error));
     }
 
     let result: ExerciseAttempt = {
@@ -240,6 +314,12 @@ export function assessExercise(
       tests,
       time: host.now(),
     };
+
+    result = withAttemptEvidence(
+      result,
+      additionalTests,
+      supportingAssessments
+    );
 
     if (preparation.input.transformation) {
       result = {
@@ -438,6 +518,7 @@ export function completeExercise(
 
     assertAttemptStable(root, state, attempt);
     assertTracking(context, attempt);
+    assertReviewedLearningCoverage(context, attempt);
     assertInvariantReview(context, input);
 
     const learning = linkedPostEvidence(
@@ -496,11 +577,17 @@ export function assertAttemptStable(
   state: string,
   attempt: ExerciseAttempt
 ): void {
-  const tool = attempt.assessment
-    ? exerciseSeamAnalysis(attempt.assessment).tool
-    : null;
+  assertSupportingGraphTools(attempt.supportingAssessments);
 
-  if (!tool || analyserToolChanged(tool)) {
+  const tool =
+    attempt.assessment?.input.dimension === "seam-integrity"
+      ? exerciseSeamAnalysis(attempt.assessment).tool
+      : null;
+
+  if (
+    attempt.assessment?.input.dimension === "seam-integrity" &&
+    (!tool || analyserToolChanged(tool))
+  ) {
     throw new Error(
       "Accepted attempt's analyser assets are unavailable or changed; no practice can be issued"
     );
@@ -539,6 +626,7 @@ export function acceptedPracticeEvidence(
   const { attempt } = accepted;
   assertAttemptStable(root, state, attempt);
   assertTracking(context, attempt);
+  assertReviewedLearningCoverage(context, attempt);
 
   const changed = candidateChanges(
     root,
@@ -600,4 +688,40 @@ function assertTracking(
       "Reshaping completion requires learner-staged surviving/new source and staged removals, followed by a fresh assessment and actual mapped post evidence; the frozen mapping cannot change"
     );
   }
+}
+
+function assertReviewedLearningCoverage(
+  context: ArchitectureExercise,
+  attempt: ExerciseAttempt
+): void {
+  if (context.preparation.assessment.input.dimension === "seam-integrity") {
+    return;
+  }
+
+  const concepts = mappedConcepts(context.preparation);
+
+  if (
+    attempt.changedFiles.some(
+      (file) => !concepts.some((concept) => concept.file === file)
+    )
+  ) {
+    throw new Error(
+      "Every changed practice file requires its own frozen/mapped concept and actual linked pre/post learning evidence"
+    );
+  }
+}
+
+function withAttemptEvidence(
+  attempt: ExerciseAttempt,
+  tests: ExerciseAttempt["additionalTests"],
+  supportingAssessments: ExerciseAttempt["supportingAssessments"]
+): ExerciseAttempt {
+  const result = tests ? { ...attempt, additionalTests: tests } : attempt;
+
+  return supportingAssessments ? { ...result, supportingAssessments } : result;
+}
+
+/* oxlint-disable-next-line anti-slop/no-unknown-parameters -- An arbitrary caught error crosses the assessment boundary. */
+function exerciseError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }

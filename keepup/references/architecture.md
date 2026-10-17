@@ -324,6 +324,19 @@ parse another language or invoke a second analyser. Use the same pinned prerequi
 and copied-install workflow as seam analysis.
 
 
+## Installed practice capabilities
+
+Run `architecture capabilities` or inspect `status --json`'s `exerciseCapabilities`
+for the installed completion families and preparation limits. Assessment support
+never implies practice support. This installation supports all six families: ordinary
+file health, deterministic seams/cycles and reviewed interface leverage, locality,
+navigability and behavioural testability. Each retains its dimension-specific contract.
+A supported family is not a ready target. Freeze and prepare the actual target in
+[the exercise workflow](architecture-exercise.md); missing prerequisites stay blocked.
+`health` reports measured and recorded-attempt counts separately and includes the
+same installed support inventory. Attempts without saved observations remain in the
+assessment scope document. These additions do not reinterpret historical reports.
+
 ## Recommend bounded opportunities
 
 Use `architecture opportunity record <json>` to record a **proposed qualitative
@@ -371,10 +384,13 @@ inspection does not rerun evaluators or silently update its original decision.
 Inspection rechecks every linked assessment, including external analyser assets.
 JSON `freshness.staleAssessments` identifies stale supporting records; separate
 `applicability` decision/reasons require preparation before a stale refactor.
-The nested opportunity, its decision and supporting freshness remain historical.
+The nested opportunity, its decision, `exerciseAvailable` and supporting freshness remain historical.
+The outer `practice` reports current installed support and target preparation limits
+separately; an unsupported captured refactor becomes preparation in current applicability.
+An opportunity never establishes executable readiness or runs the tests.
 
 Recommendations do not start exercises. The [opt-in prepare/start workflow](architecture-exercise.md)
-supports a frozen existing-file seam repair, fresh objective checks and actual
+supports frozen seam repairs and each reviewed dimension's completion contract, fresh exact-source checks and actual
 post-quiz/explain-back before internally recorded practice. A recommendation grants no exposure, practice,
 understanding or delayed retention evidence. The learner owns all code and test edits.
 

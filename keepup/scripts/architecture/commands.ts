@@ -3,6 +3,7 @@ import {
   comparisonReport,
   comparisonText,
 } from "./comparison.ts";
+import { exerciseCapabilities } from "./exercise-capabilities.ts";
 import type { ExerciseHost } from "./exercise-domain.ts";
 import { exerciseCommand } from "./exercises.ts";
 import { opportunityCommand } from "./opportunities.ts";
@@ -24,6 +25,10 @@ export function architectureCommand(
 ): string {
   const [command, value] = args;
 
+  if (command === "capabilities") {
+    return JSON.stringify(exerciseCapabilities);
+  }
+
   if (command === "exercise") {
     return exerciseCommand(
       root,
@@ -33,7 +38,7 @@ export function architectureCommand(
     );
   }
 
-  if (command === "testability" || command === "analyse") {
+  if (isEvaluationCommand(command)) {
     return evaluateCommand(root, state, command, value);
   }
 
@@ -141,4 +146,10 @@ function requiredExerciseHost(host: ExerciseHost | undefined): ExerciseHost {
   }
 
   return host;
+}
+
+function isEvaluationCommand(
+  command: string | undefined
+): command is "testability" | "analyse" {
+  return command === "testability" || command === "analyse";
 }

@@ -291,6 +291,61 @@ test(
       10
     );
     assert.equal(result.comprehensionDebt, 1);
+    assert.equal(result.attemptedDimensions, 6);
+    assert.equal(result.measuredDimensions, 6);
+
+    const navigation = definitions.find(
+      (definition) => definition.dimension === "navigability"
+    );
+
+    assert.ok(navigation && "questions" in navigation);
+    run(
+      root,
+      CLI,
+      "architecture",
+      "record",
+      JSON.stringify({
+        ...navigation,
+        id: "unavailable-navigation",
+        questions: navigation.questions.map((question) => ({
+          ...question,
+          readability: "unclear",
+          readabilityExplanation: "Ownership is not yet established",
+        })),
+      })
+    );
+
+    const partial = run(
+      root,
+      CLI,
+      "health",
+      JSON.stringify(
+        ids.map((id) =>
+          id === "full-navigation" ? "unavailable-navigation" : id
+        )
+      )
+    );
+
+    assert.equal(partial.attemptedDimensions, 6);
+    assert.equal(partial.measuredDimensions, 5);
+    assert.equal(partial.assessedDimensions, 5);
+    assert.equal(
+      partial.dimensions.find(
+        (dimension: { dimension: string }) =>
+          dimension.dimension === "navigability"
+      ).value,
+      null
+    );
+    assert.equal(
+      partial.exerciseCapabilities.find(
+        (entry: { dimension: string }) => entry.dimension === "navigability"
+      ).supported,
+      true
+    );
+    assert.equal(
+      JSON.parse(readFileSync(result.path, "utf-8")).measuredDimensions,
+      6
+    );
     assert.equal(readFileSync(join(root, ".keepup/events.jsonl"), "utf-8"), "");
   }
 );

@@ -76,7 +76,7 @@ interface LogicalRole {
 function applyFileMapping(
   group: ExerciseTransformation["files"][number],
   files: readonly string[],
-  original: SeamAssessmentInput,
+  original: Pick<SeamAssessmentInput, "modules">,
   originalRoles: ReadonlyMap<string, LogicalRole>,
   roles: Map<string, LogicalRole>
 ): void {
@@ -134,7 +134,7 @@ function applyFileMapping(
 
 export function projectTransformation(
   input: ExercisePreparationInput,
-  original: SeamAssessmentInput
+  original: Pick<SeamAssessmentInput, "modules">
 ): TransformationProjection {
   const mapping = input.transformation;
 
@@ -300,7 +300,7 @@ export function projectTransformation(
 export function validateTransformationPreparation(
   root: string,
   input: ExercisePreparationInput,
-  original: SeamAssessmentInput,
+  original: Pick<SeamAssessmentInput, "modules">,
   host: ExerciseHost
 ): void {
   if (!input.transformation) {
@@ -365,6 +365,12 @@ export function validateTransformationPreparation(
 export function preparationProjection(
   preparation: ExercisePreparation
 ): TransformationProjection {
+  if (preparation.assessment.input.dimension === "behavioural-testability") {
+    return projectTransformation(preparation.input, {
+      modules: [preparation.assessment.input.module],
+    });
+  }
+
   if (preparation.assessment.input.dimension !== "seam-integrity") {
     throw new Error(
       "Transformation requires the original deterministic seam policy"

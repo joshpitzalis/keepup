@@ -8,7 +8,7 @@ import type {
 import { parseExerciseTransformation } from "./exercise-transformation-parse.ts";
 import { object, parseArchitectureId, strings, text } from "./parse-common.ts";
 
-/* oxlint-disable anti-slop/no-unknown-parameters, anti-slop/no-unsafe-dictionary-type -- Exercise command JSON is reconstructed at this boundary. */
+/* oxlint-disable anti-slop/no-unknown-parameters, anti-slop/no-unsafe-dictionary-type, anti-slop/no-runtime-typeof -- Exercise command JSON is reconstructed at this boundary. */
 function fields(
   value: unknown,
   allowed: readonly string[]
@@ -35,7 +35,7 @@ function uniqueStrings(value: unknown): readonly string[] {
 }
 
 function guardrail(value: unknown): ExerciseGuardrail {
-  const input = fields(value, ["ruleId", "kind"]);
+  const input = fields(value, ["ruleId", "kind", "assessmentId"]);
   const { kind } = input;
 
   if (
@@ -47,11 +47,124 @@ function guardrail(value: unknown): ExerciseGuardrail {
     throw new Error("Expected deterministic seam finding kind");
   }
 
-  return { kind, ruleId: parseArchitectureId(input.ruleId) };
+  const selected: ExerciseGuardrail = {
+    kind,
+    ruleId: parseArchitectureId(input.ruleId),
+  };
+
+  return input.assessmentId === undefined
+    ? selected
+    : { ...selected, assessmentId: parseArchitectureId(input.assessmentId) };
+}
+
+function navigationTarget(input: Record<string, unknown>): ExerciseTarget {
+  fields(input, ["kind", "questionId", "goal"]);
+
+  if (
+    typeof input.goal !== "number" ||
+    !Number.isSafeInteger(input.goal) ||
+    input.goal < 0
+  ) {
+    throw new Error(
+      "Navigation goal must be a nonnegative integer necessary logical-module transition count"
+    );
+  }
+
+  return {
+    goal: input.goal,
+    kind: "navigability",
+    questionId: parseArchitectureId(input.questionId),
+  };
 }
 
 function target(value: unknown): ExerciseTarget {
   const input = object(value);
+
+  if (input.kind === "navigability") {
+    return navigationTarget(input);
+  }
+
+  if (input.kind === "interface-leverage") {
+    fields(input, [
+      "kind",
+      "scenarioId",
+      "obligationKind",
+      "obligation",
+      "goal",
+    ]);
+    const { obligationKind } = input;
+
+    if (
+      input.goal !== 0 ||
+      (obligationKind !== "operations" &&
+        obligationKind !== "arguments" &&
+        obligationKind !== "ordering" &&
+        obligationKind !== "configuration" &&
+        obligationKind !== "errors")
+    ) {
+      throw new Error(
+        "Interface target requires a concrete caller obligation kind and zero remaining obligation goal"
+      );
+    }
+
+    return {
+      goal: 0,
+      kind: "interface-leverage",
+      obligation: text(input.obligation),
+      obligationKind,
+      scenarioId: parseArchitectureId(input.scenarioId),
+    };
+  }
+
+  if (input.kind === "behavioural-testability") {
+    fields(input, [
+      "kind",
+      "scenarioId",
+      "goal",
+      "command",
+      "positive",
+      "negative",
+      "compatibility",
+    ]);
+
+    if (input.goal !== 0 || !Array.isArray(input.compatibility)) {
+      throw new Error(
+        "Testability requires zero remaining scenario gaps and explicit compatibility checks"
+      );
+    }
+
+    const parseTest = (raw: unknown) => {
+      const test = fields(raw, ["file", "name"]);
+
+      return { file: text(test.file), name: text(test.name) };
+    };
+
+    return {
+      command: text(input.command),
+      compatibility: input.compatibility.map(parseTest),
+      goal: 0,
+      kind: "behavioural-testability",
+      negative: parseTest(input.negative),
+      positive: parseTest(input.positive),
+      scenarioId: parseArchitectureId(input.scenarioId),
+    };
+  }
+
+  if (input.kind === "change-locality") {
+    fields(input, ["kind", "ruleId", "goal"]);
+
+    if (input.goal !== 1) {
+      throw new Error(
+        "Locality target must consolidate to one authoritative policy site"
+      );
+    }
+
+    return {
+      goal: 1,
+      kind: "change-locality",
+      ruleId: parseArchitectureId(input.ruleId),
+    };
+  }
 
   if (input.goal !== 0) {
     throw new Error(

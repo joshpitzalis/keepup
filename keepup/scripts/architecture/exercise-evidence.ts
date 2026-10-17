@@ -10,8 +10,10 @@ import type {
   ExercisePreparation,
   ExerciseTarget,
 } from "./exercise-domain.ts";
+import { navigabilityMeasurements } from "./navigability.ts";
 import type { SeamAnalysis } from "./seam-domain.ts";
 import { architectureDigest, assets, manifest, revision } from "./storage.ts";
+import { testabilityMeasurements } from "./testability.ts";
 
 export function exerciseGit(root: string, ...args: string[]): string {
   const result = spawnSync("git", args, { cwd: root, encoding: "utf-8" });
@@ -150,10 +152,90 @@ export function exerciseSeamAnalysis(
   return analysis;
 }
 
+function navigationTargetCount(
+  assessment: ArchitectureAssessment,
+  questionId: string
+): number {
+  if (assessment.input.dimension !== "navigability") {
+    throw new Error("Navigation target requires navigability evidence");
+  }
+
+  const selected = navigabilityMeasurements(assessment.input).questions.find(
+    (question) => question.id === questionId
+  );
+
+  if (!selected || selected.transitions === null) {
+    throw new Error(
+      "Navigation target needs a complete sufficient trail, unambiguous owner and coherent readability"
+    );
+  }
+
+  return selected.transitions;
+}
+
 export function exerciseTargetCount(
   assessment: ArchitectureAssessment,
   target: ExerciseTarget
 ): number {
+  if (target.kind === "navigability") {
+    return navigationTargetCount(assessment, target.questionId);
+  }
+
+  if (target.kind === "interface-leverage") {
+    if (assessment.input.dimension !== "interface-leverage") {
+      throw new Error("Interface target requires interface evidence");
+    }
+
+    return assessment.input.scenarios
+      .flatMap((scenario) => scenario.obligations)
+      .filter(
+        (obligation) =>
+          obligation.classification === "avoidable" &&
+          obligation.kind === target.obligationKind &&
+          obligation.description === target.obligation
+      ).length;
+  }
+
+  if (target.kind === "behavioural-testability") {
+    if (
+      assessment.input.dimension !== "behavioural-testability" ||
+      !assessment.analysis ||
+      !("kind" in assessment.analysis) ||
+      assessment.analysis.kind !== "testability"
+    ) {
+      throw new Error(
+        "Testability target requires CLI-owned scenario execution"
+      );
+    }
+
+    const result = testabilityMeasurements(
+      assessment.input,
+      assessment.analysis
+    ).scenarios.find((scenario) => scenario.id === target.scenarioId);
+
+    if (!result || result.status === "unavailable") {
+      throw new Error("Selected scenario evidence unavailable");
+    }
+
+    return result.status === "qualifying" ? 0 : 1;
+  }
+
+  if (target.kind === "change-locality") {
+    if (assessment.input.dimension !== "change-locality") {
+      throw new Error("Locality target requires locality evidence");
+    }
+
+    const rule = assessment.input.rules.find(
+      (entry) => entry.id === target.ruleId
+    );
+
+    if (!rule || rule.status !== "confirmed") {
+      throw new Error("Locality target requires a confirmed policy");
+    }
+
+    return rule.sites.filter((site) => site.role === "policy").length;
+  }
+
   const analysis = exerciseSeamAnalysis(assessment);
 
   if (target.kind === "prohibited-cycle") {
