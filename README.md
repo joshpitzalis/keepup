@@ -51,15 +51,33 @@ Init finishes with **Code health** and **Comprehension debt**. A fresh learner s
 
 Codex skill discovery and `$` invocation follow the [official OpenAI documentation](https://developers.openai.com/codex/skills). The shared CLI and GitHub installation have been tested; the full teaching workflow in Codex has not yet been verified.
 
-Update the installed skill with:
+### Update an installed skill
+
+If you previously installed `keepup`, run the install command above with `--skill up` once. Updating `keepup` does not rename that installation. The old command remains available until you remove it; both installations read the same project learning history.
+
+For future updates to `up`, run:
 
 ```sh
-npx skills@latest update keepup -g
+npx skills@latest update up -g
 ```
 
-Restart your agent after updating. Existing project learning state stays in the project.
+Restart your agent after installing or updating, then use `$up status` in Codex or `/up status` in Claude Code. Existing project learning state stays in the project.
 
-For deterministic setup without the interview:
+### Release updates on Skills.sh
+
+Merge the reviewed changes into this repository's default branch (`main`). Skills install directly from GitHub, so no separate package upload or publish command is required. Fresh installs fetch the current source; existing users run the update command above.
+
+After merging, verify that GitHub exposes the new skill:
+
+```sh
+npx skills@latest add joshpitzalis/keepup --list
+```
+
+Then install using the command above and smoke-test the installed copy in a disposable repository. Skills.sh listings are driven by installation telemetry; this check does not guarantee an immediate website refresh. See the [Skills.sh FAQ](https://skills.sh/docs/faq) and [Skills CLI update documentation](https://github.com/vercel-labs/skills#skills-update).
+
+### Direct CLI setup
+
+For deterministic state setup without the agent-led assessment:
 
 ```sh
 node ~/.claude/skills/up/scripts/keepup.mjs init
