@@ -1,14 +1,14 @@
 # Architecture assessments and exercises
-
 ## Problem and boundary
 
 File health cannot describe architectural friction or prove learner understanding.
 Keep five independent dimensions, condition/readiness/priority and learning evidence
-separate. No composite grade, automatic refactoring, rewritten history or hosted service.
+separate in the evidence records. The optional parent `code-health.ts` combines current
+dimension values for the approved init summary; raw records and exercise gates stay independent.
+No automatic refactoring, rewritten history or hosted service.
 The resolved existing learning-state directory includes legacy `.cogdebt` installations.
 
 ## Shared evidence and presentation
-
 - `commands.ts` connects explicit local CLI operations; reads never rerun evaluators/tests.
 - `domain.ts` names records and measurements; `parse.ts`/`parse-common.ts` reconstruct inputs.
 - `storage.ts` captures declared tracked/working-tree source and evaluator/tool assets as exact

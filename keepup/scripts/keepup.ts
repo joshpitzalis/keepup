@@ -39,6 +39,8 @@ import {
   acceptedPracticeEvidence,
   assertAttemptStable,
 } from "./architecture/exercise-submit.ts";
+import { strings } from "./architecture/parse-common.ts";
+import { codeHealth } from "./code-health.ts";
 import { parseEvent } from "./handlers/parse-event.ts";
 import type { EventType, EventWithArchitecturePass } from "./handlers/types.ts";
 
@@ -101,6 +103,7 @@ export interface Status {
 
 export interface CommandResults {
   init: ReturnType<typeof initialize>;
+  health: ReturnType<typeof codeHealth>;
   log: StoredEvent;
   status: Status;
   "in-play": ReturnType<typeof inPlay>;
@@ -1543,13 +1546,26 @@ try {
         ? JSON.stringify(result)
         : textStatus(result)
     );
+  } else if (command === "health") {
+    console.log(
+      JSON.stringify(
+        withLock(() =>
+          codeHealth(
+            root,
+            state,
+            () => status(),
+            process.argv[3] ? strings(JSON.parse(process.argv[3])) : undefined
+          )
+        )
+      )
+    );
   } else if (command === "map") {
     console.log(JSON.stringify(map()));
   } else if (command === "in-play") {
     console.log(JSON.stringify(withLock(inPlay)));
   } else {
     throw new Error(
-      "Usage: keepup init | log <json> | status [--json] | map | in-play | architecture"
+      "Usage: keepup init | health [<assessment-ids-json>] | log <json> | status [--json] | map | in-play | architecture"
     );
   }
 } catch (error) {

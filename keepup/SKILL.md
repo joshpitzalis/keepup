@@ -1,7 +1,7 @@
 ---
 name: keepup
-description: Keep up with your own codebase through short recall quizzes, learner-written refactoring katas, delayed checks and a cognitive-debt map. Use for /keepup status, kata, on, map, init, submit or check.
-argument-hint: "status | kata | on | map | init | submit | check"
+description: Keep up with your own codebase through full initial assessments, recall quizzes, learner-written refactoring katas, delayed checks and a cognitive-debt map.
+argument-hint: "init | status | quiz | kata | on | map | submit | check"
 disable-model-invocation: true
 ---
 
@@ -17,8 +17,12 @@ The learner owns target-code edits. Teach, inspect and run the existing tests; n
 
 1. Run `node <skill>/scripts/keepup.mjs init`. Inspect the returned configuration and scope. Leave an unknown test command unset until an exercise needs it, then ask for the existing command.
 2. Read `MISSION.md` in the returned main-checkout state directory. Init supplies a starter mission or preserves an existing personalised mission. Use it immediately; a starter mission can be tailored after a week. Init requires no mission questions. Refine it immediately only when the learner asks.
-3. Run `node <skill>/scripts/keepup.mjs status --json` now, wait for the scorer results, and read its output. This records the current baseline in `<state>/history.jsonl`. Finish with **Code health** (`summary.codeHealth` ×100, out of 100) and **Comprehension debt** (`summary.cognitiveDebt` ×100, a percentage). The CLI calls the latter cognitive debt. Include the metric names and a short scoring-coverage/warning note when results are partial; null means unavailable. For a fresh learner, explain 100% debt as “no recorded understanding evidence yet”; preserve existing evidence. Setup and scoring grant no quiz or practice credit. An unsuccessful scoring command means the baseline is unavailable, never invent scores.
-4. End with just two next steps using the installed invocation name: `kata` for hands-on work on the scores now, or `on` alongside agents the next time the learner starts building. For the `ku` alias, say “Run `/ku kata` to work on the scores now, or `/ku on` while agents work next time you build something.” In Codex use `$ku kata` and `$ku on`; the original installation uses `keepup`. Keep the summary short. Repository tests belong to the exercise workflow; init runs code scorers, not the test suite.
+3. Run [the full initial assessment](references/initial-assessment.md). Complete all six assessment attempts before reporting setup ready; return explicit blockers for unavailable evidence. Use the CLI's `health` result for **Code health** (×100, out of 100) and **Comprehension debt** (×100, a percentage). Keep details in the saved report and show a short coverage/provisional note when warranted. Null means unavailable. Setup and assessment grant no quiz or practice credit.
+4. For a fresh learner, follow “Comprehension debt: 100% · unassessed” immediately with “Would you like to take your first quiz to see how well you understand your codebase? Run `/ku quiz`.” Then: “Or skip this introductory quiz and start `/ku kata`. Use `/ku on` next time you have an agent working.” In Codex use `$ku`; substitute the installed name (`keepup` or its staging alias) when needed. Preserve existing learning evidence; an existing learner can take another quiz. These are alternatives: the standalone quiz never blocks kata/on. Keep the summary short and wait for their choice.
+
+## quiz
+
+For a first or standalone comprehension quiz, read [the quiz workflow](references/quiz.md). This samples understanding without requiring a refactor or granting practice.
 
 ## Mission refinement
 
@@ -26,7 +30,7 @@ On the first `status` or `on` invocation in a conversation, read [mission refine
 
 ## status and map
 
-Run `status` for readable output or `status --json` for decisions. Keep code health separate from cognitive debt. Surface unavailable scores, scorer warnings and partial scored-line coverage; never translate missing results into healthy code.
+Run `health` for the combined score and saved assessment plan; run `status --json` for file-level decisions. The raw status code-health field describes file scorers, not the combined architecture score. Keep code health separate from cognitive debt. Surface stale/unavailable assessments, scorer warnings and partial coverage. Refresh affected architecture evidence through the initial-assessment workflow when requested; missing results never become healthy scores.
 
 Run `map` to generate and open the map. If opening fails, give the generated path. The HTML includes its data but loads pinned d3 from a CDN, so rendering needs network access.
 

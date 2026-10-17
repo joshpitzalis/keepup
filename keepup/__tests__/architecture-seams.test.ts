@@ -17,6 +17,41 @@ import { fileURLToPath } from "node:url";
 const CLI = fileURLToPath(new URL("../scripts/keepup.mjs", import.meta.url));
 const TOOL = process.env.KEEPUP_TEST_ANALYSER_DIRECTORY;
 
+test(
+  "combined health normalizes real boundary and cycle evidence and leaves legacy cycle-free definitions unscored",
+  { skip: !TOOL },
+  (t) => {
+    const root = fixture(t);
+    const legacy = input("health-legacy");
+    run(root, CLI, "architecture", "analyse", JSON.stringify(legacy));
+    const missing = run(root, CLI, "health", JSON.stringify([legacy.id]));
+    assert.equal(
+      missing.dimensions.find(
+        (dimension: { dimension: string }) =>
+          dimension.dimension === "seam-integrity"
+      ).value,
+      null
+    );
+
+    const complete = {
+      ...input("health-seams"),
+      cycles: { dependency: "runtime", exceptions: [], id: "runtime-cycles" },
+    };
+
+    run(root, CLI, "architecture", "analyse", JSON.stringify(complete));
+    const result = run(root, CLI, "health", JSON.stringify([complete.id]));
+
+    const seam = result.dimensions.find(
+      (dimension: { dimension: string }) =>
+        dimension.dimension === "seam-integrity"
+    );
+
+    assert.equal(seam.value, 0.75);
+    assert.equal(seam.assessments[0].measurements.violations, 1);
+    assert.equal(seam.assessments[0].measurements.cyclicGroups, 0);
+  }
+);
+
 function execute(root: string, cli: string, ...args: string[]) {
   return spawnSync(process.execPath, [cli, ...args], {
     cwd: root,
@@ -57,6 +92,208 @@ function fixture(t: TestContext) {
 
   return root;
 }
+
+test(
+  "full health combines all six real assessment dimensions and retains source-level measurements",
+  { skip: !TOOL },
+  (t) => {
+    const root = fixture(t);
+    writeFileSync(
+      join(root, "behaviour.test.ts"),
+      "import test from 'node:test'; import assert from 'node:assert/strict'; import {save} from './public.ts'; test('save answer', () => assert.equal(save(), 1));\n"
+    );
+    assert.equal(
+      spawnSync("git", ["add", "behaviour.test.ts"], { cwd: root }).status,
+      0
+    );
+    const scorer = join(root, ".keepup/scorers/complexity");
+    writeFileSync(
+      scorer,
+      "#!/usr/bin/env node\nfor (const file of require('node:fs').readFileSync(0,'utf8').trim().split('\\n')) console.log(JSON.stringify({file,metric:'complexity',value:0.5,raw:10}));\n"
+    );
+
+    // The existing launcher is executable; replacing its bytes preserves that mode.
+    const module = {
+      id: "fixture",
+      interface: ["public.ts"],
+      members: [
+        "public.ts",
+        "private.ts",
+        "other.ts",
+        "caller.ts",
+        "behaviour.test.ts",
+      ],
+    };
+
+    const common = {
+      evidence: ["public.ts"],
+      exclusions: [],
+      limitations: [],
+      module,
+      review: {
+        confidence: "medium",
+        notes: "Agent inspected source and outcome assertions",
+        reviewer: "Agent",
+        status: "provisional",
+      },
+    };
+
+    const definitions = [
+      {
+        ...common,
+        dimension: "interface-leverage",
+        id: "full-interface",
+        scenarios: [
+          {
+            description: "Save through public entry",
+            evidence: ["caller.ts"],
+            id: "save",
+            obligations: [],
+            rating: 0.5,
+            rationale: "Caller also imports a private constant",
+          },
+        ],
+      },
+      {
+        ...common,
+        changes: [
+          {
+            affectedOwners: ["fixture"],
+            description: "Change save result",
+            evidence: ["public.ts"],
+            id: "save-result",
+          },
+        ],
+        dimension: "change-locality",
+        disagreements: [],
+        id: "full-locality",
+        rules: [
+          {
+            description: "Save returns one",
+            equivalence: "One implementation of the result",
+            evidence: ["public.ts"],
+            id: "save-policy",
+            sites: [
+              {
+                evidence: ["public.ts"],
+                file: "public.ts",
+                id: "save-site",
+                implementation: null,
+                location: "save",
+                reason: "Actual return expression",
+                role: "policy",
+                trustBoundary: null,
+              },
+            ],
+            status: "confirmed",
+          },
+        ],
+      },
+      {
+        ...common,
+        dimension: "navigability",
+        id: "full-navigation",
+        questions: [
+          {
+            disagreements: [],
+            evidence: ["public.ts"],
+            id: "save-question",
+            namingIssues: [],
+            owningModule: "fixture",
+            question: "What does save return?",
+            readability: "coherent",
+            readabilityExplanation: "Direct constant return",
+            trail: [
+              {
+                file: "public.ts",
+                id: "save-step",
+                kind: "implementation",
+                location: "save",
+                moduleId: "fixture",
+                necessary: true,
+                reason: "Return expression answers the question",
+              },
+            ],
+            trailStatus: "complete",
+          },
+        ],
+      },
+    ];
+
+    for (const definition of definitions) {
+      run(root, CLI, "architecture", "record", JSON.stringify(definition));
+    }
+
+    const seam = input("full-seams");
+
+    const graph = {
+      ...seam,
+      cycles: { dependency: "runtime", exceptions: [], id: "runtime-cycles" },
+      modules: seam.modules.map((entry) =>
+        entry.id === "orders"
+          ? { ...entry, members: [...entry.members, "behaviour.test.ts"] }
+          : entry
+      ),
+    };
+
+    run(root, CLI, "architecture", "analyse", JSON.stringify(graph));
+    run(
+      root,
+      CLI,
+      "architecture",
+      "testability",
+      JSON.stringify({
+        ...common,
+        dimension: "behavioural-testability",
+        discovery: "complete",
+        environmentRequirements: ["Node 24"],
+        id: "full-testability",
+        scenarios: [
+          {
+            assertion: {
+              evidence: ["behaviour.test.ts"],
+              explanation: "Asserts public save return value",
+              kind: "observable-outcome",
+              status: "reviewed",
+              throughInterface: true,
+            },
+            behaviour: "Return saved result",
+            compatibility: [],
+            dependency: {
+              compatibilityRequired: false,
+              justification: "Pure constant return",
+              kind: "pure",
+            },
+            failureInvariant: "Wrong result fails assertion",
+            id: "save-behaviour",
+            intendedInterface: "public.ts",
+            tests: [{ file: "behaviour.test.ts", name: "save answer" }],
+          },
+        ],
+      })
+    );
+
+    const ids = [
+      ...definitions.map((definition) => definition.id),
+      graph.id,
+      "full-testability",
+    ];
+
+    const result = run(root, CLI, "health", JSON.stringify(ids));
+    assert.equal(result.assessedDimensions, 6);
+    assert.equal(result.complete, true);
+    assert.ok(
+      Math.abs(result.codeHealth - (0.5 + 0.5 + 0.75 + 1 + 1 + 1) / 6) < 1e-12
+    );
+    assert.equal(
+      result.files.find((file: { file: string }) => file.file === "public.ts")
+        .metrics.complexity.raw,
+      10
+    );
+    assert.equal(result.comprehensionDebt, 1);
+    assert.equal(readFileSync(join(root, ".keepup/events.jsonl"), "utf-8"), "");
+  }
+);
 
 function input(id: string) {
   return {

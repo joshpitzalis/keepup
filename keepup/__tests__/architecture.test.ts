@@ -25,6 +25,94 @@ import type {
 
 const CLI = fileURLToPath(new URL("../scripts/keepup.mjs", import.meta.url));
 
+test("combined health uses current measured dimensions once, keeps raw evidence and preserves actual learning history", (t) => {
+  const root = fixture(t);
+  const scorer = join(root, ".keepup/scorers/complexity");
+  writeFileSync(
+    scorer,
+    "#!/usr/bin/env node\nconsole.log(JSON.stringify({file:'module.ts',metric:'complexity',value:0.5}));\n"
+  );
+  chmodSync(scorer, 0o755);
+  const before = input("health-before");
+  record(root, before);
+  const first = run(root, CLI, "health", JSON.stringify([before.id]));
+  assert.equal(first.codeHealth, 0.5);
+  assert.equal(first.comprehensionDebt, 1);
+  assert.equal(first.assessedDimensions, 2);
+  assert.equal(first.complete, false);
+  assert.match(first.warnings.join(" "), /outside assessment membership/u);
+  assert.deepEqual(
+    JSON.parse(readFileSync(first.path, "utf-8")).source,
+    first.source
+  );
+  assert.equal(readFileSync(join(root, ".keepup/events.jsonl"), "utf-8"), "");
+
+  const after = {
+    ...before,
+    id: "health-after",
+    review: { ...before.review, status: "provisional" as const },
+    scenarios: before.scenarios.map((scenario) => ({
+      ...scenario,
+      rating: 1 as const,
+    })),
+  };
+
+  record(root, after);
+  const improved = run(root, CLI, "health", JSON.stringify([after.id]));
+  assert.equal(improved.codeHealth, 0.75);
+  assert.match(improved.warnings.join(" "), /provisional/u);
+  assert.notEqual(
+    execute(root, CLI, "health", JSON.stringify([before.id, after.id])).status,
+    0
+  );
+  assert.deepEqual(
+    JSON.parse(readFileSync(join(root, ".keepup/health-plan.json"), "utf-8")),
+    [after.id]
+  );
+
+  run(
+    root,
+    CLI,
+    "log",
+    JSON.stringify({
+      answers: [
+        {
+          answer: "One",
+          concept: "save result",
+          correct: true,
+          file: "module.ts",
+          question: "What does save return?",
+        },
+      ],
+      files: ["module.ts"],
+      id: "actual-answer",
+      phase: "pre",
+      type: "quiz",
+    })
+  );
+  const learned = run(root, CLI, "health");
+  assert.ok(learned.comprehensionDebt < improved.comprehensionDebt);
+  const events = readFileSync(join(root, ".keepup/events.jsonl"), "utf-8");
+  writeFileSync(
+    join(root, "caller.ts"),
+    "save(); // changed supporting source\n"
+  );
+  const stale = run(root, CLI, "health");
+  assert.equal(stale.codeHealth, 0.5);
+  assert.equal(stale.assessedDimensions, 1);
+  assert.equal(
+    stale.dimensions.find(
+      (dimension: { dimension: string }) =>
+        dimension.dimension === "interface-leverage"
+    ).assessments[0].freshness.status,
+    "stale"
+  );
+  assert.equal(
+    readFileSync(join(root, ".keepup/events.jsonl"), "utf-8"),
+    events
+  );
+});
+
 function execute(root: string, cli: string, ...args: string[]) {
   return spawnSync(process.execPath, [cli, ...args], {
     cwd: root,

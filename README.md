@@ -6,6 +6,7 @@ In Claude Code:
 
 ```text
 /keepup status   — see debt, code health and due checks
+/keepup quiz     — take a short comprehension quiz
 /keepup kata     — start a short refactoring exercise
 /keepup on       — learn one item at a time until you say stop
 /keepup map      — open your learning map
@@ -18,6 +19,7 @@ In Codex, use `$keepup`:
 ```text
 $keepup init
 $keepup status
+$keepup quiz
 $keepup kata
 $keepup on
 $keepup map
@@ -41,7 +43,11 @@ npx skills@latest add joshpitzalis/keepup --skill keepup -g -a codex -y
 
 Requires Git, Node.js **24.8 or newer**, and Claude Code or Codex. The bundled complexity scorer also needs [uv](https://docs.astral.sh/uv/getting-started/installation/); it runs lizard through `uvx` on demand. The installer copies the skill bundle; install these prerequisites separately. The skill has no Node runtime dependencies.
 
-Open your project in Claude Code and invoke `/keepup init`, or in Codex and invoke `$keepup init`. Restart your agent if the newly installed skill does not appear. Init starts with a mission about understanding consequential changes, making informed product decisions and guiding agents through hands-on learning. It preserves personalised missions and upgrades only the old untouched blank template. It then runs the code scorers, records a baseline and shows code health and comprehension debt, with scoring gaps made explicit. Fresh-learner debt means unassessed code, not demonstrated ignorance. Continue with `/keepup kata` for hands-on work now or `/keepup on` alongside agents next time you build (use `$keepup` in Codex). Init leaves repository tests to exercises. After seven days, an occasional learning session offers to tailor the starter mission; declining continues normal use. You can request refinement at any time. An unknown test command can wait until an exercise needs it.
+Open your project in Claude Code and invoke `/keepup init`, or in Codex and invoke `$keepup init`. Restart your agent if the newly installed skill does not appear. Init uses a starter mission, preserves personalised missions and upgrades only the exact old blank template. It runs [the full initial assessment](keepup/references/initial-assessment.md): file health, interface leverage, boundaries/cycles, change locality, navigability and behavioural testability. The agent reviews actual source, proposes explicit assessment definitions and executes the existing tools; provisional judgments and missing tools/tests remain visible. All six dimensions are attempted before setup is reported ready.
+
+The CLI's `health` command combines current dimension scores equally, averaging modules within each dimension first. It retains raw values, source freshness, coverage and provisional labels in `.keepup/health/`; an incomplete run is labelled partial rather than presenting complexity alone as full health. Existing architecture evidence and exercise pass gates stay independent. The aggregate is an advisory design indicator, not proof of correctness. Bare CLI `init` remains state setup; the agent skill orchestrates the full assessment.
+
+Init finishes with **Code health** and **Comprehension debt**. A fresh learner sees `100% · unassessed`, followed immediately by an invitation to `/keepup quiz` (Codex: `$keepup quiz`). That short quiz uses actual recall answers, not refactoring or invented learning credit. Continue with `kata` for hands-on work now or `on` while agents build next time. After seven days, an occasional session offers to refine the starter mission; declining continues normal use. You can request refinement at any time. The local staging alias uses `ku` in place of `keepup`.
 
 Codex skill discovery and `$` invocation follow the [official OpenAI documentation](https://developers.openai.com/codex/skills). The shared CLI and GitHub installation have been tested; the full teaching workflow in Codex has not yet been verified.
 
