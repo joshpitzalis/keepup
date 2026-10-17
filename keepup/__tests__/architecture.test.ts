@@ -33,14 +33,19 @@ test("combined health uses current measured dimensions once, keeps raw evidence 
     "#!/usr/bin/env node\nconsole.log(JSON.stringify({file:'module.ts',metric:'complexity',value:0.5}));\n"
   );
   chmodSync(scorer, 0o755);
-  const before = input("health-before");
+  const original = input("health-before");
+
+  const before = {
+    ...original,
+    module: { ...original.module, members: ["module.ts", "caller.ts"] },
+  };
+
   record(root, before);
   const first = run(root, CLI, "health", JSON.stringify([before.id]));
   assert.equal(first.codeHealth, 0.5);
   assert.equal(first.comprehensionDebt, 1);
   assert.equal(first.assessedDimensions, 2);
   assert.equal(first.complete, false);
-  assert.match(first.warnings.join(" "), /outside assessment membership/u);
   assert.deepEqual(
     JSON.parse(readFileSync(first.path, "utf-8")).source,
     first.source
@@ -61,6 +66,22 @@ test("combined health uses current measured dimensions once, keeps raw evidence 
   const improved = run(root, CLI, "health", JSON.stringify([after.id]));
   assert.equal(improved.codeHealth, 0.75);
   assert.match(improved.warnings.join(" "), /provisional/u);
+
+  const alias = {
+    ...after,
+    id: "health-alias",
+    module: {
+      ...after.module,
+      id: "orders-copy",
+      members: after.module.members.map((file) => `./${file}`),
+    },
+  };
+
+  record(root, alias);
+  assert.notEqual(
+    execute(root, CLI, "health", JSON.stringify([after.id, alias.id])).status,
+    0
+  );
   assert.notEqual(
     execute(root, CLI, "health", JSON.stringify([before.id, after.id])).status,
     0
@@ -69,6 +90,19 @@ test("combined health uses current measured dimensions once, keeps raw evidence 
     JSON.parse(readFileSync(join(root, ".keepup/health-plan.json"), "utf-8")),
     [after.id]
   );
+  const partial = input("health-partial");
+  record(root, partial);
+  const incomplete = run(root, CLI, "health", JSON.stringify([partial.id]));
+  assert.equal(incomplete.assessedDimensions, 1);
+  assert.equal(
+    incomplete.dimensions.find(
+      (dimension: { dimension: string }) =>
+        dimension.dimension === "interface-leverage"
+    ).value,
+    null
+  );
+  assert.match(incomplete.warnings.join(" "), /outside assessment membership/u);
+  run(root, CLI, "health", JSON.stringify([after.id]));
 
   run(
     root,

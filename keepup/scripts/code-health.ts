@@ -6,7 +6,7 @@ import {
   renameSync,
   writeFileSync,
 } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 
 import type { ArchitectureInspection } from "./architecture/domain.ts";
 import { strings } from "./architecture/parse-common.ts";
@@ -108,18 +108,30 @@ export function codeHealth(
 
     const values = selected.map(assessmentValue);
 
-    const covered = new Set(
-      selected.flatMap((item) =>
+    const members = selected
+      .flatMap((item) =>
         item.assessment.input.dimension === "seam-integrity"
           ? item.assessment.input.modules.flatMap((module) => module.members)
           : item.assessment.input.module.members
       )
+      .map((file) => resolve(root, file));
+
+    const covered = new Set(members);
+
+    if (covered.size !== members.length) {
+      throw new Error(
+        `Code health cannot double-count overlapping source membership in ${dimension}`
+      );
+    }
+
+    const unassessedFiles = sourceFiles.filter(
+      (file) => !covered.has(resolve(root, file))
     );
 
-    const unassessedFiles = sourceFiles.filter((file) => !covered.has(file));
-
     const complete =
-      values.length > 0 && values.every((value) => value !== null);
+      values.length > 0 &&
+      values.every((value) => value !== null) &&
+      unassessedFiles.length === 0;
 
     return {
       assessments: selected.map((item) => ({
