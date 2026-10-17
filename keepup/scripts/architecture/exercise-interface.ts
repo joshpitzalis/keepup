@@ -72,9 +72,9 @@ export function validateInterfacePreparation(
     );
   }
 
-  if (input.transformation || input.guardrails.length) {
+  if (input.transformation) {
     throw new Error(
-      "Interface reshaping and graph guardrails require separately supported preparation; seam safety remains unmeasured"
+      "Interface source reshaping requires separately supported preparation"
     );
   }
 

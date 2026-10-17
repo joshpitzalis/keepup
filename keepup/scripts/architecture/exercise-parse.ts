@@ -35,7 +35,7 @@ function uniqueStrings(value: unknown): readonly string[] {
 }
 
 function guardrail(value: unknown): ExerciseGuardrail {
-  const input = fields(value, ["ruleId", "kind"]);
+  const input = fields(value, ["ruleId", "kind", "assessmentId"]);
   const { kind } = input;
 
   if (
@@ -47,7 +47,14 @@ function guardrail(value: unknown): ExerciseGuardrail {
     throw new Error("Expected deterministic seam finding kind");
   }
 
-  return { kind, ruleId: parseArchitectureId(input.ruleId) };
+  const selected: ExerciseGuardrail = {
+    kind,
+    ruleId: parseArchitectureId(input.ruleId),
+  };
+
+  return input.assessmentId === undefined
+    ? selected
+    : { ...selected, assessmentId: parseArchitectureId(input.assessmentId) };
 }
 
 function navigationTarget(input: Record<string, unknown>): ExerciseTarget {

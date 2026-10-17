@@ -64,6 +64,7 @@ export type ExerciseTarget =
     };
 
 export interface ExerciseGuardrail {
+  readonly assessmentId?: string;
   readonly ruleId: string;
   readonly kind: SeamFinding["kind"];
 }
@@ -138,6 +139,7 @@ export interface ExerciseTestRun {
 }
 
 export interface ExercisePreparation {
+  readonly supportingAssessments?: readonly ArchitectureAssessment[];
   readonly schemaVersion: 1;
   readonly id: string;
   readonly input: ExercisePreparationInput;
@@ -149,6 +151,7 @@ export interface ExercisePreparation {
   readonly inventory: ExerciseInventory;
   readonly targetBaseline: number;
   readonly guardrails: readonly {
+    readonly assessmentId?: string;
     readonly ruleId: string;
     readonly kind: SeamFinding["kind"];
     readonly baseline: number;
@@ -250,6 +253,7 @@ export interface ExerciseCompletionInput {
 }
 
 export interface ExerciseAttempt {
+  readonly supportingAssessments?: readonly ArchitectureAssessment[];
   readonly additionalTests?: ExerciseTestRun;
   readonly touchedFiles?: readonly string[];
   readonly tracking?: boolean;
@@ -277,6 +281,7 @@ export interface ExerciseAttempt {
     readonly goal: number;
   };
   readonly guardrails: readonly {
+    readonly assessmentId?: string;
     readonly ruleId: string;
     readonly kind: SeamFinding["kind"];
     readonly baseline: number;

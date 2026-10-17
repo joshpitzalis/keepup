@@ -13,6 +13,7 @@ import test from "node:test";
 import type { TestContext } from "node:test";
 import { fileURLToPath } from "node:url";
 
+import type { ExerciseGuardrail } from "../scripts/architecture/exercise-domain.ts";
 import type { NavigabilityAssessmentInput } from "../scripts/architecture/navigability.ts";
 
 const CLI = fileURLToPath(new URL("../scripts/keepup.mjs", import.meta.url));
@@ -31,6 +32,10 @@ function execute(root: string, cli: string, ...args: string[]) {
   return spawnSync(process.execPath, [cli, ...args], {
     cwd: root,
     encoding: "utf-8",
+    env: {
+      ...process.env,
+      KEEPUP_ANALYSER_DIRECTORY: process.env.KEEPUP_TEST_ANALYSER_DIRECTORY,
+    },
   });
 }
 
@@ -180,7 +185,11 @@ function fixture(t: TestContext) {
   return { cli, root };
 }
 
-function start(root: string, cli: string) {
+function start(
+  root: string,
+  cli: string,
+  guardrails: readonly ExerciseGuardrail[] = []
+) {
   run(
     root,
     cli,
@@ -188,7 +197,12 @@ function start(root: string, cli: string) {
     "record",
     JSON.stringify(definition("baseline"))
   );
-  const prepared = exercise(root, cli, "prepare", preparation());
+
+  const prepared = exercise(root, cli, "prepare", {
+    ...preparation(),
+    guardrails,
+  });
+
   const id = `${prepared.quizPrefix}answers`;
   run(
     root,
@@ -682,3 +696,71 @@ test("renaming pass-throughs without shorter trails, stale source, lost validati
   assert.equal(abandoned.state, "abandoned");
   assert.match(readFileSync(join(root, "entry.ts"), "utf-8"), /still changed/u);
 });
+
+test(
+  "navigability completion retains a selected complete graph guardrail through actual linked learning",
+  { skip: !process.env.KEEPUP_TEST_ANALYSER_DIRECTORY },
+  (t) => {
+    const { root, cli } = fixture(t);
+
+    const graph = run(
+      root,
+      cli,
+      "architecture",
+      "analyse",
+      JSON.stringify({
+        dimension: "seam-integrity",
+        evidence: ["entry.ts", "rounder.ts", "caller.ts", "behaviour.test.ts"],
+        exclusions: [],
+        id: "navigation-graph",
+        limitations: [],
+        modules: [
+          { id: "orders", interface: ["entry.ts"], members: ["entry.ts"] },
+          {
+            id: "rounding",
+            interface: ["rounder.ts"],
+            members: ["rounder.ts"],
+          },
+          {
+            id: "consumers",
+            interface: ["caller.ts"],
+            members: ["caller.ts", "behaviour.test.ts"],
+          },
+        ],
+        rules: [
+          {
+            dependency: "all",
+            from: "orders",
+            id: "no-callers",
+            kind: "forbidden",
+            to: "consumers",
+          },
+        ],
+      })
+    );
+
+    assert.equal(graph.analysis.status, "complete");
+
+    const prepared = start(root, cli, [
+      {
+        assessmentId: "navigation-graph",
+        kind: "forbidden-direction",
+        ruleId: "no-callers",
+      },
+    ]);
+
+    assert.equal(prepared.guardrails[0].baseline, 0);
+    improve(root, cli);
+    const attempt = exercise(root, cli, "assess", assessment("graph-assessed"));
+    assert.equal(
+      attempt.status,
+      "awaiting-learning",
+      JSON.stringify(attempt.errors)
+    );
+    assert.equal(attempt.guardrails[0].current, 0);
+    assert.equal(
+      exercise(root, cli, "complete", learning(root, cli, attempt)).state,
+      "passed"
+    );
+  }
+);

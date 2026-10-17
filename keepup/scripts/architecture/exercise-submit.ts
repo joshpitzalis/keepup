@@ -26,6 +26,10 @@ import {
   exerciseTargetCount,
   runExerciseTests,
 } from "./exercise-evidence.ts";
+import {
+  assessGraphGuardrails,
+  assertSupportingGraphTools,
+} from "./exercise-graph-guardrails.ts";
 import { assessInterfaceExercise } from "./exercise-interface.ts";
 import { assessNavigationExercise } from "./exercise-navigation.ts";
 import { reviewedExerciseAssessment } from "./exercise-reviewed.ts";
@@ -176,6 +180,7 @@ export function assessExercise(
     let commits: readonly string[] = [];
     let tests: ExerciseAttempt["tests"] = null;
     let additionalTests: ExerciseAttempt["additionalTests"];
+    let supportingAssessments: ExerciseAttempt["supportingAssessments"];
     let assessment: ExerciseAttempt["assessment"] = null;
     let current: number | null = null;
     let guardrails: ExerciseAttempt["guardrails"] = [];
@@ -260,6 +265,18 @@ export function assessExercise(
         }
       }
 
+      const graph = assessGraphGuardrails(
+        root,
+        state,
+        preparation,
+        input.id,
+        guardrails
+      );
+
+      ({ guardrails } = graph);
+      supportingAssessments = graph.assessments;
+      errors.push(...graph.errors);
+
       if (
         current >= preparation.targetBaseline ||
         current > preparation.input.target.goal
@@ -298,7 +315,11 @@ export function assessExercise(
       time: host.now(),
     };
 
-    result = withAdditionalTests(result, additionalTests);
+    result = withAttemptEvidence(
+      result,
+      additionalTests,
+      supportingAssessments
+    );
 
     if (preparation.input.transformation) {
       result = {
@@ -556,6 +577,8 @@ export function assertAttemptStable(
   state: string,
   attempt: ExerciseAttempt
 ): void {
+  assertSupportingGraphTools(attempt.supportingAssessments);
+
   const tool =
     attempt.assessment?.input.dimension === "seam-integrity"
       ? exerciseSeamAnalysis(attempt.assessment).tool
@@ -688,11 +711,14 @@ function assertReviewedLearningCoverage(
   }
 }
 
-function withAdditionalTests(
+function withAttemptEvidence(
   attempt: ExerciseAttempt,
-  tests: ExerciseAttempt["additionalTests"]
+  tests: ExerciseAttempt["additionalTests"],
+  supportingAssessments: ExerciseAttempt["supportingAssessments"]
 ): ExerciseAttempt {
-  return tests ? { ...attempt, additionalTests: tests } : attempt;
+  const result = tests ? { ...attempt, additionalTests: tests } : attempt;
+
+  return supportingAssessments ? { ...result, supportingAssessments } : result;
 }
 
 /* oxlint-disable-next-line anti-slop/no-unknown-parameters -- An arbitrary caught error crosses the assessment boundary. */

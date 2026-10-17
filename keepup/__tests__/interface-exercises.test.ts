@@ -17,6 +17,7 @@ import type {
   CallerObligation,
   InterfaceAssessmentInput,
 } from "../scripts/architecture/domain.ts";
+import type { ExerciseGuardrail } from "../scripts/architecture/exercise-domain.ts";
 
 const CLI = fileURLToPath(new URL("../scripts/keepup.mjs", import.meta.url));
 
@@ -46,6 +47,10 @@ function execute(root: string, cli: string, ...args: string[]) {
   return spawnSync(process.execPath, [cli, ...args], {
     cwd: root,
     encoding: "utf-8",
+    env: {
+      ...process.env,
+      KEEPUP_ANALYSER_DIRECTORY: process.env.KEEPUP_TEST_ANALYSER_DIRECTORY,
+    },
   });
 }
 
@@ -192,7 +197,12 @@ function fixture(t: TestContext) {
   return { cli, root };
 }
 
-function start(root: string, cli: string, inventory = concepts) {
+function start(
+  root: string,
+  cli: string,
+  inventory = concepts,
+  guardrails: readonly ExerciseGuardrail[] = []
+) {
   run(
     root,
     cli,
@@ -204,6 +214,7 @@ function start(root: string, cli: string, inventory = concepts) {
   const prepared = exercise(root, cli, "prepare", {
     ...preparation(),
     concepts: inventory,
+    guardrails,
   });
 
   const id = `${prepared.quizPrefix}answers`;
@@ -644,3 +655,67 @@ test("reviewed completion cannot grant practice to changed provider without its 
     "active"
   );
 });
+
+test(
+  "interface completion retains a selected complete graph guardrail through actual linked learning",
+  { skip: !process.env.KEEPUP_TEST_ANALYSER_DIRECTORY },
+  (t) => {
+    const { root, cli } = fixture(t);
+
+    const graph = run(
+      root,
+      cli,
+      "architecture",
+      "analyse",
+      JSON.stringify({
+        dimension: "seam-integrity",
+        evidence: ["module.ts", "caller.ts", "behaviour.test.ts"],
+        exclusions: [],
+        id: "interface-graph",
+        limitations: [],
+        modules: [
+          { id: "orders", interface: ["module.ts"], members: ["module.ts"] },
+          { id: "consumer", interface: ["caller.ts"], members: ["caller.ts"] },
+          {
+            id: "tests",
+            interface: ["behaviour.test.ts"],
+            members: ["behaviour.test.ts"],
+          },
+        ],
+        rules: [
+          {
+            dependency: "all",
+            from: "orders",
+            id: "no-tests",
+            kind: "forbidden",
+            to: "tests",
+          },
+        ],
+      })
+    );
+
+    assert.equal(graph.analysis.status, "complete");
+
+    const prepared = start(root, cli, concepts, [
+      {
+        assessmentId: "interface-graph",
+        kind: "forbidden-direction",
+        ruleId: "no-tests",
+      },
+    ]);
+
+    assert.equal(prepared.guardrails[0].baseline, 0);
+    improve(root, cli);
+    const attempt = exercise(root, cli, "assess", assessment("graph-assessed"));
+    assert.equal(
+      attempt.status,
+      "awaiting-learning",
+      JSON.stringify(attempt.errors)
+    );
+    assert.equal(attempt.guardrails[0].current, 0);
+    assert.equal(
+      exercise(root, cli, "complete", complete(root, cli, attempt)).state,
+      "passed"
+    );
+  }
+);

@@ -54,9 +54,9 @@ export function validateLocalityPreparation(
     );
   }
 
-  if (input.transformation || input.guardrails.length) {
+  if (input.transformation) {
     throw new Error(
-      "Locality reshaping and graph guardrails require separately supported preparation; seam safety remains unmeasured"
+      "Locality source reshaping requires separately supported preparation"
     );
   }
 

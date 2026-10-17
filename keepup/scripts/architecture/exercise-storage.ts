@@ -10,6 +10,7 @@ import type {
   ExerciseAttempt,
   ExerciseAcceptance,
 } from "./exercise-domain.ts";
+import { verifySupportingGraphRecords } from "./exercise-graph-guardrails.ts";
 import {
   parseExerciseLifecycle,
   parseExercisePreparation,
@@ -125,6 +126,8 @@ export function readExercisePreparation(
     );
   }
 
+  verifySupportingGraphRecords(state, result.supportingAssessments);
+
   return result;
 }
 
@@ -198,6 +201,8 @@ export function readExerciseAttempt(
   ) {
     throw new Error("Invalid exercise attempt; left untouched");
   }
+
+  verifySupportingGraphRecords(state, result.supportingAssessments);
 
   return result;
 }

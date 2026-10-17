@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
   cpSync,
+  existsSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -13,6 +14,7 @@ import test from "node:test";
 import type { TestContext } from "node:test";
 import { fileURLToPath } from "node:url";
 
+import type { ExerciseGuardrail } from "../scripts/architecture/exercise-domain.ts";
 import type { LocalityAssessmentInput } from "../scripts/architecture/locality.ts";
 
 const CLI = fileURLToPath(new URL("../scripts/keepup.mjs", import.meta.url));
@@ -21,6 +23,14 @@ function execute(root: string, cli: string, ...args: string[]) {
   return spawnSync(process.execPath, [cli, ...args], {
     cwd: root,
     encoding: "utf-8",
+    env: {
+      ...process.env,
+      KEEPUP_ANALYSER_DIRECTORY: existsSync(
+        join(root, ".keepup/fixture-analyser")
+      )
+        ? join(root, ".keepup/fixture-analyser")
+        : process.env.KEEPUP_TEST_ANALYSER_DIRECTORY,
+    },
   });
 }
 
@@ -148,22 +158,27 @@ function exercise<T>(root: string, cli: string, action: string, input: T) {
   );
 }
 
-function prepare(root: string, cli: string) {
+function prepare(
+  root: string,
+  cli: string,
+  guardrails: readonly ExerciseGuardrail[] = [],
+  assessmentId = "baseline"
+) {
   run(
     root,
     cli,
     "architecture",
     "record",
-    JSON.stringify(definition("baseline"))
+    JSON.stringify(definition(assessmentId))
   );
 
   const preparation = {
-    assessmentId: "baseline",
+    assessmentId,
     behaviour: "Learning and delayed outcomes retain half score",
     callers: ["behaviour.test.ts"],
     concepts,
     files: ["policy.ts"],
-    guardrails: [],
+    guardrails,
     id: "locality",
     invariants: ["Both consumers return half score"],
     requiredTests: [
@@ -262,52 +277,7 @@ test("copied locality journey consolidates half weighting with unchanged complex
     ),
     false
   );
-  const postId = `${attempt.quizPrefix}answers`;
-  run(
-    root,
-    cli,
-    "log",
-    JSON.stringify({
-      answers: concepts.map((c, i) => ({
-        ...c,
-        answer: "Shared weight applies half the score",
-        correct: true,
-        question: `How does changed consumer preserve case ${i}?`,
-      })),
-      files: ["policy.ts"],
-      id: postId,
-      phase: "post",
-      type: "quiz",
-    })
-  );
-  const explainId = `${attempt.quizPrefix}explain`;
-  run(
-    root,
-    cli,
-    "log",
-    JSON.stringify({
-      files: ["policy.ts"],
-      id: explainId,
-      text: "Delayed and learning outcomes use the same authoritative half weighting; zero and partial scores remain unchanged.",
-      type: "explain",
-    })
-  );
-
-  const complete = {
-    attemptId: "accepted",
-    exerciseId: "locality",
-    explainId,
-    id: "complete",
-    invariantReview: [
-      {
-        evidence:
-          "Existing positive zero and partial score checks plus source review",
-        invariant: "Both consumers return half score",
-        preserved: true,
-      },
-    ],
-    postQuizIds: [postId],
-  };
+  const complete = completionInput(root, cli, attempt);
 
   assert.equal(exercise(root, cli, "complete", complete).state, "passed");
   assert.equal(exercise(root, cli, "complete", complete).state, "passed");
@@ -684,3 +654,425 @@ test("disposable real weighting rehearsal preserves learning-state and delayed-c
     1
   );
 });
+
+function graphDefinition() {
+  return {
+    cycles: { dependency: "all", exceptions: [], id: "no-cycles" },
+    dimension: "seam-integrity",
+    evidence: ["policy.ts", "outside.ts", "behaviour.test.ts"],
+    exclusions: [],
+    id: "graph-baseline",
+    limitations: [],
+    modules: [
+      { id: "learning", interface: ["policy.ts"], members: ["policy.ts"] },
+      {
+        id: "tests",
+        interface: ["behaviour.test.ts"],
+        members: ["behaviour.test.ts"],
+      },
+      { id: "other", interface: ["outside.ts"], members: ["outside.ts"] },
+    ],
+    rules: [
+      {
+        dependency: "all",
+        from: "learning",
+        id: "no-other",
+        kind: "forbidden",
+        to: "other",
+      },
+    ],
+  };
+}
+
+function graphFixture(t: TestContext) {
+  const { root, cli } = fixture(t);
+  writeFileSync(join(root, "outside.ts"), "export const offset=0;\n");
+  assert.equal(
+    spawnSync("git", ["add", "outside.ts"], { cwd: root }).status,
+    0
+  );
+  assert.equal(
+    spawnSync("git", ["commit", "-qm", "independent graph subject"], {
+      cwd: root,
+    }).status,
+    0
+  );
+
+  return { cli, root };
+}
+
+const graphGuard: ExerciseGuardrail = {
+  assessmentId: "graph-baseline",
+  kind: "forbidden-direction",
+  ruleId: "no-other",
+};
+
+test(
+  "reviewed locality preserves a selected complete graph guardrail and rejects a behaviour-preserving dependency regression",
+  { skip: !process.env.KEEPUP_TEST_ANALYSER_DIRECTORY },
+  (t) => {
+    const { root, cli } = graphFixture(t);
+
+    const graph = run(
+      root,
+      cli,
+      "architecture",
+      "analyse",
+      JSON.stringify(graphDefinition())
+    );
+
+    assert.equal(graph.analysis.status, "complete");
+
+    const guards: readonly ExerciseGuardrail[] = [
+      graphGuard,
+      { ...graphGuard, kind: "prohibited-cycle", ruleId: "no-cycles" },
+    ];
+
+    const prepared = prepare(root, cli, guards);
+    assert.equal(prepared.guardrails[0].baseline, 0);
+    assert.equal(prepared.supportingAssessments[0].id, "graph-baseline");
+    writeFileSync(join(root, "policy.ts"), after);
+    run(
+      root,
+      cli,
+      "architecture",
+      "record",
+      JSON.stringify(definition("candidate", true))
+    );
+    const accepted = exercise(root, cli, "assess", assessment("graph-pass"));
+    assert.equal(
+      accepted.status,
+      "awaiting-learning",
+      JSON.stringify(accepted.errors)
+    );
+    assert.equal(accepted.guardrails[0].current, 0);
+    assert.equal(accepted.guardrails[1].current, 0);
+    assert.equal(accepted.supportingAssessments[0].analysis.status, "complete");
+    const bad = `import {offset} from './outside.ts';\n${after.replace("=>weight(score)", "=>weight(score)+offset")}`;
+    writeFileSync(join(root, "policy.ts"), bad);
+    run(
+      root,
+      cli,
+      "architecture",
+      "record",
+      JSON.stringify(definition("regressed", true))
+    );
+
+    const rejected = exercise(root, cli, "assess", {
+      ...assessment("graph-regression"),
+      reviewedAssessmentId: "regressed",
+    });
+
+    assert.equal(rejected.status, "failed");
+    assert.equal(rejected.tests.exitCode, 0);
+    assert.equal(rejected.guardrails[0].current, 1);
+    assert.match(rejected.errors.join(" "), /guardrail.*regressed/u);
+    writeFileSync(join(root, "policy.ts"), after);
+    run(
+      root,
+      cli,
+      "architecture",
+      "record",
+      JSON.stringify(definition("graph-final", true))
+    );
+
+    const final = exercise(root, cli, "assess", {
+      ...assessment("graph-final"),
+      reviewedAssessmentId: "graph-final",
+    });
+
+    assert.equal(
+      final.status,
+      "awaiting-learning",
+      JSON.stringify(final.errors)
+    );
+    const complete = completionInput(root, cli, final);
+    assert.equal(exercise(root, cli, "complete", complete).state, "passed");
+    const [toolAsset] = prepared.supportingAssessments[0].analysis.tool.assets;
+    assert.ok(toolAsset);
+    writeFileSync(
+      join(root, ".keepup/architecture/snapshots", toolAsset.hash),
+      "corrupt archived tool bytes"
+    );
+
+    const corrupt = execute(
+      root,
+      cli,
+      "architecture",
+      "exercise",
+      "inspect",
+      "locality",
+      "--json"
+    );
+
+    assert.equal(corrupt.status, 1);
+    assert.match(corrupt.stderr, /snapshot/u);
+  }
+);
+
+function completionInput(
+  root: string,
+  cli: string,
+  attempt: {
+    readonly quizPrefix: string;
+    readonly input: { readonly id: string };
+  }
+) {
+  const postId = `${attempt.quizPrefix}answers`;
+  run(
+    root,
+    cli,
+    "log",
+    JSON.stringify({
+      answers: concepts.map((c, i) => ({
+        ...c,
+        answer: "Shared weight applies half the score",
+        correct: true,
+        question: `How does changed consumer preserve case ${i}?`,
+      })),
+      files: ["policy.ts"],
+      id: postId,
+      phase: "post",
+      type: "quiz",
+    })
+  );
+  const explainId = `${attempt.quizPrefix}explain`;
+  run(
+    root,
+    cli,
+    "log",
+    JSON.stringify({
+      files: ["policy.ts"],
+      id: explainId,
+      text: "Delayed and learning outcomes use the same authoritative half weighting; zero and partial scores remain unchanged.",
+      type: "explain",
+    })
+  );
+
+  const complete = {
+    attemptId: attempt.input.id,
+    exerciseId: "locality",
+    explainId,
+    id: "complete",
+    invariantReview: [
+      {
+        evidence:
+          "Existing positive zero and partial score checks plus source review",
+        invariant: "Both consumers return half score",
+        preserved: true,
+      },
+    ],
+    postQuizIds: [postId],
+  };
+
+  return complete;
+}
+
+test(
+  "reviewed graph guards reject missing, mismatched, stale and partial evidence while unrelated partial graphs do not block",
+  { skip: !process.env.KEEPUP_TEST_ANALYSER_DIRECTORY },
+  (t) => {
+    const { root, cli } = graphFixture(t);
+
+    const graph = run(
+      root,
+      cli,
+      "architecture",
+      "analyse",
+      JSON.stringify(graphDefinition())
+    );
+
+    assert.equal(graph.analysis.status, "complete");
+    assert.throws(
+      () =>
+        prepare(root, cli, [
+          { kind: "forbidden-direction", ruleId: "no-other" },
+        ]),
+      /explicit current complete supporting assessmentId/u
+    );
+    assert.throws(
+      () => prepare(root, cli, [{ ...graphGuard, kind: "private-import" }]),
+      /applicable/u
+    );
+    assert.throws(
+      () => prepare(root, cli, [{ ...graphGuard, ruleId: "missing-rule" }]),
+      /applicable/u
+    );
+    assert.throws(
+      () =>
+        prepare(root, cli, [
+          { ...graphGuard, kind: "prohibited-cycle", ruleId: "missing-cycle" },
+        ]),
+      /existing frozen cycle policy/u
+    );
+    writeFileSync(
+      join(root, "outside.ts"),
+      "export const offset=0; // changed snapshot\n"
+    );
+    assert.throws(
+      () => prepare(root, cli, [graphGuard], "stale-locality"),
+      /exact prepared source/u
+    );
+    writeFileSync(
+      join(root, "outside.ts"),
+      "export const offset=0; export async function load(name:string) {return import(name);};\n"
+    );
+
+    const partial = run(
+      root,
+      cli,
+      "architecture",
+      "analyse",
+      JSON.stringify({ ...graphDefinition(), id: "partial-graph" })
+    );
+
+    assert.equal(partial.analysis.status, "partial");
+    assert.throws(
+      () =>
+        prepare(
+          root,
+          cli,
+          [{ ...graphGuard, assessmentId: "partial-graph" }],
+          "partial-locality"
+        ),
+      /complete deterministic seam analysis/u
+    );
+    const prepared = prepare(root, cli, [], "unrelated-partial");
+    assert.equal(prepared.targetBaseline, 2);
+    assert.equal(prepared.supportingAssessments, undefined);
+  }
+);
+
+test(
+  "supporting analyser mutation after exact graph assessment blocks the final practice writer",
+  { skip: !process.env.KEEPUP_TEST_ANALYSER_DIRECTORY },
+  (t) => {
+    const { root, cli } = graphFixture(t);
+    const tool = process.env.KEEPUP_TEST_ANALYSER_DIRECTORY;
+    assert.ok(tool);
+    const copied = join(root, ".keepup/fixture-analyser");
+    cpSync(tool, copied, { recursive: true });
+
+    const graph = run(
+      root,
+      cli,
+      "architecture",
+      "analyse",
+      JSON.stringify(graphDefinition())
+    );
+
+    assert.equal(graph.analysis.status, "complete");
+    prepare(root, cli, [graphGuard]);
+    writeFileSync(join(root, "policy.ts"), after);
+    run(
+      root,
+      cli,
+      "architecture",
+      "record",
+      JSON.stringify(definition("candidate", true))
+    );
+    const attempt = exercise(root, cli, "assess", assessment("graph-tool"));
+    assert.equal(
+      attempt.status,
+      "awaiting-learning",
+      JSON.stringify(attempt.errors)
+    );
+    const complete = completionInput(root, cli, attempt);
+    const packagePath = join(copied, "node_modules/typescript/package.json");
+    const original = readFileSync(packagePath, "utf-8");
+    writeFileSync(packagePath, `${original}\n`);
+
+    const rejected = execute(
+      root,
+      cli,
+      "architecture",
+      "exercise",
+      "complete",
+      JSON.stringify(complete)
+    );
+
+    assert.equal(rejected.status, 1);
+    assert.match(rejected.stderr, /Supporting graph analyser assets/u);
+    assert.equal(
+      readFileSync(join(root, ".keepup/events.jsonl"), "utf-8").includes(
+        '"architecture_pass"'
+      ),
+      false
+    );
+  }
+);
+
+test(
+  "deterministic seam preparation rejects a new supporting assessment reference rather than silently counting its original graph",
+  { skip: !process.env.KEEPUP_TEST_ANALYSER_DIRECTORY },
+  (t) => {
+    const { root, cli } = graphFixture(t);
+    writeFileSync(
+      join(root, "policy.ts"),
+      `import {offset} from './outside.ts';\n${before.replaceAll("=>score/2", "=>score/2+offset")}`
+    );
+    assert.equal(
+      spawnSync("git", ["add", "policy.ts"], { cwd: root }).status,
+      0
+    );
+    assert.equal(
+      spawnSync("git", ["commit", "-qm", "existing dependency violation"], {
+        cwd: root,
+      }).status,
+      0
+    );
+
+    const graph = run(
+      root,
+      cli,
+      "architecture",
+      "analyse",
+      JSON.stringify(graphDefinition())
+    );
+
+    assert.equal(graph.analysis.status, "complete");
+    assert.equal(graph.analysis.findings.length, 1);
+
+    const payload = {
+      assessmentId: "graph-baseline",
+      behaviour: "Preserve half-score outcomes",
+      callers: ["behaviour.test.ts"],
+      concepts,
+      files: ["policy.ts"],
+      guardrails: [{ ...graphGuard, assessmentId: "other-graph" }],
+      id: "seam",
+      invariants: ["Half score remains"],
+      requiredTests: [
+        {
+          file: "behaviour.test.ts",
+          name: "learning and delayed retain half weight",
+        },
+      ],
+      stopCondition: "Stop on unknown evidence",
+      target: {
+        destination: "outside.ts",
+        goal: 0,
+        kind: "forbidden-direction",
+        ruleId: "no-other",
+        source: "policy.ts",
+      },
+      technique: "Repair original dependency",
+      tradeoffs: [],
+    };
+
+    const result = execute(
+      root,
+      cli,
+      "architecture",
+      "exercise",
+      "prepare",
+      JSON.stringify(payload)
+    );
+
+    assert.equal(result.status, 1);
+    assert.match(
+      result.stderr,
+      /supporting assessmentId is for reviewed targets only/u
+    );
+  }
+);
