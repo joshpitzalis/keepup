@@ -72,6 +72,7 @@ genuine unsupported evidence remains explicit. Save unresolved limitations in th
 scope document. If source changes during the assessment, refresh affected observations
 and rerun aggregation; historical observations remain untouched.
 
-Finish with the two headline scores and the first-quiz invitation from the parent
-skill. A partial/advisory qualifier must remain when evidence warrants it. Never
-present a one-dimension complexity result as a completed full assessment.
+Finish with only the compact setup summary defined in the parent skill. Keep the
+partial dimension count on the code-health line when the assessment is incomplete.
+Store dimension breakdowns, blockers, coverage and provisional-review details in the
+saved report. Never present a one-dimension complexity result as a full assessment.
