@@ -1,6 +1,8 @@
 # Complete a learner-owned architecture exercise
 
 Use this opt-in workflow for a deterministic seam repair or reviewed change-locality consolidation on existing files.
+For a concrete avoidable caller obligation, use the same lifecycle with the
+[interface-leverage contract](interface-exercise.md).
 Ordinary small katas keep their existing rules. Work in the main checkout returned
 by `init`; linked worktrees share that source and its resolved `.keepup` or legacy
 `.cogdebt` directory. Never change an existing active kata or its scoring setup.

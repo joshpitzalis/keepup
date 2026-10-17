@@ -53,6 +53,38 @@ function guardrail(value: unknown): ExerciseGuardrail {
 function target(value: unknown): ExerciseTarget {
   const input = object(value);
 
+  if (input.kind === "interface-leverage") {
+    fields(input, [
+      "kind",
+      "scenarioId",
+      "obligationKind",
+      "obligation",
+      "goal",
+    ]);
+    const { obligationKind } = input;
+
+    if (
+      input.goal !== 0 ||
+      (obligationKind !== "operations" &&
+        obligationKind !== "arguments" &&
+        obligationKind !== "ordering" &&
+        obligationKind !== "configuration" &&
+        obligationKind !== "errors")
+    ) {
+      throw new Error(
+        "Interface target requires a concrete caller obligation kind and zero remaining obligation goal"
+      );
+    }
+
+    return {
+      goal: 0,
+      kind: "interface-leverage",
+      obligation: text(input.obligation),
+      obligationKind,
+      scenarioId: parseArchitectureId(input.scenarioId),
+    };
+  }
+
   if (input.kind === "change-locality") {
     fields(input, ["kind", "ruleId", "goal"]);
 

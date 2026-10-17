@@ -154,6 +154,21 @@ export function exerciseTargetCount(
   assessment: ArchitectureAssessment,
   target: ExerciseTarget
 ): number {
+  if (target.kind === "interface-leverage") {
+    if (assessment.input.dimension !== "interface-leverage") {
+      throw new Error("Interface target requires interface evidence");
+    }
+
+    return assessment.input.scenarios
+      .flatMap((scenario) => scenario.obligations)
+      .filter(
+        (obligation) =>
+          obligation.classification === "avoidable" &&
+          obligation.kind === target.obligationKind &&
+          obligation.description === target.obligation
+      ).length;
+  }
+
   if (target.kind === "change-locality") {
     if (assessment.input.dimension !== "change-locality") {
       throw new Error("Locality target requires locality evidence");

@@ -23,6 +23,7 @@ import {
   linkedPreQuizzes,
   runExerciseTests,
 } from "./exercise-evidence.ts";
+import { validateInterfacePreparation } from "./exercise-interface.ts";
 import {
   parseExerciseLifecycle,
   parseExercisePreparation,
@@ -89,6 +90,13 @@ function validatePreparation(
 
   if (
     inspection.freshness.status === "current" &&
+    input.target.kind === "interface-leverage"
+  ) {
+    return validateInterfacePreparation(root, state, input, assessment, host);
+  }
+
+  if (
+    inspection.freshness.status === "current" &&
     input.target.kind === "change-locality"
   ) {
     return validateLocalityPreparation(root, state, input, assessment, host);
@@ -103,7 +111,10 @@ function validatePreparation(
     );
   }
 
-  if (input.target.kind === "change-locality") {
+  if (
+    input.target.kind === "change-locality" ||
+    input.target.kind === "interface-leverage"
+  ) {
     throw new Error("Locality requires current reviewed evidence");
   }
 
@@ -391,6 +402,11 @@ export function exerciseText(context: ArchitectureExercise): string {
     ...(preparation.input.target.kind === "change-locality"
       ? [
           "Change-locality acceptance combines automated exact-source/regression checks with explicit reviewed semantic consolidation. Complexity improvement is not required; seam safety remains unmeasured.",
+        ]
+      : []),
+    ...(preparation.input.target.kind === "interface-leverage"
+      ? [
+          "Interface-leverage acceptance separates exact-source regression checks from reviewed removal of the frozen caller obligation. Intrinsic domain choices stay fixed; complexity improvement is not required.",
         ]
       : []),
     `Behaviour: ${preparation.input.behaviour}`,

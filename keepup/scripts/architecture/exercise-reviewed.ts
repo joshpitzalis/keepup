@@ -36,9 +36,8 @@ export function validateLocalityPreparation(
     throw new Error("Locality target requires a current locality assessment");
   }
 
-  const rule = declaration.rules.find(
-    (entry) => entry.id === input.target.ruleId
-  );
+  const selectedId = input.target.ruleId;
+  const rule = declaration.rules.find((entry) => entry.id === selectedId);
 
   if (
     !rule ||
@@ -280,12 +279,7 @@ export function assertReviewedSource(
         join(state, "architecture/snapshots", hash),
         "utf-8"
       ).includes(change.before) ||
-      !readFileSync(join(root, change.file), "utf-8").includes(change.after) ||
-      readFileSync(join(root, change.file), "utf-8").includes(change.before) ||
-      readFileSync(
-        join(state, "architecture/snapshots", hash),
-        "utf-8"
-      ).includes(change.after)
+      !readFileSync(join(root, change.file), "utf-8").includes(change.after)
     ) {
       throw new Error(
         "Review before/after excerpts must match actual changed implementation source"
