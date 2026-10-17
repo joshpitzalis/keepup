@@ -1,6 +1,7 @@
 import type { StoredEvent } from "../keepup.ts";
 import type {
   ArchitectureAssessment,
+  CallerObligation,
   ArchitectureModule,
   ManifestEntry,
 } from "./domain.ts";
@@ -22,6 +23,13 @@ export interface ExerciseHost {
 }
 
 export type ExerciseTarget =
+  | {
+      readonly kind: "interface-leverage";
+      readonly scenarioId: string;
+      readonly obligationKind: CallerObligation["kind"];
+      readonly obligation: string;
+      readonly goal: 0;
+    }
   | {
       readonly kind: "change-locality";
       readonly ruleId: string;

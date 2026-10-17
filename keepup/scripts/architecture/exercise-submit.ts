@@ -26,6 +26,7 @@ import {
   exerciseTargetCount,
   runExerciseTests,
 } from "./exercise-evidence.ts";
+import { assessInterfaceExercise } from "./exercise-interface.ts";
 import { reviewedExerciseAssessment } from "./exercise-reviewed.ts";
 import {
   exerciseDirectory,
@@ -107,6 +108,21 @@ function evaluateExercise(
   );
 }
 
+function evaluateReviewedExercise(
+  root: string,
+  state: string,
+  preparation: ExercisePreparation,
+  input: ExerciseAssessmentInput,
+  changedFiles: readonly string[]
+): NonNullable<ExerciseAttempt["assessment"]> {
+  const evaluator =
+    preparation.input.target.kind === "interface-leverage"
+      ? assessInterfaceExercise
+      : reviewedExerciseAssessment;
+
+  return evaluator(root, state, preparation, input, changedFiles);
+}
+
 export function assessExercise(
   root: string,
   state: string,
@@ -165,8 +181,12 @@ export function assessExercise(
       );
       assertCandidateStable(root, state, inventory, indexHash);
 
-      if (preparation.input.target.kind === "change-locality") {
-        assessment = reviewedExerciseAssessment(
+      if (
+        ["interface-leverage", "change-locality"].includes(
+          preparation.input.target.kind
+        )
+      ) {
+        assessment = evaluateReviewedExercise(
           root,
           state,
           preparation,
@@ -450,6 +470,7 @@ export function completeExercise(
 
     assertAttemptStable(root, state, attempt);
     assertTracking(context, attempt);
+    assertReviewedLearningCoverage(context, attempt);
     assertInvariantReview(context, input);
 
     const learning = linkedPostEvidence(
@@ -555,6 +576,7 @@ export function acceptedPracticeEvidence(
   const { attempt } = accepted;
   assertAttemptStable(root, state, attempt);
   assertTracking(context, attempt);
+  assertReviewedLearningCoverage(context, attempt);
 
   const changed = candidateChanges(
     root,
@@ -614,6 +636,27 @@ function assertTracking(
   ) {
     throw new Error(
       "Reshaping completion requires learner-staged surviving/new source and staged removals, followed by a fresh assessment and actual mapped post evidence; the frozen mapping cannot change"
+    );
+  }
+}
+
+function assertReviewedLearningCoverage(
+  context: ArchitectureExercise,
+  attempt: ExerciseAttempt
+): void {
+  if (context.preparation.assessment.input.dimension === "seam-integrity") {
+    return;
+  }
+
+  const concepts = mappedConcepts(context.preparation);
+
+  if (
+    attempt.changedFiles.some(
+      (file) => !concepts.some((concept) => concept.file === file)
+    )
+  ) {
+    throw new Error(
+      "Every changed practice file requires its own frozen/mapped concept and actual linked pre/post learning evidence"
     );
   }
 }
