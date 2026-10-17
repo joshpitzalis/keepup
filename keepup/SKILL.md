@@ -16,8 +16,9 @@ The learner owns target-code edits. Teach, inspect and run the existing tests; n
 ## init
 
 1. Run `node <skill>/scripts/keepup.mjs init`. Inspect the returned configuration and scope. Leave an unknown test command unset until an exercise needs it, then ask for the existing command.
-2. Read `MISSION.md` in the returned main-checkout state directory. Init supplies a starter mission or preserves an existing personalised mission. Use it immediately. Say setup is ready and the starter mission can be tailored after a week; offer `status` or `on` as the next step. An existing personalised mission needs no interview.
-3. Explain that scope can be edited in `config.json` and recommend committing learning state. Init requires no mission questions. Refine it immediately only when the learner asks.
+2. Read `MISSION.md` in the returned main-checkout state directory. Init supplies a starter mission or preserves an existing personalised mission. Use it immediately; a starter mission can be tailored after a week. Init requires no mission questions. Refine it immediately only when the learner asks.
+3. Run `node <skill>/scripts/keepup.mjs status --json` now, wait for the scorer results, and read its output. This records the current baseline in `<state>/history.jsonl`. Finish with **Code health** (`summary.codeHealth` ×100, out of 100) and **Comprehension debt** (`summary.cognitiveDebt` ×100, a percentage). The CLI calls the latter cognitive debt. Include the metric names and a short scoring-coverage/warning note when results are partial; null means unavailable. For a fresh learner, explain 100% debt as “no recorded understanding evidence yet”; preserve existing evidence. Setup and scoring grant no quiz or practice credit. An unsuccessful scoring command means the baseline is unavailable, never invent scores.
+4. End with just two next steps using the installed invocation name: `kata` for hands-on work on the scores now, or `on` alongside agents the next time the learner starts building. For the `ku` alias, say “Run `/ku kata` to work on the scores now, or `/ku on` while agents work next time you build something.” In Codex use `$ku kata` and `$ku on`; the original installation uses `keepup`. Keep the summary short. Repository tests belong to the exercise workflow; init runs code scorers, not the test suite.
 
 ## Mission refinement
 
