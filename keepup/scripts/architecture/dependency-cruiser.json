@@ -1,0 +1,9 @@
+{
+  "forbidden": [],
+  "options": {
+    "tsPreCompilationDeps": "specify",
+    "parser": "tsc",
+    "doNotFollow": { "path": "node_modules" },
+    "skipAnalysisNotInRules": false
+  }
+}

@@ -1,0 +1,42 @@
+name: Verify
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Set isolated analyser path
+        run: echo "KEEPUP_TEST_ANALYSER_DIRECTORY=$RUNNER_TEMP/keepup-analyser" >> "$GITHUB_ENV"
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@f520eceda224fe1a4aed5a2a27a194379a409996 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install pinned analyser prerequisite
+        run: npm install --prefix "$KEEPUP_TEST_ANALYSER_DIRECTORY" --no-audit --no-fund dependency-cruiser@18.6.0 typescript@5.9.3
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Verify frozen source, real analyser and browser
+        run: pnpm verify:full
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        if: always()
+        with:
+          name: verification-${{ github.sha }}
+          path: .verification/
+          include-hidden-files: true
+          if-no-files-found: ignore

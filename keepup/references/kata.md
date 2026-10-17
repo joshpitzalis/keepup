@@ -1,6 +1,6 @@
 # Start a kata
 
-Use for `/keepup kata`, a hint request during a kata, or abandonment. Read the evidence discipline in the parent skill. The CLI path below is the installed skill's `scripts/keepup.mjs`; `<CLI>` is a placeholder, not a shell executable. Use the main checkout returned by `init` for inspection and all kata commands.
+Use for `/up kata`, a hint request during a kata, or abandonment. Read the evidence discipline in the parent skill. The CLI path below is the installed skill's `scripts/keepup.mjs`; `<CLI>` is a placeholder, not a shell executable. Use the main checkout returned by `init` for inspection and all kata commands.
 
 ## Choose one safe exercise
 
@@ -41,7 +41,7 @@ Present one card containing:
 - Target metric, measured baseline and numeric goal; show how the threshold maps to raw CCN when applicable.
 - Technique and its primary reference: [Extract Method](https://refactoring.guru/extract-method), [Rename Method](https://refactoring.guru/rename-method) or [Replace Nested Conditional with Guard Clauses](https://refactoring.guru/replace-nested-conditional-with-guard-clauses), according to the chosen technique.
 - Files to open, relevant callers and dependencies, the existing test command, and behavior that must stay the same.
-- “Write the refactor yourself. Ask for a hint, abandon, or run `/keepup submit` when ready.”
+- “Write the refactor yourself. Ask for a hint, abandon, or run `/up submit` when ready.”
 
 Use the **state before the quiz** to set briefing depth: dark → walkthrough, exposed → one paragraph, verified → one line, practised → no briefing. Keep any plain-text diagram within 30 columns and 12 rows; omit diagrams that do not help. Explain the smell and invariants without supplying a ready-to-paste solution.
 

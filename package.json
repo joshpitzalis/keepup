@@ -1,0 +1,33 @@
+{
+  "name": "keepup",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc",
+    "test": "node --test --test-reporter=tap keepup/__tests__/*.test.ts tests/*.test.ts",
+    "test:browser": "playwright test",
+    "verify": "node scripts/verify.ts",
+    "verify:full": "node scripts/verify.ts --browser",
+    "verify:reuse": "node scripts/verify.ts --browser --reuse",
+    "prepare": "lefthook install",
+    "check": "ultracite check",
+    "fix": "ultracite fix",
+    "lint": "oxlint --deny-warnings",
+    "format": "oxfmt --write"
+  },
+  "devDependencies": {
+    "@oxlint/plugins": "1.88.0",
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^24.19.2",
+    "effect": "4.0.5",
+    "lefthook": "2.2.2",
+    "oxfmt": "0.73.0",
+    "oxlint": "1.88.0",
+    "typescript": "^7.0.2",
+    "ultracite": "8.0.1"
+  },
+  "engines": {
+    "node": ">=24.8.0"
+  },
+  "packageManager": "pnpm@12.5.1"
+}
