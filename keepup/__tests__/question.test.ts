@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { pose } from "../scripts/question.ts";
+import { grade, pose } from "../scripts/question.ts";
 
 test("posing preserves LearnHarness shuffle order for the same random sequence", () => {
   const options = ["A", "B", "C", "D"].map((label) => ({ label }));
@@ -33,4 +33,50 @@ test("posing preserves LearnHarness shuffle order for the same random sequence",
     { label: "D" },
   ]);
   assert.deepEqual(draws, []);
+});
+
+test("grading resolves trimmed values and clamps confidence", () => {
+  const result = pose(
+    {
+      correct: " Alpha ",
+      options: [{ label: " Alpha " }, { label: " Beta ", value: " b " }],
+    },
+    () => 0.99
+  );
+
+  assert.equal(result.ok, true);
+
+  if (!result.ok) {
+    throw new Error("Expected posed question");
+  }
+
+  assert.deepEqual(
+    grade(result.posed, { confidence: 120, values: [" Alpha "] }),
+    {
+      confidence: 100,
+      correct: true,
+      dontKnow: false,
+      selected: [{ index: 1, label: "Alpha", value: "Alpha" }],
+      unknownValues: [],
+    }
+  );
+  assert.equal(
+    grade(result.posed, { confidence: -5, values: ["b"] }).confidence,
+    0
+  );
+  assert.equal(
+    grade(result.posed, { confidence: 53.6, values: ["Alpha"] }).confidence,
+    54
+  );
+  assert.equal(
+    grade(result.posed, { confidence: 80, dontKnow: true, values: [] })
+      .confidence,
+    undefined
+  );
+  assert.deepEqual(grade(result.posed, { values: [" unknown "] }), {
+    correct: false,
+    dontKnow: false,
+    selected: [],
+    unknownValues: ["unknown"],
+  });
 });
