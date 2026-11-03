@@ -23,6 +23,7 @@ The selected assessment plan is replaced atomically for future `health` reads.
 `architecture/` owns independent evidence, rubrics, analysis and exercises; see its
 [spec](architecture/SPEC.md). Aggregation never changes records or pass gates.
 `handlers/` reconstructs supported learner events; the CLI is the only event writer.
+`question.ts` owns pure posing/grading; `quiz.ts` owns question storage, word-count validation and the quiz commands.
 
 ## Boundaries
 

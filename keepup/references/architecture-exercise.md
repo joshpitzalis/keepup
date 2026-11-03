@@ -161,12 +161,16 @@ learner-authored explain-back and frozen invariant review through the existing c
 
 Keep target files closed for the learner. Ask one predict/trace/impact/why question
 per prepared concept, using the actual frozen code. Follow [the ordinary kata's
-option rules](kata.md): equal whitespace-word counts, parallel formatting, varied
-correct positions and no answer-key clues. Keep the key private. Wait for actual
-responses, clarify ambiguity and grade against the code. Missing answers supply no
-evidence; never manufacture a response or infer understanding from agreement.
+option rules](kata.md): equal whitespace-word counts, parallel formatting and no
+answer-key clues. Pose every multiple-choice question through `quiz pose`, which
+enforces the counts and shuffles the options. Show the returned order without the
+key. Wait for actual responses, clarify ambiguity and send the exact words plus the
+mapped value or `dontKnow` to `quiz answer`; explain its verdict. Follow the
+[payload examples](quiz.md#pose-answer-and-log-multiple-choice). Skipped questions
+supply no evidence and are never logged. If code changes, obtain the required fresh
+preparation and pose fresh questions with new ids; leave abandoned questions unlogged.
 
-Log the actual questions/options, exact responses, concepts and correctness through
+Log answered multiple-choice questions as `{ "posed": "question-id" }` references through
 the supported `log` writer with `type:"quiz"`, `phase:"pre"`, and only answered
 files. Use IDs beginning with the returned `quizPrefix`; do not set `kataNumber`.
 This prefix binds answers to this preparation without changing old event formats.
@@ -174,11 +178,12 @@ Actual quiz evidence may supply normal exposure; reports and exercise starts do
 not grant practice. Example shape, with every placeholder replaced by real answers:
 
 ```json
-{"id":"<returned-quizPrefix>actual-answer-attempt","type":"quiz","files":["caller.ts"],"phase":"pre","answers":[{"file":"caller.ts","concept":"public boundary","question":"Actual full question and options","answer":"Learner's exact response","correct":false}]}
+{"id":"<returned-quizPrefix>actual-answer-attempt","type":"quiz","files":["caller.ts"],"phase":"pre","answers":[{"posed":"actual-pre-question-id"}]}
 ```
 
-Include all 3–5 actual answers in one or more events. Retry the same completed
-logging operation with the same ID/payload; a genuinely new response uses a new ID.
+Include all 3–5 actual answers in one or more events, each posed id only once.
+Retry uncertain pose, answer or log writes with the same id and identical payload.
+Free recall and delayed checks are unchanged: agent-graded, using full answer objects.
 
 ## Start and present the task
 
@@ -240,8 +245,9 @@ offer separate preparation rather than weakening checks or inventing tests here.
 An `awaiting-learning` attempt returns its own `quizPrefix` and exact candidate
 HEAD/bytes. Keep files closed and ask **different** predict/trace/impact/why questions
 on every original file/concept, following the same option rules as the pre-quiz.
-Wait for real answers, clarify and grade them; never infer understanding from tests.
-Log actual standalone `quiz`/`phase:"post"` events through `log`, with IDs starting
+Pose every multiple-choice question through `quiz pose`, show its returned order,
+and grade the exact reply through `quiz answer`; never infer understanding from tests.
+Log answered posed references as standalone `quiz`/`phase:"post"` events through `log`, with IDs starting
 the attempt's prefix and no kata number. Every frozen concept must have one actual
 answer. Candidate SHA/snapshots must match this attempt, including learner commits.
 Report descriptive pre/post counts, wrong-before/right-after misconceptions and
