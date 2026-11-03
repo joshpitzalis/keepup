@@ -73,6 +73,23 @@ function questionId(value: unknown): string {
 function parsePoseInput(value: unknown): PoseInput {
   const source = object(value);
 
+  if (
+    Object.keys(source).some(
+      (key) =>
+        ![
+          "concept",
+          "correct",
+          "file",
+          "id",
+          "multiSelect",
+          "options",
+          "stem",
+        ].includes(key)
+    )
+  ) {
+    throw new Error("Unsupported question spec field");
+  }
+
   if (!Array.isArray(source.options)) {
     throw new TypeError("Question options must be an array");
   }
@@ -96,9 +113,19 @@ function parsePoseInput(value: unknown): PoseInput {
     options: source.options.map((item) => {
       const option = object(item);
 
+      if (
+        Object.keys(option).some((key) => key !== "label" && key !== "value")
+      ) {
+        throw new Error("Unsupported question option field");
+      }
+
+      if (option.value !== undefined && typeof option.value !== "string") {
+        throw new TypeError("Question option value must be a string");
+      }
+
       return {
         label: text(option.label),
-        value: option.value === undefined ? undefined : text(option.value),
+        value: option.value,
       };
     }),
     stem: text(source.stem),
@@ -194,8 +221,26 @@ function readQuestion(state: string, id: string): StoredQuestion {
 export function poseQuestion(state: string, value: unknown) {
   const spec = parsePoseInput(value);
 
+  if (
+    new Set(
+      spec.options.map((option) => option.label.trim().split(/\s+/u).length)
+    ).size > 1
+  ) {
+    throw new Error("Question options must have equal word counts");
+  }
+
+  if (spec.multiSelect) {
+    throw new Error("KeepUp does not support multi-select questions");
+  }
+
   if (existsSync(questionPath(state, spec.id))) {
-    throw new Error("Question id already posed");
+    const stored = readQuestion(state, spec.id);
+
+    if (JSON.stringify(stored.spec) !== JSON.stringify(spec)) {
+      throw new Error("Question id already posed with different input");
+    }
+
+    return { id: spec.id, options: stored.posed.options };
   }
 
   const result = pose(spec, Math.random);
