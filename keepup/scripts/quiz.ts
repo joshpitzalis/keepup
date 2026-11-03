@@ -26,6 +26,7 @@ interface AnswerInput {
   id: string;
   answer: string;
   values: string[];
+  dontKnow?: boolean;
 }
 
 interface StoredQuestion {
@@ -74,6 +75,23 @@ function questionId(value: unknown): string {
 function parsePoseInput(value: unknown): PoseInput {
   const source = object(value);
 
+  if (
+    Object.keys(source).some(
+      (key) =>
+        ![
+          "concept",
+          "correct",
+          "file",
+          "id",
+          "multiSelect",
+          "options",
+          "stem",
+        ].includes(key)
+    )
+  ) {
+    throw new Error("Unsupported question spec field");
+  }
+
   if (!Array.isArray(source.options)) {
     throw new TypeError("Question options must be an array");
   }
@@ -97,9 +115,19 @@ function parsePoseInput(value: unknown): PoseInput {
     options: source.options.map((item) => {
       const option = object(item);
 
+      if (
+        Object.keys(option).some((key) => key !== "label" && key !== "value")
+      ) {
+        throw new Error("Unsupported question option field");
+      }
+
+      if (option.value !== undefined && typeof option.value !== "string") {
+        throw new TypeError("Question option value must be a string");
+      }
+
       return {
         label: text(option.label),
-        value: option.value === undefined ? undefined : text(option.value),
+        value: option.value,
       };
     }),
     stem: text(source.stem),
@@ -108,7 +136,36 @@ function parsePoseInput(value: unknown): PoseInput {
 
 function parseAnswerInput(value: unknown): AnswerInput {
   const source = object(value);
-  const values = strings(source.values);
+
+  if (
+    Object.keys(source).some(
+      (key) => !["id", "answer", "values", "dontKnow"].includes(key)
+    )
+  ) {
+    throw new Error("Quiz answers only accept id, answer, values and dontKnow");
+  }
+
+  if (source.dontKnow !== undefined && typeof source.dontKnow !== "boolean") {
+    throw new Error("dontKnow must be a boolean");
+  }
+
+  const values =
+    source.dontKnow && source.values === undefined
+      ? []
+      : strings(source.values);
+
+  if (source.dontKnow) {
+    if (values.length) {
+      throw new Error("Choose either one selected value or dontKnow");
+    }
+
+    return {
+      answer: text(source.answer),
+      dontKnow: true,
+      id: questionId(source.id),
+      values,
+    };
+  }
 
   if (values.length !== 1) {
     throw new Error("Quiz answers require one selected value");
@@ -198,8 +255,26 @@ function readQuestion(state: string, id: string): StoredQuestion {
 export function poseQuestion(state: string, value: unknown) {
   const spec = parsePoseInput(value);
 
+  if (
+    new Set(
+      spec.options.map((option) => option.label.trim().split(/\s+/u).length)
+    ).size > 1
+  ) {
+    throw new Error("Question options must have equal word counts");
+  }
+
+  if (spec.multiSelect) {
+    throw new Error("KeepUp does not support multi-select questions");
+  }
+
   if (existsSync(questionPath(state, spec.id))) {
-    throw new Error("Question id already posed");
+    const stored = readQuestion(state, spec.id);
+
+    if (JSON.stringify(stored.spec) !== JSON.stringify(spec)) {
+      throw new Error("Question id already posed with different input");
+    }
+
+    return { id: spec.id, options: stored.posed.options };
   }
 
   const result = pose(spec, Math.random);
@@ -218,7 +293,11 @@ export function answerQuestion(state: string, value: unknown) {
   const question = readQuestion(state, input.id);
 
   if (question.answer) {
-    throw new Error("Question already answered");
+    if (JSON.stringify(question.answer.input) !== JSON.stringify(input)) {
+      throw new Error("Question already answered with different input");
+    }
+
+    return question.answer.verdict;
   }
 
   const verdict = grade(question.posed, input);

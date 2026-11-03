@@ -99,7 +99,7 @@ export function pose(
 }
 
 export function grade(posed: Posed, response: Response): Verdict {
-  const values = new Set(response.values);
+  const values = new Set(response.values.map((value) => value.trim()));
 
   const selected = posed.options.flatMap((option, index) =>
     values.has(option.value) ? [{ ...option, index: index + 1 }] : []
@@ -109,7 +109,7 @@ export function grade(posed: Posed, response: Response): Verdict {
     (value) => !posed.options.some((option) => option.value === value)
   );
 
-  return {
+  const verdict: Verdict = {
     correct:
       !response.dontKnow &&
       unknownValues.length === 0 &&
@@ -119,4 +119,13 @@ export function grade(posed: Posed, response: Response): Verdict {
     selected,
     unknownValues,
   };
+
+  if (!response.dontKnow && response.confidence !== undefined) {
+    verdict.confidence = Math.max(
+      0,
+      Math.min(100, Math.round(response.confidence))
+    );
+  }
+
+  return verdict;
 }
