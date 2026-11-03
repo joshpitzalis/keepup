@@ -44,6 +44,7 @@ import { strings } from "./architecture/parse-common.ts";
 import { codeHealth } from "./code-health.ts";
 import { parseEvent } from "./handlers/parse-event.ts";
 import type { EventType, EventWithArchitecturePass } from "./handlers/types.ts";
+import { quizCommand, resolveQuizEvent } from "./quiz.ts";
 
 interface Metric {
   value: number;
@@ -556,15 +557,17 @@ function kataInventory(targets: readonly string[]) {
 
 // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The CLI JSON input is parsed immediately below.
 function logEvent(value: unknown) {
-  const input = parseEvent(value);
+  return withLock(() => {
+    const input = resolveQuizEvent(state, value);
 
-  if (input.type === "architecture_pass") {
-    throw new Error(
-      "Architecture practice can only be recorded by accepted internal exercise completion"
-    );
-  }
+    if (input.type === "architecture_pass") {
+      throw new Error(
+        "Architecture practice can only be recorded by accepted internal exercise completion"
+      );
+    }
 
-  return withLock(() => writeEventLocked(input));
+    return writeEventLocked(input);
+  });
 }
 
 // oxlint-disable-next-line complexity -- Preserve the existing atomic write workflow and supported snapshot writer.
@@ -1540,6 +1543,10 @@ try {
         practice: recordArchitecturePractice,
       })
     );
+  } else if (command === "quiz") {
+    console.log(
+      JSON.stringify(withLock(() => quizCommand(state, process.argv.slice(3))))
+    );
   } else if (command === "log") {
     console.log(JSON.stringify(logEvent(JSON.parse(process.argv[3] ?? ""))));
   } else if (command === "status") {
@@ -1568,7 +1575,7 @@ try {
     console.log(JSON.stringify(withLock(inPlay)));
   } else {
     throw new Error(
-      "Usage: up init | health [<assessment-ids-json>] | log <json> | status [--json] | map | in-play | architecture"
+      "Usage: up init | health [<assessment-ids-json>] | log <json> | status [--json] | map | in-play | architecture | quiz"
     );
   }
 } catch (error) {
