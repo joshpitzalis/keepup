@@ -25,6 +25,7 @@ interface AnswerInput {
   id: string;
   answer: string;
   values: string[];
+  dontKnow?: boolean;
 }
 
 interface StoredQuestion {
@@ -107,7 +108,36 @@ function parsePoseInput(value: unknown): PoseInput {
 
 function parseAnswerInput(value: unknown): AnswerInput {
   const source = object(value);
-  const values = strings(source.values);
+
+  if (
+    Object.keys(source).some(
+      (key) => !["id", "answer", "values", "dontKnow"].includes(key)
+    )
+  ) {
+    throw new Error("Quiz answers only accept id, answer, values and dontKnow");
+  }
+
+  if (source.dontKnow !== undefined && typeof source.dontKnow !== "boolean") {
+    throw new Error("dontKnow must be a boolean");
+  }
+
+  const values =
+    source.dontKnow && source.values === undefined
+      ? []
+      : strings(source.values);
+
+  if (source.dontKnow) {
+    if (values.length) {
+      throw new Error("Choose either one selected value or dontKnow");
+    }
+
+    return {
+      answer: text(source.answer),
+      dontKnow: true,
+      id: questionId(source.id),
+      values,
+    };
+  }
 
   if (values.length !== 1) {
     throw new Error("Quiz answers require one selected value");
@@ -214,7 +244,11 @@ export function answerQuestion(state: string, value: unknown) {
   const question = readQuestion(state, input.id);
 
   if (question.answer) {
-    throw new Error("Question already answered");
+    if (JSON.stringify(question.answer.input) !== JSON.stringify(input)) {
+      throw new Error("Question already answered with different input");
+    }
+
+    return question.answer.verdict;
   }
 
   const verdict = grade(question.posed, input);
