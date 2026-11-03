@@ -31,13 +31,15 @@ If any guardrail fails, report all results available, log `kata_submit` with `re
 
 ## Retrieve learning
 
-After objective guardrails pass, retrieve this kata's linked `phase:"pre"` answers. Ask 3–5 **different questions on the same concepts**, using predict/trace/impact/why questions checkable against the final code. Keep files closed for the learner. Use the option rules in [the kata workflow](kata.md): equal whitespace-word counts within each question, varied correct positions, identical formatting and no answer-key clues. Preserve concept labels so comparisons are possible. Wait for actual answers and clarify ambiguity before grading.
+After objective guardrails pass, retrieve this kata's linked `phase:"pre"` answers. Ask 3–5 **different questions on the same concepts**, using predict/trace/impact/why questions checkable against the final code. Keep files closed for the learner. Use the option rules in [the kata workflow](kata.md): equal whitespace-word counts within each question, identical formatting and no answer-key clues. Pose every multiple-choice question through `quiz pose`, which enforces the counts and shuffles once; show the returned order. Preserve concept labels so comparisons are possible. Wait for actual answers, clarify ambiguity, and pass their exact words plus the mapped value or `dontKnow` to `quiz answer`. Explain the returned verdict. Follow the [payload examples](quiz.md#pose-answer-and-log-multiple-choice). Skip unanswered questions without logging them; if code changes, reassess and pose fresh questions with new ids, leaving abandoned questions unlogged.
 
-Log the answers with `phase:"post"` and the active `kataNumber`; include each actual full question/options, response, correctness, concept and file. Include only answered files in the event's `files`. Example shape with illustrative placeholders:
+Log answered multiple-choice questions as posed references with `phase:"post"` and the active `kataNumber`. Include only answered files in the event's `files`. Free recall and delayed checks are unchanged: agent-graded, using full answer objects. Example shape with illustrative placeholders:
 
 ```json
-{"id":"unique-post-attempt","type":"quiz","files":["src/example.ts"],"phase":"post","kataNumber":1,"answers":[{"file":"src/example.ts","concept":"early return","question":"Different question and options on the same concept","answer":"Learner's actual response","correct":true}]}
+{"id":"unique-post-attempt","type":"quiz","files":["src/example.ts"],"phase":"post","kataNumber":1,"answers":[{"posed":"actual-post-question-id"}]}
 ```
+
+Each posed id can be logged only once. Retry uncertain pose, answer or log writes with the same id and identical payload.
 
 Match pre/post evidence by file and concept. Name each misconception: a specific wrong-before/right-after concept, with the prior mistaken belief and corrected understanding. Report still-wrong concepts too; do not count an omitted answer as correct or claim that different questions are interchangeable test items. Show pre/post correct counts and percentage-point change as descriptive quiz results; post answers retain the CLI's half weighting. The PRD supplies no quiz pass threshold: do not invent one or award delayed verification for immediate recall.
 

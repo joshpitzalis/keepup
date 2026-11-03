@@ -78,9 +78,9 @@ target metric and achievable goal are known.
 
 ## Recall before opening
 
-Ask 3–5 multiple-choice questions about the selected files. Include predict, trace, impact or why questions whose answers can be checked against the actual code; keep the answer key private until the learner responds. Give each question a specific concept label for the later post-quiz. Every option within a question must have the same whitespace-separated word count, parallel wording and identical formatting. Count the words before presenting. Vary the correct answer's position across the quiz. Avoid clues such as a uniquely qualified, detailed or formatted correct option.
+Ask 3–5 multiple-choice questions about the selected files. Include predict, trace, impact or why questions whose answers can be checked against the actual code; keep the answer key private until the learner responds. Give each question a specific concept label for the later post-quiz. Every option within a question must have the same whitespace-separated word count, parallel wording and identical formatting. Pose every multiple-choice question through `quiz pose`, which enforces the word counts and shuffles once; show the returned order unchanged. Follow the [pose/answer/log payloads](quiz.md#pose-answer-and-log-multiple-choice). Avoid clues such as a uniquely qualified, detailed or formatted correct option.
 
-Wait for the learner's answers. Grade against the code; retain each full question, the exact answer given, concept, file and boolean correctness. Clarify an ambiguous answer rather than guessing. Keep the actual answers pending until the clean recheck and successful start below; a pause or skipped question supplies no answer. Show which answers were correct, with a short explanation after grading. If the learner stops before answering, leave the kata unstarted.
+Wait for the learner's answers and clarify ambiguity rather than guessing. Send each exact answer and its mapped option value (or `dontKnow`) to `quiz answer`; explain the returned verdict. Keep the answered pose ids pending until the clean recheck and successful start below. A pause or skipped question supplies no answer and is never logged. If relevant code changes, pose fresh questions with new ids and leave abandoned questions unlogged. If the learner stops before answering, leave the kata unstarted. Free recall and delayed checks remain agent-graded with full answer objects.
 
 ## Start and present the task
 
@@ -95,10 +95,10 @@ Read the returned event. The CLI assigns `kataNumber` and captures snapshots and
 Before presenting the card, log the already-collected pre-quiz answers with the returned `kataNumber`, so submit can retrieve their concepts and misconceptions from `status.katas[].quizzes`. Example shape below: replace every example string, include every actual answer, use precisely the answered kata files in `files`, and generate a fresh action ID. Pass serialized JSON as one argument to `node <CLI> log`:
 
 ```json
-{"id":"unique-pre-attempt","type":"quiz","files":["src/example.ts"],"phase":"pre","kataNumber":1,"answers":[{"file":"src/example.ts","concept":"early return","question":"Actual question and options shown","answer":"Learner's exact response","correct":false}]}
+{"id":"unique-pre-attempt","type":"quiz","files":["src/example.ts"],"phase":"pre","kataNumber":1,"answers":[{"posed":"actual-pre-question-id"}]}
 ```
 
-The placeholder `false` is not a grading default. A new response attempt needs a new ID; retrying the same completed logging operation reuses its original ID and payload. If linked quiz logging fails, retain the answers and retry the same payload before proceeding to the card.
+Use each answered pose id once. A new question needs a new pose id; uncertain pose, answer or log writes reuse the same id and identical payload. If linked quiz logging fails, retain the references and retry the same payload before proceeding to the card.
 
 Present one card containing:
 
