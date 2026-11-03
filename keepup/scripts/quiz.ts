@@ -8,9 +8,10 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 import { parseEvent } from "./handlers/parse-event.ts";
+import type { StoredEvent } from "./keepup.ts";
 import { grade, pose } from "./question.ts";
 import type { Posed, QuestionSpec, Verdict } from "./question.ts";
 
@@ -121,12 +122,15 @@ function questionPath(state: string, id: string) {
 }
 
 function writeQuestion(state: string, question: StoredQuestion) {
-  mkdirSync(join(state, "questions"), { recursive: true });
-  const path = questionPath(state, question.spec.id);
+  writeRecord(questionPath(state, question.spec.id), question);
+}
+
+function writeRecord(path: string, record: StoredQuestion | QuizReservation[]) {
+  mkdirSync(dirname(path), { recursive: true });
   const temporary = `${path}.${randomUUID()}.tmp`;
 
   try {
-    writeFileSync(temporary, `${JSON.stringify(question)}\n`, { flag: "wx" });
+    writeFileSync(temporary, `${JSON.stringify(record)}\n`, { flag: "wx" });
     renameSync(temporary, path);
   } finally {
     rmSync(temporary, { force: true });
@@ -224,7 +228,7 @@ export function answerQuestion(state: string, value: unknown) {
   return verdict;
 }
 
-export function resolveQuizEvent(state: string, value: unknown) {
+function expandedQuizEvent(state: string, value: unknown) {
   const source = object(value);
 
   if (source.type !== "quiz" || !Array.isArray(source.answers)) {
@@ -264,6 +268,123 @@ export function resolveQuizEvent(state: string, value: unknown) {
   });
 
   return parseEvent({ ...source, answers });
+}
+
+interface QuizReservation {
+  id: string;
+  who: string;
+  retryDigest: string;
+  references: (string | null)[];
+}
+
+function readReservations(state: string): QuizReservation[] {
+  const path = join(state, "quiz-log.json");
+
+  if (!existsSync(path)) {
+    return [];
+  }
+
+  const records: unknown = JSON.parse(readFileSync(path, "utf-8"));
+
+  if (!Array.isArray(records)) {
+    throw new TypeError("Invalid quiz log reservations");
+  }
+
+  return records.map((value) => {
+    const record = object(value);
+
+    if (!Array.isArray(record.references)) {
+      throw new TypeError("Invalid quiz log references");
+    }
+
+    return {
+      id: text(record.id),
+      references: record.references.map((id) =>
+        id === null ? null : questionId(id)
+      ),
+      retryDigest: text(record.retryDigest),
+      who: text(record.who),
+    };
+  });
+}
+
+export function resolveQuizEvent(
+  state: string,
+  value: unknown,
+  events: StoredEvent[],
+  who: string
+) {
+  const input = expandedQuizEvent(state, value);
+  const source = object(value);
+
+  const references =
+    input.type === "quiz" && Array.isArray(source.answers)
+      ? source.answers.map((item) => {
+          const entry = object(item);
+
+          return "posed" in entry ? questionId(entry.posed) : null;
+        })
+      : [];
+
+  const ids = references.filter((id) => id !== null);
+
+  if (new Set(ids).size !== ids.length) {
+    throw new Error("A posed question can only appear once in an event");
+  }
+
+  // Reservations without a committed event are failed writes, not earned credit.
+  const committed = readReservations(state).filter((record) =>
+    events.some(
+      (event) =>
+        event.id === record.id &&
+        event.who === record.who &&
+        event.retryDigest === record.retryDigest
+    )
+  );
+
+  const previous = events.find(
+    (event) => event.id === input.id && event.who === who
+  );
+
+  const reservation = committed.find(
+    (record) => record.id === input.id && record.who === who
+  );
+
+  const normalized = ids.length ? references : [];
+
+  if (
+    previous &&
+    JSON.stringify(reservation?.references ?? []) !== JSON.stringify(normalized)
+  ) {
+    throw new Error("Retry id already used with different posed references");
+  }
+
+  if (
+    committed.some(
+      (record) =>
+        (record.id !== input.id || record.who !== who) &&
+        record.references.some((id) => id !== null && ids.includes(id))
+    )
+  ) {
+    throw new Error("Posed question already logged in another event");
+  }
+
+  return {
+    input,
+    reserve: (event: StoredEvent) => {
+      if (ids.length) {
+        writeRecord(join(state, "quiz-log.json"), [
+          ...committed,
+          {
+            id: event.id,
+            references,
+            retryDigest: event.retryDigest,
+            who: event.who,
+          },
+        ]);
+      }
+    },
+  };
 }
 
 export function quizCommand(state: string, args: string[]) {

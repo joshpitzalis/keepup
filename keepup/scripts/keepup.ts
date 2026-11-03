@@ -558,7 +558,12 @@ function kataInventory(targets: readonly string[]) {
 // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The CLI JSON input is parsed immediately below.
 function logEvent(value: unknown) {
   return withLock(() => {
-    const input = resolveQuizEvent(state, value);
+    const { input, reserve } = resolveQuizEvent(
+      state,
+      value,
+      readEvents(),
+      learner()
+    );
 
     if (input.type === "architecture_pass") {
       throw new Error(
@@ -566,7 +571,7 @@ function logEvent(value: unknown) {
       );
     }
 
-    return writeEventLocked(input);
+    return writeEventLocked(input, reserve);
   });
 }
 
